@@ -1,0 +1,15 @@
+# Web automation
+selenium>=4.0.0
+undetected-chromedriver>=3.5.0
+
+# HTML parsing
+beautifulsoup4>=4.11.0
+
+# HTTP requests
+requests>=2.28.0
+
+# OCR
+pytesseract>=0.3.10
+Pillow>=9.2.0
+opencv-python>=4.6.0.66
+numpy>=1.23.0
