@@ -1769,7 +1769,7 @@ if __name__ == "__main__":
     # wait_for_downloads(download_path, timeout=100)
     # get_daishin(driver=driver)
     # get_kiwoom(driver=driver)
-    get_miraeasset(driver)
+    # get_miraeasset(driver)
     # get_hankyung(driver)
     # get_bnk(driver=driver, max_pages=3, max_reports=10, logger=logger, company=None)
     # get_ds()
