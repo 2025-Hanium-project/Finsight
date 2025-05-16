@@ -1,0 +1,10 @@
+requests
+beautifulsoup4
+pandas
+selenium
+chromedriver-autoinstaller
+pytesseract
+Pillow
+PyMuPDF
+webdriver_manager
+PyPDF2
