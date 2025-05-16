@@ -96,118 +96,119 @@ def wait_for_downloads(folder, timeout=100):
             break
         time.sleep(3)
 
-def get_hankyung(driver:WebDriver):
+# def get_hankyung(driver:WebDriver):
 
  
-    # 분석 리스트 페이지 열기
-    url = f"https://consensus.hankyung.com/analysis/list?skinType=business&sdate={date_str_bar}&edate={date_str_bar}&pagenum=50"
-    driver.get(url)
-    time.sleep(3)
+#     # 분석 리스트 페이지 열기
+#     url = f"https://consensus.hankyung.com/analysis/list?skinType=business&sdate={date_str_bar}&edate={date_str_bar}&pagenum=50"
+#     driver.get(url)
+#     time.sleep(3)
 
-    # 렌더링된 HTML 파싱
-    soup = BeautifulSoup(driver.page_source, "html.parser")
-    results = []
-    rows = soup.select("table tbody tr")
+#     # 렌더링된 HTML 파싱
+#     soup = BeautifulSoup(driver.page_source, "html.parser")
+#     results = []
+#     rows = soup.select("table tbody tr")
 
-    # link, 제공 증권사, report id 리스트 생성성
-    for row in rows:
-        tds = row.find_all("td")
-        pdf_tag = row.select_one("div.dv_input a[href*='downpdf']")
-        if pdf_tag and len(tds) >= 6:
-            pdf_link = "https://consensus.hankyung.com" + pdf_tag["href"]
-            stock_name = tds[1].get_text(strip=True).split("(")[0]
-            provided_by = tds[5].get_text(strip=True)
-            report_idx = pdf_tag["href"].split("=")[-1]
-            results.append({
-                "title" : stock_name,
-                "link": pdf_link,
-                "provided_by": provided_by,
-                "report_idx": report_idx
-            })
+#     # link, 제공 증권사, report id 리스트 생성성
+#     for row in rows:
+#         tds = row.find_all("td")
+#         pdf_tag = row.select_one("div.dv_input a[href*='downpdf']")
+#         if pdf_tag and len(tds) >= 6:
+#             pdf_link = "https://consensus.hankyung.com" + pdf_tag["href"]
+#             stock_name = tds[1].get_text(strip=True).split("(")[0]
+#             provided_by = tds[5].get_text(strip=True)
+#             report_idx = pdf_tag["href"].split("=")[-1]
+#             results.append({
+#                 "title" : stock_name,
+#                 "link": pdf_link,
+#                 "provided_by": provided_by,
+#                 "report_idx": report_idx
+#             })
 
-    # 1. PDF 전부 다운로드
-    for r in results:
-        filename = f"{r['report_idx']}.pdf"
-        full_path = os.path.join(download_path, filename)
-        if os.path.exists(full_path):
-            continue  # 이미 있으면 다운로드 생략
+#     # 1. PDF 전부 다운로드
+#     for r in results:
+#         filename = f"{r['report_idx']}.pdf"
+#         full_path = os.path.join(download_path, filename)
+#         if os.path.exists(full_path):
+#             continue  # 이미 있으면 다운로드 생략
 
-        driver.get(r["link"])
-        wait_for_downloads(download_path)
-    time.sleep(2)
+#         driver.get(r["link"])
+#         wait_for_downloads(download_path)
+#     time.sleep(2)
 
-    # 2. 다운로드된 PDF 이름 변경
-    for r in results:
-        report_idx = r["report_idx"]
-        provided_by = r["provided_by"].replace(" ", "_").replace("/", "_")
-        stock_name = r["title"]
-        old_path = os.path.join(download_path, f"{report_idx}.pdf")
+#     # 2. 다운로드된 PDF 이름 변경
+#     for r in results:
+#         report_idx = r["report_idx"]
+#         provided_by = r["provided_by"].replace(" ", "_").replace("/", "_")
+#         stock_name = r["title"]
+#         old_path = os.path.join(download_path, f"{report_idx}.pdf")
         
-        if not os.path.exists(old_path):
-            print(f"No file: {stock_name}_{report_idx}.pdf")
-            continue
+#         if not os.path.exists(old_path):
+#             print(f"No file: {stock_name}_{report_idx}.pdf")
+#             continue
 
-        new_filename = f"{stock_name}_{provided_by}.pdf"
-        new_path = os.path.join(download_path, new_filename)
+#         new_filename = f"{stock_name}_{provided_by}.pdf"
+#         new_path = os.path.join(download_path, new_filename)
 
-        # 중복 방지
-        counter = 1
-        while os.path.exists(new_path):
-            new_filename = f"{stock_name}_{provided_by}_{counter}.pdf"
-            new_path = os.path.join(download_path, new_filename)
-            counter += 1
+#         # 중복 방지
+#         counter = 1
+#         while os.path.exists(new_path):
+#             new_filename = f"{stock_name}_{provided_by}_{counter}.pdf"
+#             new_path = os.path.join(download_path, new_filename)
+#             counter += 1
 
-        os.rename(old_path, new_path)
-        print(f"filename changed: {new_filename}")
-    if len(results) == 0:
-        print("There is no today's consensus in hankyung")
-    else:
-        print(f"총 {len(results)} # PDF saved (directory: {download_path})")
+#         os.rename(old_path, new_path)
+#         print(f"filename changed: {new_filename}")
+#     if len(results) == 0:
+#         print("There is no today's consensus in hankyung")
+#     else:
+#         print(f"총 {len(results)} # PDF saved (directory: {download_path})")
 
-def get_miraeasset(driver:WebDriver):
-    logger.info("[미래에셋] 크롤링 시작")
-    try:
-        # 해당 날짜의 컨센서스 paging 수 계산
-        url = f"https://securities.miraeasset.com/bbs/board/message/list.do?categoryId=1800&selectedId=1533&searchType=2&searchStartYear={year}&searchStartMonth={month}&searchStartDay={day}&searchEndYear={year}&searchEndMonth={month}&searchEndDay={day}&listType=1&startId=zzzzz~&startPage=1&curPage=1&direction=1"
-        driver.get(url)
-        soup = BeautifulSoup(driver.page_source, "html.parser")
-        paging = soup.select_one(" p.bbs_paging")
-        if paging:
-            page_num = len(paging.find_all("span"))-2
-        else:
-            print("There is no today's consensus in miraeasset")
-            return
-        # paging 수 만큼 순회하며 컨센서스 수집
-        for i in range(1,page_num+1):
-            url = f"https://securities.miraeasset.com/bbs/board/message/list.do?categoryId=1800&selectedId=1533&searchType=2&searchStartYear={year}&searchStartMonth={month}&searchStartDay={day}&searchEndYear={year}&searchEndMonth={month}&searchEndDay={day}&listType=1&startId=zzzzz~&startPage=1&curPage={i}&direction=1"
-            driver.get(url)
-            soup = BeautifulSoup(driver.page_source, "html.parser")
-            rows = soup.select(" p.bbsList_layer_icon a")
-            for row in rows:
-                href = row.get("href", "")
-                match = re.search(r"https://[^']+\.pdf", href)
-                if match:
-                    pre_pdf_url = match.group()
-                    report_id = re.search(r"/(\d+)\.pdf", pre_pdf_url).group(1)
-                    pdf_url = f"{pre_pdf_url}?attachmentId={report_id}"
-                    driver.get(pdf_url)
-                    wait_for_downloads(download_path)                
-                    downloaded_file = max(
-                        [os.path.join(download_path, f) for f in os.listdir(download_path) if f.endswith(".pdf")],
-                        key=os.path.getctime
-                    )
+# def get_miraeasset(driver:WebDriver):
+#     logger.info("[미래에셋] 크롤링 시작")
+#     try:
+#         # 해당 날짜의 컨센서스 paging 수 계산
+#         url = f"https://securities.miraeasset.com/bbs/board/message/list.do?categoryId=1800&selectedId=1533&searchType=2&searchStartYear={year}&searchStartMonth={month}&searchStartDay={day}&searchEndYear={year}&searchEndMonth={month}&searchEndDay={day}&listType=1&startId=zzzzz~&startPage=1&curPage=1&direction=1"
+#         driver.get(url)
+#         soup = BeautifulSoup(driver.page_source, "html.parser")
+#         paging = soup.select_one(" p.bbs_paging")
+#         if paging:
+#             page_num = len(paging.find_all("span"))-2
+#         else:
+#             print("There is no today's consensus in miraeasset")
+#             return
+#         # paging 수 만큼 순회하며 컨센서스 수집
+#         for i in range(1,page_num+1):
+#             url = f"https://securities.miraeasset.com/bbs/board/message/list.do?categoryId=1800&selectedId=1533&searchType=2&searchStartYear={year}&searchStartMonth={month}&searchStartDay={day}&searchEndYear={year}&searchEndMonth={month}&searchEndDay={day}&listType=1&startId=zzzzz~&startPage=1&curPage={i}&direction=1"
+#             print(url)
+#             driver.get(url)
+#             soup = BeautifulSoup(driver.page_source, "html.parser")
+#             rows = soup.select(" p.bbsList_layer_icon a")
+#             for row in rows:
+#                 href = row.get("href", "")
+#                 match = re.search(r"https://[^']+\.pdf", href)
+#                 if match:
+#                     pre_pdf_url = match.group()
+#                     report_id = re.search(r"/(\d+)\.pdf", pre_pdf_url).group(1)
+#                     pdf_url = f"{pre_pdf_url}?attachmentId={report_id}"
+#                     driver.get(pdf_url)
+#                     wait_for_downloads(download_path)                
+#                     downloaded_file = max(
+#                         [os.path.join(download_path, f) for f in os.listdir(download_path) if f.endswith(".pdf")],
+#                         key=os.path.getctime
+#                     )
 
-                    # 파일명 정제 및 변경
-                    origin_name = row["title"]  # e.g., 20250430_더블유씨피 (393890_매수)
-                    name_part = re.sub(r"\s*\([^)]*\)", "", origin_name.split("_", 1)[-1])
-                    name_part = name_part.replace(".pdf", "")
-                    new_filename = f"{name_part}_미래에셋증권.pdf"
-                    new_path = os.path.join(download_path, new_filename)
-                    shutil.move(downloaded_file, new_path)
-                    time.sleep(1)
-    except Exception as e:
-        logger.error(f"[미래에셋] 오류: {e}")
-    logger.info("[미래에셋] 크롤링 종료")
+#                     # 파일명 정제 및 변경
+#                     origin_name = row["title"]  # e.g., 20250430_더블유씨피 (393890_매수)
+#                     name_part = re.sub(r"\s*\([^)]*\)", "", origin_name.split("_", 1)[-1])
+#                     name_part = name_part.replace(".pdf", "")
+#                     new_filename = f"{name_part}_미래에셋증권.pdf"
+#                     new_path = os.path.join(download_path, new_filename)
+#                     shutil.move(downloaded_file, new_path)
+#                     time.sleep(1)
+#     except Exception as e:
+#         logger.error(f"[미래에셋] 오류: {e}")
+#     logger.info("[미래에셋] 크롤링 종료")
 
 def get_kiwoom(driver: WebDriver):
     url = "https://bbn.kiwoom.com/research/VAnalCRView"
@@ -1765,22 +1766,22 @@ def run_requests_crawlers():
 # Selenium 기반 크롤러(순차 실행)
 if __name__ == "__main__":
     logger.info("크롤링 파이프라인 시작")
-    wait_for_downloads(download_path, timeout=100)
-    get_daishin(driver=driver)
-    get_kiwoom(driver=driver)
+    # wait_for_downloads(download_path, timeout=100)
+    # get_daishin(driver=driver)
+    # get_kiwoom(driver=driver)
     get_miraeasset(driver)
-    get_hankyung(driver)
-    get_bnk(driver=driver, max_pages=3, max_reports=10, logger=logger, company=None)
-    get_ds()
-    get_hana(driver)
-    get_heungkuk()
-    get_ibk(driver)
-    get_im()
-    get_kyobo(driver)
-    get_naver(driver)
-    get_sangsangin(driver)
-    get_shinhan(driver)
-    get_yj()
-    get_yuanta(driver)
-    get_kyobo(driver, max_pages=3, logger=None)
+    # get_hankyung(driver)
+    # get_bnk(driver=driver, max_pages=3, max_reports=10, logger=logger, company=None)
+    # get_ds()
+    # get_hana(driver)
+    # get_heungkuk()
+    # get_ibk(driver)
+    # get_im()
+    # get_kyobo(driver)
+    # get_naver(driver)
+    # get_sangsangin(driver)
+    # get_shinhan(driver)
+    # get_yj()
+    # get_yuanta(driver)
+    # get_kyobo(driver, max_pages=3, logger=None)
     logger.info("크롤링 파이프라인 종료")
