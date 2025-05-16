@@ -21,8 +21,8 @@ from urllib.parse import urljoin
 import json
 import logging
 from pathlib import Path
-from crawling.utils import safe_filename, get_save_dir, download_file, date_str_now
-from crawling.config import LOG_DIR, BASE_DOWNLOAD_PATH, USER_AGENT
+from utils import safe_filename, get_save_dir, download_file, date_str_now
+from config import LOG_DIR, BASE_DOWNLOAD_PATH, USER_AGENT
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 

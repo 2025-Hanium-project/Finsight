@@ -2,7 +2,7 @@ import os
 import re
 import requests
 from datetime import datetime
-from crawling.config import BASE_DOWNLOAD_PATH, USER_AGENT, DEFAULT_TIMEOUT
+from config import BASE_DOWNLOAD_PATH, USER_AGENT, DEFAULT_TIMEOUT
 
 def safe_filename(stock, company):
     """
