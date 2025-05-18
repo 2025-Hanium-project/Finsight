@@ -6,18 +6,9 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from datetime import datetime, timedelta
 
-date = datetime.today() - timedelta(days=1)
-
-# 날짜 정보 정리
-year = date.strftime('%Y')
-month = date.strftime('%m')
-day = date.strftime('%d')
-date_str_bar = date.strftime('%Y-%m-%d')
-date_str_dot = date.strftime('%Y.%m.%d')
 # 저장 경로 생성 (연도/월)
-
+# 더보기 버튼 누르면 컨센서스 더 추가로 가져올 수 있음
 download_path = os.path.abspath("kiwoom_consensus")
 os.makedirs(download_path, exist_ok=True)
 
