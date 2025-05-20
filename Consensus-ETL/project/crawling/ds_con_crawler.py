@@ -21,6 +21,9 @@ logger = logging.getLogger()
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PARENT_DIR = os.path.dirname(BASE_DIR)
 download_path = os.path.join(PARENT_DIR, "consensus", "DS_investment")
+if not os.path.exists(download_path):
+    os.makedirs(download_path)
+os.makedirs(download_path, exist_ok=True)
 # # 다운로드 폴더 생성
 # def create_folders():
 #     base_dir = os.path.join(os.getcwd(), 'DS_Reports')
