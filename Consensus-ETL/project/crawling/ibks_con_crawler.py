@@ -129,8 +129,6 @@ def crawl_ibks_company_analysis(start_date=None, days=7):
                 if not pattern_success:
                     logger.warning("모든 접근 방법 실패. 직접 코드 수정이 필요할 수 있습니다.")
         
-        # 다운로드 파일 확인 및 정리
-        cleanup_downloaded_files(base_dir, date_range_short)
         
     except Exception as e:
         logger.error(f"크롤링 중 오류 발생: {str(e)}")
