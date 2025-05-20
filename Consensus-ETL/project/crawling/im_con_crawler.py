@@ -25,9 +25,11 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PARENT_DIR = os.path.dirname(BASE_DIR)
+download_dir = os.path.join(PARENT_DIR, "consensus", "im_securities")
 
 # 저장 디렉토리 설정
-download_dir = "reports"
 if not os.path.exists(download_dir):
     os.makedirs(download_dir)
 
