@@ -16,8 +16,6 @@ from bs4 import BeautifulSoup
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PARENT_DIR = os.path.dirname(BASE_DIR)
 download_path = os.path.join(PARENT_DIR, "consensus", "daishin")
-if not os.path.exists(download_path):
-    os.makedirs(download_path)
 os.makedirs(download_path, exist_ok=True)
 
 prefs = {
