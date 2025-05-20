@@ -12,8 +12,10 @@ import logging
 from config import LOG_DIR
 import requests
 from bs4 import BeautifulSoup
-
-download_path = "daishin_consensus"
+# change download_path to consensus/daishin
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PARENT_DIR = os.path.dirname(BASE_DIR)
+download_path = os.path.join(PARENT_DIR, "consensus", "daishin")
 if not os.path.exists(download_path):
     os.makedirs(download_path)
 os.makedirs(download_path, exist_ok=True)
@@ -133,3 +135,4 @@ for i in range(5):
         EC.element_to_be_clickable((By.ID, "id_ucPageSelect_id_btnRightPage")))
         next_btn.click()
         time.sleep(2)
+    

@@ -18,21 +18,16 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger()
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PARENT_DIR = os.path.dirname(BASE_DIR)
+download_path = os.path.join(PARENT_DIR, "consensus", "DS_investment")
+# # 다운로드 폴더 생성
+# def create_folders():
+#     base_dir = os.path.join(os.getcwd(), 'DS_Reports')
+#     if not os.path.exists(base_dir):
+#         os.makedirs(base_dir)
+#     return base_dir
 
-# 다운로드 폴더 생성
-def create_folders():
-    base_dir = os.path.join(os.getcwd(), 'DS_Reports')
-    if not os.path.exists(base_dir):
-        os.makedirs(base_dir)
-    return base_dir
-
-# 날짜별 폴더 생성
-def create_date_folder(base_dir, date_str):
-    # 날짜 형식 정리 (YYYY-MM-DD)
-    date_folder = os.path.join(base_dir, date_str)
-    if not os.path.exists(date_folder):
-        os.makedirs(date_folder)
-    return date_folder
 
 # 리포트 목록 페이지에서 리포트 ID 및 정보 가져오기
 def get_report_list(page_num=1, max_pages=10):
@@ -276,7 +271,7 @@ def main():
     logger.info(f"크롤링 시작: {start_time}")
     
     # 폴더 생성
-    base_dir = create_folders()
+    base_dir = download_path
     
     # 세션 유지
     session = requests.Session()
@@ -301,7 +296,6 @@ def main():
         
         # 날짜 정보 추출 및 폴더 생성
         date_str = report['date'].replace('.', '-')  # 날짜 형식 변환 (필요시)
-        date_folder = create_date_folder(base_dir, date_str)
         
         # 첨부파일 정보 가져오기
         attachments = get_report_attachments(report['wr_id'], session)
@@ -315,7 +309,7 @@ def main():
             file_name = attachment['name']
             file_url = attachment['url']
             
-            save_path = os.path.join(date_folder, file_name)
+            save_path = os.path.join(base_dir, file_name)
             
             download_success = download_file(file_url, save_path, session)
             status = "성공" if download_success else "실패"
