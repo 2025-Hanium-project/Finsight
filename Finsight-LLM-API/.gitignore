@@ -1,0 +1,95 @@
+# Python 관련
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+env/
+venv/
+.venv/
+pip-wheel-metadata/
+
+# Flask 관련
+instance/
+*.db
+*.sqlite3
+*.log
+
+# 환경설정
+.env
+*.env
+.env.*
+
+# VS Code
+.vscode/
+
+# OS별
+.DS_Store
+Thumbs.db
+
+# Node.js (React)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# React 빌드 파일
+build/
+dist/
+*.lock
+
+# Frontend 환경
+.eslintcache
+coverage/
+.next/
+out/
+.cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Docker 관련
+*.pid
+*.pid.lock
+docker-compose.override.yml
+
+# 모델 및 벡터 파일
+*.pt
+*.ckpt
+*.h5
+*.pkl
+*.model
+*.onnx
+*.tflite
+*.bin
+*.npy
+*.npz
+
+# 데이터
+data/raw/
+data/tmp/
+data/cache/
+data/*.csv
+data/*.xlsx
+
+# Log 및 분석 결과
+logs/
+*.log
+outputs/
+results/
+__results__/
+
+# 기타 백업
+*.bak
+*.swp
+*~
+
+# 시스템 파일
+.idea/
+*.iml
+*.sublime-workspace
+*.sublime-project
