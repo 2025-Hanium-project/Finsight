@@ -56,14 +56,6 @@ python app.py
 uvicorn app:app --reload
 ```
 
-### 테스트 실행
-
-테스트 스크립트를 실행하여 각 Agent의 기능을 검증할 수 있습니다:
-
-```bash
-python test_agents.py
-```
-
 ## API 엔드포인트
 
 ### 리포트 요약 API
@@ -102,9 +94,7 @@ investment-analysis-llm-api/
 ├── models/                  # 데이터 모델
 │   ├── __init__.py
 │   └── schemas.py           # 요청/응답 스키마
-├── utils/                   # 유틸리티
-│   ├── __init__.py
-│   └── llm_client.py        # LLM API 클라이언트
-└── tests/                   # 테스트
-    └── test_agents.py       # Agent 테스트
+└── utils/                   # 유틸리티
+    ├── __init__.py
+    └── llm_client.py        # LLM API 클라이언트
 ```
