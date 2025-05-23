@@ -1,0 +1,47 @@
+2025-05-23 21:46:17,791 - INFO - BNK투자증권 리포트 크롤링 시작
+2025-05-23 21:46:17,791 - INFO - ====== WebDriver manager ======
+2025-05-23 21:46:19,464 - INFO - Get LATEST chromedriver version for google-chrome
+2025-05-23 21:46:20,251 - INFO - Get LATEST chromedriver version for google-chrome
+2025-05-23 21:46:20,989 - INFO - Driver [C:\Users\jse\.wdm\drivers\chromedriver\win64\136.0.7103.113\chromedriver-win32/chromedriver.exe] found in cache
+2025-05-23 21:46:22,342 - INFO - Selenium 웹 드라이버가 성공적으로 설정되었습니다.
+2025-05-23 21:46:22,343 - INFO - 페이지 1 크롤링 중...
+2025-05-23 21:46:23,317 - INFO - 최대 리포트 수(10)에 도달하여 크롤링 종료
+2025-05-23 21:46:23,317 - INFO - 총 10개의 리포트 다운로드 시작
+2025-05-23 21:46:23,317 - INFO - [1/10] 리포트 다운로드 시도: 83295 - [솔루엠/매수] 2Q25부터 ESL 견인, 실적 회복되나 변수는 비용 통제
+New
+2025-05-23 21:46:28,712 - INFO - PDF URL 발견: https://www.bnkfn.co.kr/uploads/83295/1/221172_358.pdf
+2025-05-23 21:46:29,616 - ERROR - PDF URL에서 직접 다운로드 중 오류: [Errno 22] Invalid argument: 'c:\\Users\\jse\\Desktop\\vscode\\hanium_project\\Finsight-service\\Consensus-ETL\\project\\consensus\\bnk\\20250522_[솔루엠_매수] 2Q25부터 ESL 견인, 실적 회복되나 변수는 비용 통제\nNew_미상.pdf'
+2025-05-23 21:46:32,459 - INFO - [2/10] 리포트 다운로드 시도: 83292 - [동원개발/보유] 터닝포인트가 될 새로운 자체사업이 필요
+New
+2025-05-23 21:46:37,919 - INFO - PDF URL 발견: https://www.bnkfn.co.kr/uploads/83292/1/171077_259.pdf
+2025-05-23 21:46:38,807 - ERROR - PDF URL에서 직접 다운로드 중 오류: [Errno 22] Invalid argument: 'c:\\Users\\jse\\Desktop\\vscode\\hanium_project\\Finsight-service\\Consensus-ETL\\project\\consensus\\bnk\\20250522_[동원개발_보유] 터닝포인트가 될 새로운 자체사업이 필요\nNew_미상.pdf'
+2025-05-23 21:46:40,961 - INFO - [3/10] 리포트 다운로드 시도: 83288 - [하림지주/매수] 수익과 자산가치 상승 기대 공존
+New
+2025-05-23 21:46:46,421 - INFO - PDF URL 발견: https://www.bnkfn.co.kr/uploads/83288/1/231451_134.pdf
+2025-05-23 21:46:47,210 - ERROR - PDF URL에서 직접 다운로드 중 오류: [Errno 22] Invalid argument: 'c:\\Users\\jse\\Desktop\\vscode\\hanium_project\\Finsight-service\\Consensus-ETL\\project\\consensus\\bnk\\20250521_[하림지주_매수] 수익과 자산가치 상승 기대 공존\nNew_미상.pdf'
+2025-05-23 21:46:49,963 - INFO - [4/10] 리포트 다운로드 시도: 83287 - [하나머티리얼즈/보유] 실적도 주가도 상승 여력 제한적
+New
+2025-05-23 21:46:55,412 - INFO - PDF URL 발견: https://www.bnkfn.co.kr/uploads/83287/1/221172_357.pdf
+2025-05-23 21:46:56,190 - ERROR - PDF URL에서 직접 다운로드 중 오류: [Errno 22] Invalid argument: 'c:\\Users\\jse\\Desktop\\vscode\\hanium_project\\Finsight-service\\Consensus-ETL\\project\\consensus\\bnk\\20250520_[하나머티리얼즈_보유] 실적도 주가도 상승 여력 제한적\nNew_미상.pdf'
+2025-05-23 21:46:58,984 - INFO - [5/10] 리포트 다운로드 시도: 83284 - [덕산네오룩스/매수] 다양한 실적 호전 호재에도 불구하고 저평가
+New
+2025-05-23 21:47:04,480 - INFO - PDF URL 발견: https://www.bnkfn.co.kr/uploads/83284/1/221172_356.pdf
+2025-05-23 21:47:05,372 - ERROR - PDF URL에서 직접 다운로드 중 오류: [Errno 22] Invalid argument: 'c:\\Users\\jse\\Desktop\\vscode\\hanium_project\\Finsight-service\\Consensus-ETL\\project\\consensus\\bnk\\20250519_[덕산네오룩스_매수] 다양한 실적 호전 호재에도 불구하고 저평가\nNew_미상.pdf'
+2025-05-23 21:47:08,340 - INFO - [6/10] 리포트 다운로드 시도: 83283 - [HPSP/매수] 밋밋한 실적 흐름, 하반기 수주 회복 여부가 관건
+New
+2025-05-23 21:47:13,768 - INFO - PDF URL 발견: https://www.bnkfn.co.kr/uploads/83283/1/221172_355.pdf
+2025-05-23 21:47:14,579 - ERROR - PDF URL에서 직접 다운로드 중 오류: [Errno 22] Invalid argument: 'c:\\Users\\jse\\Desktop\\vscode\\hanium_project\\Finsight-service\\Consensus-ETL\\project\\consensus\\bnk\\20250519_[HPSP_매수] 밋밋한 실적 흐름, 하반기 수주 회복 여부가 관건\nNew_미상.pdf'
+2025-05-23 21:47:16,276 - INFO - [7/10] 리포트 다운로드 시도: 83281 - [두산테스나/매수] 3월부터 가동률 회복되나, 수요 불확실성 지속
+2025-05-23 21:47:21,865 - INFO - PDF URL 발견: https://www.bnkfn.co.kr/uploads/83281/1/221172_354.pdf
+2025-05-23 21:47:22,869 - INFO - URL에서 직접 다운로드 성공: 20250516_[두산테스나_매수] 3월부터 가동률 회복되나, 수요 불확실성 지속_미상.pdf (793683 bytes)
+2025-05-23 21:47:24,897 - INFO - [8/10] 리포트 다운로드 시도: 83280 - [원익QnC/매수] 상반기 실적 개선되나 수요 불확실성 지속
+2025-05-23 21:47:30,400 - INFO - PDF URL 발견: https://www.bnkfn.co.kr/uploads/83280/1/221172_353.pdf
+2025-05-23 21:47:31,398 - INFO - URL에서 직접 다운로드 성공: 20250516_[원익QnC_매수] 상반기 실적 개선되나 수요 불확실성 지속_미상.pdf (804171 bytes)
+2025-05-23 21:47:34,101 - INFO - [9/10] 리포트 다운로드 시도: 83279 - [SFA반도체/보유] 적자 지속, 하반기 턴어라운드 변수는 관세와 외주정책
+2025-05-23 21:47:39,747 - INFO - PDF URL 발견: https://www.bnkfn.co.kr/uploads/83279/1/221172_352.pdf
+2025-05-23 21:47:40,809 - INFO - URL에서 직접 다운로드 성공: 20250516_[SFA반도체_보유] 적자 지속, 하반기 턴어라운드 변수는 관세와 외주정책_미상.pdf (776281 bytes)
+2025-05-23 21:47:42,580 - INFO - [10/10] 리포트 다운로드 시도: 83278 - [에스에프에이/매수] 내용 면에서 양호했던 1Q25 별도 실적
+2025-05-23 21:47:48,100 - INFO - PDF URL 발견: https://www.bnkfn.co.kr/uploads/83278/1/221172_351.pdf
+2025-05-23 21:47:49,203 - INFO - URL에서 직접 다운로드 성공: 20250516_[에스에프에이_매수] 내용 면에서 양호했던 1Q25 별도 실적_미상.pdf (821533 bytes)
+2025-05-23 21:47:53,446 - INFO - Selenium 웹 드라이버가 종료되었습니다.
+2025-05-23 21:47:53,447 - INFO - 크롤링 완료

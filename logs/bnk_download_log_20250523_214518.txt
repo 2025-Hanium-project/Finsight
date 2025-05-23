@@ -1,0 +1,25 @@
+2025-05-23 21:45:18,280 - INFO - BNK투자증권 리포트 크롤링 시작
+2025-05-23 21:45:18,281 - INFO - ====== WebDriver manager ======
+2025-05-23 21:45:20,560 - INFO - Get LATEST chromedriver version for google-chrome
+2025-05-23 21:45:21,447 - INFO - Get LATEST chromedriver version for google-chrome
+2025-05-23 21:45:22,237 - INFO - Driver [C:\Users\jse\.wdm\drivers\chromedriver\win64\136.0.7103.113\chromedriver-win32/chromedriver.exe] found in cache
+2025-05-23 21:45:23,723 - INFO - Selenium 웹 드라이버가 성공적으로 설정되었습니다.
+2025-05-23 21:45:23,723 - INFO - 페이지 1 크롤링 중...
+2025-05-23 21:45:24,546 - INFO - 최대 리포트 수(10)에 도달하여 크롤링 종료
+2025-05-23 21:45:24,547 - INFO - 총 10개의 리포트 다운로드 시작
+2025-05-23 21:45:24,547 - INFO - [1/10] 리포트 다운로드 시도: 83295 - [솔루엠/매수] 2Q25부터 ESL 견인, 실적 회복되나 변수는 비용 통제
+New
+2025-05-23 21:45:30,000 - INFO - PDF URL 발견: https://www.bnkfn.co.kr/uploads/83295/1/221172_358.pdf
+2025-05-23 21:45:31,055 - INFO - URL에서 직접 다운로드 성공: 20250522_Unknown_Company.pdf (797243 bytes)
+2025-05-23 21:45:33,346 - INFO - [2/10] 리포트 다운로드 시도: 83292 - [동원개발/보유] 터닝포인트가 될 새로운 자체사업이 필요
+New
+2025-05-23 21:45:38,817 - INFO - PDF URL 발견: https://www.bnkfn.co.kr/uploads/83292/1/171077_259.pdf
+2025-05-23 21:45:39,876 - INFO - URL에서 직접 다운로드 성공: 20250522_Unknown_Company_1.pdf (867543 bytes)
+2025-05-23 21:45:42,003 - INFO - [3/10] 리포트 다운로드 시도: 83288 - [하림지주/매수] 수익과 자산가치 상승 기대 공존
+New
+2025-05-23 21:45:47,436 - INFO - PDF URL 발견: https://www.bnkfn.co.kr/uploads/83288/1/231451_134.pdf
+2025-05-23 21:45:48,544 - INFO - URL에서 직접 다운로드 성공: 20250521_Unknown_Company.pdf (823581 bytes)
+2025-05-23 21:45:50,951 - INFO - [4/10] 리포트 다운로드 시도: 83287 - [하나머티리얼즈/보유] 실적도 주가도 상승 여력 제한적
+New
+2025-05-23 21:45:56,445 - INFO - PDF URL 발견: https://www.bnkfn.co.kr/uploads/83287/1/221172_357.pdf
+2025-05-23 21:45:57,436 - INFO - URL에서 직접 다운로드 성공: 20250520_Unknown_Company.pdf (791386 bytes)

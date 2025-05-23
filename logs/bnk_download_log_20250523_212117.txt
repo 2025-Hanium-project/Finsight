@@ -1,0 +1,15 @@
+2025-05-23 21:21:17,047 - INFO - BNK투자증권 리포트 크롤링 시작
+2025-05-23 21:21:17,047 - INFO - ====== WebDriver manager ======
+2025-05-23 21:21:18,813 - INFO - Get LATEST chromedriver version for google-chrome
+2025-05-23 21:21:19,617 - INFO - Get LATEST chromedriver version for google-chrome
+2025-05-23 21:21:20,397 - INFO - Driver [C:\Users\jse\.wdm\drivers\chromedriver\win64\136.0.7103.113\chromedriver-win32/chromedriver.exe] found in cache
+2025-05-23 21:21:21,763 - INFO - Selenium 웹 드라이버가 성공적으로 설정되었습니다.
+2025-05-23 21:21:21,764 - INFO - 페이지 1 크롤링 중...
+2025-05-23 21:21:22,741 - INFO - 최대 리포트 수(10)에 도달하여 크롤링 종료
+2025-05-23 21:21:22,742 - INFO - 총 10개의 리포트 다운로드 시작
+2025-05-23 21:21:22,742 - INFO - [1/10] 리포트 다운로드 시도: 83295 - [솔루엠/매수] 2Q25부터 ESL 견인, 실적 회복되나 변수는 비용 통제
+New
+2025-05-23 21:21:28,153 - INFO - PDF URL 발견: https://www.bnkfn.co.kr/uploads/83295/1/221172_358.pdf
+2025-05-23 21:21:29,130 - ERROR - PDF URL에서 직접 다운로드 중 오류: [Errno 22] Invalid argument: 'c:\\Users\\jse\\Desktop\\vscode\\hanium_project\\Finsight-service\\Consensus-ETL\\project\\consensus\\bnk\\20250522_83295_[솔루엠_매수] 2Q25부터 ESL 견인, 실적 회복되나 변수는 비용 통제\nNew.pdf'
+2025-05-23 21:21:30,757 - INFO - [2/10] 리포트 다운로드 시도: 83292 - [동원개발/보유] 터닝포인트가 될 새로운 자체사업이 필요
+New

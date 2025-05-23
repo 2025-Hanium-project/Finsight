@@ -1,0 +1,42 @@
+2025-05-23 21:14:55,828 - INFO - BNK투자증권 리포트 크롤링 시작
+2025-05-23 21:14:55,829 - INFO - ====== WebDriver manager ======
+2025-05-23 21:14:58,586 - INFO - Get LATEST chromedriver version for google-chrome
+2025-05-23 21:14:59,826 - INFO - Get LATEST chromedriver version for google-chrome
+2025-05-23 21:15:00,960 - INFO - There is no [win64] chromedriver "136.0.7103.113" for browser google-chrome "136.0.7103" in cache
+2025-05-23 21:15:00,961 - INFO - Get LATEST chromedriver version for google-chrome
+2025-05-23 21:15:03,374 - INFO - WebDriver version 136.0.7103.113 selected
+2025-05-23 21:15:03,382 - INFO - Modern chrome version https://storage.googleapis.com/chrome-for-testing-public/136.0.7103.113/win32/chromedriver-win32.zip
+2025-05-23 21:15:03,382 - INFO - About to download new driver from https://storage.googleapis.com/chrome-for-testing-public/136.0.7103.113/win32/chromedriver-win32.zip
+2025-05-23 21:15:04,463 - INFO - Driver downloading response is 200
+2025-05-23 21:15:04,732 - INFO - Get LATEST chromedriver version for google-chrome
+2025-05-23 21:15:07,126 - INFO - Driver has been saved in cache [C:\Users\jse\.wdm\drivers\chromedriver\win64\136.0.7103.113]
+2025-05-23 21:15:10,241 - INFO - Selenium 웹 드라이버가 성공적으로 설정되었습니다.
+2025-05-23 21:15:10,242 - INFO - 페이지 1 크롤링 중...
+2025-05-23 21:15:11,557 - INFO - 최대 리포트 수(10)에 도달하여 크롤링 종료
+2025-05-23 21:15:11,558 - INFO - 총 10개의 리포트 다운로드 시작
+2025-05-23 21:15:11,558 - INFO - [1/10] 리포트 다운로드 시도: 83295 - [솔루엠/매수] 2Q25부터 ESL 견인, 실적 회복되나 변수는 비용 통제
+New
+2025-05-23 21:15:17,274 - INFO - PDF URL 발견: https://www.bnkfn.co.kr/uploads/83295/1/221172_358.pdf
+2025-05-23 21:15:18,694 - ERROR - PDF URL에서 직접 다운로드 중 오류: [Errno 22] Invalid argument: 'bnk_reports\\20250522_83295_[솔루엠_매수] 2Q25부터 ESL 견인, 실적 회복되나 변수는 비용 통제\nNew.pdf'
+2025-05-23 21:15:20,464 - INFO - [2/10] 리포트 다운로드 시도: 83292 - [동원개발/보유] 터닝포인트가 될 새로운 자체사업이 필요
+New
+2025-05-23 21:15:26,278 - INFO - PDF URL 발견: https://www.bnkfn.co.kr/uploads/83292/1/171077_259.pdf
+2025-05-23 21:15:27,276 - ERROR - PDF URL에서 직접 다운로드 중 오류: [Errno 22] Invalid argument: 'bnk_reports\\20250522_83292_[동원개발_보유] 터닝포인트가 될 새로운 자체사업이 필요\nNew.pdf'
+2025-05-23 21:15:30,026 - INFO - [3/10] 리포트 다운로드 시도: 83288 - [하림지주/매수] 수익과 자산가치 상승 기대 공존
+New
+2025-05-23 21:15:35,517 - INFO - PDF URL 발견: https://www.bnkfn.co.kr/uploads/83288/1/231451_134.pdf
+2025-05-23 21:15:36,707 - ERROR - PDF URL에서 직접 다운로드 중 오류: [Errno 22] Invalid argument: 'bnk_reports\\20250521_83288_[하림지주_매수] 수익과 자산가치 상승 기대 공존\nNew.pdf'
+2025-05-23 21:15:39,416 - INFO - [4/10] 리포트 다운로드 시도: 83287 - [하나머티리얼즈/보유] 실적도 주가도 상승 여력 제한적
+New
+2025-05-23 21:15:45,010 - INFO - PDF URL 발견: https://www.bnkfn.co.kr/uploads/83287/1/221172_357.pdf
+2025-05-23 21:15:46,132 - ERROR - PDF URL에서 직접 다운로드 중 오류: [Errno 22] Invalid argument: 'bnk_reports\\20250520_83287_[하나머티리얼즈_보유] 실적도 주가도 상승 여력 제한적\nNew.pdf'
+2025-05-23 21:15:47,647 - INFO - [5/10] 리포트 다운로드 시도: 83284 - [덕산네오룩스/매수] 다양한 실적 호전 호재에도 불구하고 저평가
+New
+2025-05-23 21:15:53,198 - INFO - PDF URL 발견: https://www.bnkfn.co.kr/uploads/83284/1/221172_356.pdf
+2025-05-23 21:15:54,481 - ERROR - PDF URL에서 직접 다운로드 중 오류: [Errno 22] Invalid argument: 'bnk_reports\\20250519_83284_[덕산네오룩스_매수] 다양한 실적 호전 호재에도 불구하고 저평가\nNew.pdf'
+2025-05-23 21:15:57,071 - INFO - [6/10] 리포트 다운로드 시도: 83283 - [HPSP/매수] 밋밋한 실적 흐름, 하반기 수주 회복 여부가 관건
+New
+2025-05-23 21:16:02,687 - INFO - PDF URL 발견: https://www.bnkfn.co.kr/uploads/83283/1/221172_355.pdf
+2025-05-23 21:16:03,730 - ERROR - PDF URL에서 직접 다운로드 중 오류: [Errno 22] Invalid argument: 'bnk_reports\\20250519_83283_[HPSP_매수] 밋밋한 실적 흐름, 하반기 수주 회복 여부가 관건\nNew.pdf'
+2025-05-23 21:16:05,569 - INFO - [7/10] 리포트 다운로드 시도: 83281 - [두산테스나/매수] 3월부터 가동률 회복되나, 수요 불확실성 지속
+2025-05-23 21:16:11,194 - INFO - PDF URL 발견: https://www.bnkfn.co.kr/uploads/83281/1/221172_354.pdf

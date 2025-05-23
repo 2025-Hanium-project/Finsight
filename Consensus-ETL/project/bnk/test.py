@@ -64,7 +64,6 @@ class BNKReportCrawler:
         
         # 다운로드 디렉토리 생성
         os.makedirs(self.download_dir, exist_ok=True)
-        os.makedirs(os.path.join(self.download_dir, 'by_date'), exist_ok=True)
         
         # 기존 다운로드 기록 (중복 다운로드 방지)
         self.download_history = self._load_download_history()
@@ -141,6 +140,12 @@ class BNKReportCrawler:
         # CSV 파일로 저장
         self.download_history.to_csv(history_file, index=False, encoding='utf-8-sig')
     
+    def _generate_filename(self, title, date):
+        match = re.search(r'\((.*?)\)', title)
+        corp_name = re.sub(r'[\\/*?:"<>|]', '_', match.group(1)) if match else "미상"
+        safe_title = re.sub(r'[\\/*?:"<>|]', '_', title)
+        return f"{date.replace('.', '')}_{safe_title}_{corp_name}.pdf"
+
     def get_report_list(self):
         """
         BNK투자증권 웹사이트에서 리포트 목록 가져오기
@@ -426,59 +431,29 @@ class BNKReportCrawler:
             return False
     
     def _check_download_completed(self, report):
-        """
-        다운로드가 완료되었는지 확인
-        
-        Args:
-            report (dict): 리포트 정보 딕셔너리
-            
-        Returns:
-            bool: 다운로드 완료 여부
-        """
-        # 다운로드 디렉토리 내 파일 확인
-        time.sleep(5)  # 다운로드 완료 대기
-        
+        time.sleep(5)
+
         downloaded_files = os.listdir(self.download_dir)
         pdf_files = [f for f in downloaded_files if f.endswith('.pdf')]
-        
+
         if not pdf_files:
             return False
-        
-        # 가장 최근 다운로드 파일 선택
+
+        # 가장 최근 파일 추정
         pdf_files.sort(key=lambda x: os.path.getmtime(os.path.join(self.download_dir, x)), reverse=True)
         latest_pdf = pdf_files[0]
-        
-        # 파일 크기 확인
-        file_size = os.path.getsize(os.path.join(self.download_dir, latest_pdf))
-        if file_size < 1000:  # 너무 작으면 실패
-            return False
-        
-        # 파일 이름 수정 (작성일_리포트번호_제목.pdf 형식으로)
-        safe_title = re.sub(r'[\\/*?:"<>|]', '_', report['title'])
-        new_filename = f"{report['date'].replace('.', '')}_{report['no']}_{safe_title}.pdf"
-        
-        # 기존 파일 경로
         old_path = os.path.join(self.download_dir, latest_pdf)
-        
-        # 새 파일 경로
+
+        file_size = os.path.getsize(old_path)
+        if file_size < 1000:
+            return False
+
+        # 새로운 이름 생성
+        new_filename = self._generate_filename(report['title'], report['date'])
         new_path = os.path.join(self.download_dir, new_filename)
-        
-        # 작성일별 폴더 경로
-        date_dir = os.path.join(self.download_dir, 'by_date', report['date'].replace('.', '-'))
-        os.makedirs(date_dir, exist_ok=True)
-        date_path = os.path.join(date_dir, new_filename)
-        
+
         try:
-            # 파일 이름 변경
             os.rename(old_path, new_path)
-            
-            # 작성일별 폴더에 복사
-            with open(new_path, 'rb') as src_file:
-                content = src_file.read()
-                with open(date_path, 'wb') as dst_file:
-                    dst_file.write(content)
-            
-            # 다운로드 기록 저장
             self._save_download_history({
                 'report_no': report['no'],
                 'title': report['title'],
@@ -487,14 +462,13 @@ class BNKReportCrawler:
                 'filename': new_filename,
                 'download_method': 'selenium'
             })
-            
             logging.info(f"다운로드 성공: {new_filename} ({file_size} bytes)")
             return True
-            
         except Exception as e:
-            logging.error(f"다운로드 파일 처리 중 오류: {e}")
+            logging.error(f"파일 이름 변경 실패: {e}")
             return False
-    
+
+        
     def _download_pdf_from_url(self, pdf_url, report):
         """
         PDF URL에서 직접 다운로드
@@ -509,15 +483,10 @@ class BNKReportCrawler:
         try:
             # 파일명 구성
             safe_title = re.sub(r'[\\/*?:"<>|]', '_', report['title'])
-            file_name = f"{report['date'].replace('.', '')}_{report['no']}_{safe_title}.pdf"
+            file_name = self._generate_filename(report['title'], report['date'])
             
             # 저장 경로
             file_path = os.path.join(self.download_dir, file_name)
-            
-            # 작성일별 디렉토리 경로
-            date_dir = os.path.join(self.download_dir, 'by_date', report['date'].replace('.', '-'))
-            os.makedirs(date_dir, exist_ok=True)
-            date_file_path = os.path.join(date_dir, file_name)
             
             # PDF 파일 다운로드
             response = requests.get(pdf_url, headers=self.headers, stream=True, timeout=10)
@@ -536,10 +505,10 @@ class BNKReportCrawler:
                     for chunk in response.iter_content(chunk_size=8192):
                         f.write(chunk)
                 
-                # 작성일별 디렉토리에도 저장
-                with open(date_file_path, 'wb') as f:
-                    for chunk in response.iter_content(chunk_size=8192):
-                        f.write(chunk)
+                # # 작성일별 디렉토리에도 저장
+                # with open(date_file_path, 'wb') as f:
+                #     for chunk in response.iter_content(chunk_size=8192):
+                #         f.write(chunk)
                 
                 # 파일 크기 확인
                 file_size = os.path.getsize(file_path)
@@ -547,8 +516,8 @@ class BNKReportCrawler:
                     logging.warning(f"파일 크기가 너무 작습니다 ({file_size} bytes). 다운로드 실패 의심.")
                     if os.path.exists(file_path):
                         os.remove(file_path)
-                    if os.path.exists(date_file_path):
-                        os.remove(date_file_path)
+                    if os.path.exists(file_path):
+                        os.remove(file_path)
                     return False
                 
                 # 다운로드 기록 저장
@@ -607,100 +576,100 @@ class BNKReportCrawler:
                 logging.error(f"리포트 {report['no']} 처리 중 오류: {e}")
                 continue
     
-    def create_summary_report(self):
-        """다운로드한 파일들의 요약 보고서 생성"""
-        if self.download_history.empty:
-            logging.warning("다운로드 기록이 없어 요약 보고서를 생성할 수 없습니다.")
-            return
+#     def create_summary_report(self):
+#         """다운로드한 파일들의 요약 보고서 생성"""
+#         if self.download_history.empty:
+#             logging.warning("다운로드 기록이 없어 요약 보고서를 생성할 수 없습니다.")
+#             return
         
-        try:
-            # 요약 보고서 파일 경로
-            report_path = os.path.join(self.download_dir, 'summary_report.html')
+#         try:
+#             # 요약 보고서 파일 경로
+#             report_path = os.path.join(self.download_dir, 'summary_report.html')
             
-            # HTML 보고서 생성
-            html_content = """
+#             # HTML 보고서 생성
+#             html_content = """
             
-            
-            
-                
-                
-                
-                
             
             
                 
-BNK투자증권 리포트 다운로드 요약
+                
+                
+                
+            
+            
+                
+# BNK투자증권 리포트 다운로드 요약
 
                 
 
                     
-총 다운로드 파일 수: {total_files}개
+# 총 다운로드 파일 수: {total_files}개
 
 
                     
-최신 다운로드 날짜: {latest_date}
+# 최신 다운로드 날짜: {latest_date}
 
 
                     
-대상 기간: {date_range}
+# 대상 기간: {date_range}
 
 
                 
 
                 
                 
-작성일별 리포트 목록
+# 작성일별 리포트 목록
 
-            """.format(
-                total_files=len(self.download_history),
-                latest_date=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                date_range=f"{self.download_history['date'].min()} ~ {self.download_history['date'].max()}"
-            )
+#             """.format(
+#                 total_files=len(self.download_history),
+#                 latest_date=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+#                 date_range=f"{self.download_history['date'].min()} ~ {self.download_history['date'].max()}"
+#             )
             
-            # 작성일 기준으로 정렬
-            sorted_history = self.download_history.sort_values(by='date', ascending=False)
+#             # 작성일 기준으로 정렬
+#             sorted_history = self.download_history.sort_values(by='date', ascending=False)
             
-            # 작성일별로 그룹화
-            date_groups = sorted_history.groupby('date')
+#             # 작성일별로 그룹화
+#             date_groups = sorted_history.groupby('date')
             
-            # 각 작성일별 테이블 생성
-            for date, group in date_groups:
-                html_content += f"""
+#             # 각 작성일별 테이블 생성
+#             for date, group in date_groups:
+#                 html_content += f"""
                 
 
                     
-작성일: {date}
+# 작성일: {date}
 
                     
-                """
+#                 """
                 
-                for _, row in group.iterrows():
-                    html_content += f"""
+#                 for _, row in group.iterrows():
+#                     html_content += f"""
                         
-                    """
+#                     """
                 
-                html_content += """
+#                 html_content += """
                     
-번호	제목	작성자	파일명	다운로드 방식
-{row['report_no']}	{row['title']}	{row['author']}	{row['filename']}	{row['download_method']}
+# 번호	제목	작성자	파일명	다운로드 방식
+# {row['report_no']}	{row['title']}	{row['author']}	{row['filename']}	{row['download_method']}
 
                 
 
-                """
+#                 """
             
-            html_content += """
+#             html_content += """
             
             
-            """
+#             """
             
-            # HTML 파일로 저장
-            with open(report_path, 'w', encoding='utf-8') as f:
-                f.write(html_content)
+#             # HTML 파일로 저장
+#             with open(report_path, 'w', encoding='utf-8') as f:
+#                 f.write(html_content)
             
-            logging.info(f"요약 보고서가 생성되었습니다: {report_path}")
+#             logging.info(f"요약 보고서가 생성되었습니다: {report_path}")
             
-        except Exception as e:
-            logging.error(f"요약 보고서 생성 중 오류: {e}")
+#         except Exception as e:
+#             logging.error(f"요약 보고서 생성 중 오류: {e}")
     
     def run(self):
         """크롤러 실행"""
@@ -718,7 +687,7 @@ BNK투자증권 리포트 다운로드 요약
             self.download_reports(reports)
             
             # 요약 보고서 생성
-            self.create_summary_report()
+            # self.create_summary_report()
             
             # 드라이버 종료
             self._close_driver()
@@ -731,11 +700,17 @@ BNK투자증권 리포트 다운로드 요약
             self._close_driver()
 
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))          # 현재 파일 경로
+PARENT_DIR = os.path.dirname(BASE_DIR)                         # 상위 디렉토리
+DOWNLOAD_DIR = os.path.join(PARENT_DIR, "consensus", "bnk")    # 원하는 저장 위치
+os.makedirs(DOWNLOAD_DIR, exist_ok=True)                       # 디렉토리 없으면 생성
+
+
 if __name__ == "__main__":
     # 크롤러 설정 및 실행
     crawler = BNKReportCrawler(
-        download_dir='bnk_reports',  # 다운로드 디렉토리
-        max_pages=3,                 # 크롤링할 최대 페이지 수
+        download_dir=DOWNLOAD_DIR,  # 다운로드 디렉토리
+        max_pages=1,                 # 크롤링할 최대 페이지 수
         max_reports=10,              # 다운로드할 최대 리포트 수
         headless=True                # 헤드리스 모드 사용 (True: 브라우저 창 표시 안 함)
     )
