@@ -17,10 +17,15 @@ base_url = "https://consensus.hankyung.com"
 # 페이지 URL 템플릿 (페이지 번호에 따라 now_page 값 변경)
 list_url_template = f"{base_url}/analysis/list?&sdate={start_date}&edate={end_date}&order_type=&now_page={{page}}"
 
-# PDF 파일 저장 폴더 생성
-download_dir = "hk_consensus"
-if not os.path.exists(download_dir):
-    os.makedirs(download_dir)
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PARENT_DIR = os.path.dirname(BASE_DIR)
+download_dir = os.path.join(PARENT_DIR, "consensus", "hk")
+os.makedirs(download_dir, exist_ok=True)
+# # PDF 파일 저장 폴더 생성
+# download_dir = "hk_consensus"
+# if not os.path.exists(download_dir):
+#     os.makedirs(download_dir)
 
 # 브라우저처럼 보이도록 headers 추가
 headers = {
