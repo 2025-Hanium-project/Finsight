@@ -9,8 +9,12 @@ from selenium.webdriver.support import expected_conditions as EC
 
 # 저장 경로 생성 (연도/월)
 # 더보기 버튼 누르면 컨센서스 더 추가로 가져올 수 있음
-download_path = os.path.abspath("kiwoom_consensus")
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PARENT_DIR = os.path.dirname(BASE_DIR)
+download_path = os.path.join(PARENT_DIR, "consensus", "kiwoom")
 os.makedirs(download_path, exist_ok=True)
+
 
 prefs = {
     "plugins.plugins_disabled": ["Chrome PDF Viewer"],

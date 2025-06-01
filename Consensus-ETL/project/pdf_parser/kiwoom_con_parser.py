@@ -1,0 +1,598 @@
+# import PyPDF2
+import pdfplumber
+import pandas as pd
+import re
+import uuid
+from datetime import datetime
+import os
+
+class KiwoomConsensusParser:
+    def __init__(self):
+        self.data_list = []
+        
+    def extract_text_from_pdf(self, pdf_path):
+        """PDF에서 텍스트 추출"""
+        text = ""
+        try:
+            with pdfplumber.open(pdf_path) as pdf:
+                for page in pdf.pages:
+                    page_text = page.extract_text()
+                    if page_text:
+                        text += page_text + "\n"
+        except Exception as e:
+            print(f"PDF 읽기 오류: {e}")
+            return None
+        print(text[:1000])
+        return text
+    
+    def parse_stock_info(self, text):
+        """주식 정보 파싱 (개선된 버전)"""
+        print(f"\n=== 종목 정보 파싱 ===")
+          # 종목명과 코드 추출 (괄호 안의 6자리 숫자)
+        stock_patterns = [
+            r'([가-힣A-Za-z\s&]+)\s*\((\d{6})\)',  # "SK이노베이션 (096770)" 형태
+            r'\((\d{6})\)\s*([가-힣A-Za-z\s&]+)',  # "(096770) SK이노베이션" 형태
+        ]
+        
+        stock_name = None
+        stock_code = None
+        
+        for i, pattern in enumerate(stock_patterns):
+            match = re.search(pattern, text)
+            if match:
+                if i == 0:  # 첫 번째 패턴: 종목명 (코드)
+                    stock_name = match.group(1).strip()
+                    stock_code = match.group(2)  # 문자열로 유지
+                else:  # 두 번째 패턴: (코드) 종목명
+                    stock_code = match.group(1)  # 문자열로 유지
+                    stock_name = match.group(2).strip()
+                  # 종목명 정리 - 더 강화된 버전
+                if stock_name:
+                    # "Not Rated" 제거 (앞뒤 공백 포함)
+                    stock_name = re.sub(r'\s*Not\s+Rated\s*', ' ', stock_name, flags=re.IGNORECASE)
+                    # 줄바꿈 문자 제거
+                    stock_name = re.sub(r'[\n\r]+', ' ', stock_name)
+                    # 분석가 관련 단어 제거
+                    stock_name = re.sub(r'(Analyst|애널리스트|연구원|스몰캡)', '', stock_name, flags=re.IGNORECASE)
+                    # 투자의견 제거
+                    stock_name = re.sub(r'(BUY|SELL|HOLD|매수|매도|중립)', '', stock_name, flags=re.IGNORECASE)
+                    # 기타 불필요한 텍스트 제거
+                    stock_name = re.sub(r'(주식회사|㈜|\(주\))', '', stock_name, flags=re.IGNORECASE)
+                    # 여러 공백을 하나로 정리하고 앞뒤 공백 제거
+                    stock_name = re.sub(r'\s+', ' ', stock_name).strip()
+        
+                print(f"패턴 {i+1}에서 발견: {stock_name} ({stock_code})")
+                break
+    
+        # 종목 정보를 찾지 못한 경우 줄별 검색
+        if not stock_name or not stock_code:
+            print("기본 패턴으로 찾지 못함. 줄별 검색...")
+            lines = text.split('\n')
+            
+            for i, line in enumerate(lines[:15]):
+                line = line.strip()
+                print(f"줄 {i+1}: '{line}'")
+                
+                # 6자리 종목코드 찾기
+                code_match = re.search(r'\((\d{6})\)', line)
+                if code_match:
+                    stock_code = code_match.group(1)  # 문자열로 유지 (007660 그대로)
+                      # 같은 줄에서 종목명 찾기
+                    line_without_code = re.sub(r'\(\d{6}\)', '', line).strip()
+                    if line_without_code and len(line_without_code) > 1:                        # 날짜나 기타 정보 제거
+                        clean_name = re.sub(r'\d{4}[.\-/]\d{1,2}[.\-/]\d{1,2}', '', line_without_code)
+                        clean_name = re.sub(r'(BUY|SELL|HOLD|매수|매도|중립)', '', clean_name, flags=re.IGNORECASE)
+                        # "Not Rated" 제거 (강화된 버전)
+                        clean_name = re.sub(r'\s*Not\s+Rated\s*', ' ', clean_name, flags=re.IGNORECASE)
+                        # 줄바꿈 문자 제거
+                        clean_name = re.sub(r'[\n\r]+', ' ', clean_name)
+                        # 증권사명 제거 (확장된 목록)
+                        clean_name = re.sub(r'(삼성증권|키움증권|미래에셋증권|NH투자증권|한국투자증권|대신증권|하나증권|IBK투자증권|KB증권|신한투자증권)', '', clean_name, flags=re.IGNORECASE)
+                        # 분석가 관련 단어 제거
+                        clean_name = re.sub(r'(Analyst|애널리스트|연구원|스몰캡)', '', clean_name, flags=re.IGNORECASE)
+                        # 기타 불필요한 텍스트 제거
+                        clean_name = re.sub(r'(주식회사|㈜|\(주\))', '', clean_name, flags=re.IGNORECASE)
+                        # 여러 공백을 하나로 정리
+                        clean_name = re.sub(r'\s+', ' ', clean_name).strip()
+                        # 앞뒤 공백 및 특수문자 정리
+                        clean_name = clean_name.strip(' \t\n\r')
+                        
+                        if clean_name and len(clean_name) >= 2:
+                            stock_name = clean_name
+                            print(f"✓ 발견: {stock_name} ({stock_code})")
+                            break
+    
+        # 여전히 찾지 못한 경우 기본값
+        if not stock_name:
+            stock_name = "Unknown"
+        if not stock_code:
+            stock_code = "000000"  # 문자열로 기본값 설정
+    
+        print(f"최종 결과: {stock_name} ({stock_code})")
+        return stock_name, stock_code
+    
+    def parse_price_info(self, text):
+        """가격 정보 파싱"""
+        print(f"\n=== 가격 정보 파싱 시작 ===")
+        
+        # 텍스트를 줄별로 분석
+        lines = text.split('\n')
+        print(f"첫 10줄에서 가격 정보 찾기:")
+        for i, line in enumerate(lines[:10]):
+            print(f"줄 {i+1}: '{line.strip()}'")
+        
+        # 목표가 추출 (더 구체적인 패턴 사용)
+        target_price_patterns = [
+            r'목표주가[:\s]*([0-9,]+)원?',
+            r'Target Price[:\s]*([0-9,]+)원?',
+            r'목표가[:\s]*([0-9,]+)원?',
+            r'목표주가:\s*([0-9,]+)원?'
+        ]
+        
+        target_price = None
+        for i, pattern in enumerate(target_price_patterns):
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            if matches:
+                # 첫 번째 매치를 목표가로 사용
+                target_price = int(matches[0].replace(',', ''))
+                print(f"목표가 패턴 {i+1} '{pattern}' 매치: {matches}")
+                print(f"✓ 목표가: {target_price:,}원")
+                break
+            else:
+                print(f"목표가 패턴 {i+1} '{pattern}': 매치 없음")
+        
+        # 현재가 추출 (목표가와 다른 패턴 사용)
+        current_price_patterns = [
+            r'주가\(([^)]+)\)[:\s]*([0-9,]+)원?',  # "주가(5/15): 53,600원" 패턴
+            r'현재가[:\s]*([0-9,]+)원?',
+            r'기준가[:\s]*([0-9,]+)원?',
+            r'주가[:\s]*([0-9,]+)원?(?!.*목표)',  # 목표가 아닌 주가
+        ]
+        
+        current_price = None
+        for i, pattern in enumerate(current_price_patterns):
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            if matches:
+                if isinstance(matches[0], tuple):
+                    # 괄호 안에 날짜가 있는 경우 (예: 주가(5/15): 53,600원)
+                    current_price = int(matches[0][1].replace(',', ''))
+                    print(f"현재가 패턴 {i+1} '{pattern}' 매치: {matches}")
+                    print(f"✓ 현재가 ({matches[0][0]}): {current_price:,}원")
+                else:
+                    current_price = int(matches[0].replace(',', ''))
+                    print(f"현재가 패턴 {i+1} '{pattern}' 매치: {matches}")
+                    print(f"✓ 현재가: {current_price:,}원")
+                break
+            else:
+                print(f"현재가 패턴 {i+1} '{pattern}': 매치 없음")
+        
+        # 줄별로 분석해서 가격 정보 찾기 (fallback)
+        if not target_price or not current_price:
+            print(f"\n=== 줄별 가격 정보 분석 ===")
+            for i, line in enumerate(lines[:15]):
+                line = line.strip()
+                if not line:
+                    continue
+                
+                print(f"줄 {i+1}: '{line}'")
+                
+                # 목표주가 줄 찾기
+                if '목표주가' in line and not target_price:
+                    price_match = re.search(r'([0-9,]+)원?', line)
+                    if price_match:
+                        target_price = int(price_match.group(1).replace(',', ''))
+                        print(f"  ✓ 목표주가 발견: {target_price:,}원")
+                
+                # 주가 줄 찾기 (목표주가가 아닌)
+                if '주가(' in line and not current_price:
+                    price_match = re.search(r'주가\([^)]+\):\s*([0-9,]+)원?', line)
+                    if price_match:
+                        current_price = int(price_match.group(1).replace(',', ''))
+                        print(f"  ✓ 현재주가 발견: {current_price:,}원")
+        
+        # 수동으로 텍스트에서 특정 패턴 찾기 (최종 시도)
+        if not target_price or not current_price:
+            print(f"\n=== 수동 패턴 매칭 ===")
+            
+            # "목표주가: 70,000원" 형태 찾기
+            target_match = re.search(r'목표주가[:\s]*([0-9,]+)', text)
+            if target_match and not target_price:
+                target_price = int(target_match.group(1).replace(',', ''))
+                print(f"수동 매칭 - 목표주가: {target_price:,}원")
+            
+            # "주가(날짜): 금액" 형태 찾기
+            current_match = re.search(r'주가\([^)]+\):\s*([0-9,]+)', text)
+            if current_match and not current_price:
+                current_price = int(current_match.group(1).replace(',', ''))
+                print(f"수동 매칭 - 현재주가: {current_price:,}원")
+        
+        # 상승여력 계산
+        upside_potential = None
+        if current_price and target_price:
+            upside_potential = round(((target_price - current_price) / current_price) * 100, 1)
+            print(f"\n=== 상승여력 계산 ===")
+            print(f"목표주가: {target_price:,}원")
+            print(f"현재주가: {current_price:,}원")
+            print(f"상승여력: {upside_potential}%")
+        
+        print(f"\n=== 가격 정보 파싱 결과 ===")
+        print(f"현재가: {current_price:,}원" if current_price else "현재가: None")
+        print(f"목표가: {target_price:,}원" if target_price else "목표가: None")
+        print(f"상승여력: {upside_potential}%" if upside_potential else "상승여력: None")
+        print("=" * 50)
+        
+        return current_price, target_price, upside_potential
+    
+    def parse_analyst_info(self, text):
+        """애널리스트 정보 파싱"""
+        print(f"\n=== 애널리스트 정보 파싱 시작 ===")
+        
+        # 애널리스트명 추출
+        analyst_patterns = [
+            r'Analyst\s+([가-힣]{2,4})',  # "Analyst 안영준" 패턴
+            r'애널리스트[:\s]*([가-힣]{2,4})',
+            r'작성자[:\s]*([가-힣]{2,4})',
+            r'Research[:\s]*([가-힣]{2,4})',
+            r'연구원[:\s]*([가-힣]{2,4})',
+            r'([가-힣]{2,4})\s*애널리스트',  # "안영준 애널리스트" 패턴
+            r'([가-힣]{2,4})\s*연구원'
+        ]
+        
+        analyst_name = None
+        for i, pattern in enumerate(analyst_patterns):
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                analyst_name = match.group(1)
+                print(f"패턴 {i+1} '{pattern}'로 애널리스트 발견: '{analyst_name}'")
+                break
+            else:
+                print(f"패턴 {i+1} '{pattern}': 매치 없음")
+        
+        # 애널리스트를 찾지 못한 경우 추가 검색
+        if not analyst_name:
+            print("기본 패턴으로 찾지 못함. 줄별 검색 시작...")
+            lines = text.split('\n')
+            for i, line in enumerate(lines[:20]):  # 처음 20줄에서 검색
+                line = line.strip()
+                print(f"줄 {i+1}: '{line}'")
+                
+                # "보험/증권 Analyst 안영준" 같은 패턴
+                if 'Analyst' in line:
+                    # Analyst 뒤에 한글 이름 찾기
+                    analyst_match = re.search(r'Analyst\s+([가-힣]{2,4})', line, re.IGNORECASE)
+                    if analyst_match:
+                        analyst_name = analyst_match.group(1)
+                        print(f"✓ Analyst 패턴에서 발견: '{analyst_name}'")
+                        break
+                
+                # 애널리스트라는 단어가 포함된 줄에서 이름 찾기
+                if '애널리스트' in line:
+                    # 애널리스트 앞뒤로 한글 이름 찾기
+                    name_patterns = [
+                        r'([가-힣]{2,4})\s*애널리스트',
+                        r'애널리스트\s*([가-힣]{2,4})'
+                    ]
+                    for pattern in name_patterns:
+                        match = re.search(pattern, line)
+                        if match:
+                            analyst_name = match.group(1)
+                            print(f"✓ 애널리스트 줄에서 발견: '{analyst_name}'")
+                            break
+                    if analyst_name:
+                        break
+        
+        # 증권사명 추출
+        print(f"\n=== 증권사명 추출 ===")
+        company_patterns = [
+            r'(삼성증권|키움증권|미래에셋증권|NH투자증권|한국투자증권|대신증권|하나증권|유진투자증권)',
+            r'([가-힣]+증권)',
+            r'(삼성|키움|미래에셋|NH투자|한국투자|대신|하나|유진투자)\s*증권?'
+        ]
+        
+        company_name = None
+        for i, pattern in enumerate(company_patterns):
+            match = re.search(pattern, text)
+            if match:
+                company_name = match.group(1)
+                if not company_name.endswith('증권'):
+                    company_name += '증권'
+                print(f"패턴 {i+1} '{pattern}'로 증권사 발견: '{company_name}'")
+                break
+            else:
+                print(f"패턴 {i+1} '{pattern}': 매치 없음")
+        
+        # 텍스트 첫 부분에서 증권사 직접 검색
+        if not company_name:
+            print("기본 패턴으로 찾지 못함. 줄별 검색 시작...")
+            lines = text.split('\n')
+            for i, line in enumerate(lines[:10]):  # 처음 10줄에서 검색
+                line = line.strip()
+                print(f"줄 {i+1}: '{line}'")
+                
+                # 알려진 증권사명이 포함된 경우
+                securities = ['삼성증권', '키움증권', '미래에셋증권', 'NH투자증권', '한국투자증권', 
+                             '대신증권', '하나증권', '유진투자증권']
+                for sec in securities:
+                    if sec in line:
+                        company_name = sec
+                        print(f"✓ 줄에서 증권사 발견: '{company_name}'")
+                        break
+                if company_name:
+                    break
+        
+        print(f"\n=== 애널리스트 정보 파싱 결과 ===")
+        print(f"애널리스트: '{analyst_name}'")
+        print(f"증권사: '{company_name}'")
+        print("=" * 50)
+        
+        return analyst_name, company_name
+    
+    def parse_rating_info(self, text):
+        """투자등급 정보 파싱 (개선된 버전)"""
+        print(f"\n=== 투자등급 정보 파싱 ===")
+        
+        # 투자의견 추출 (줄별로 찾기)
+        lines = text.split('\n')
+        rating = None
+        opinion_change = None
+        
+        for i, line in enumerate(lines[:10]):
+            line = line.strip()
+            print(f"줄 {i+1}: '{line}'")
+            
+            # BUY, SELL 등이 포함된 줄에서 투자의견 추출
+            if re.search(r'(BUY|SELL|HOLD|매수|매도|중립)', line, re.IGNORECASE):
+                rating_match = re.search(r'(BUY|SELL|HOLD|매수|매도|중립)', line, re.IGNORECASE)
+                if rating_match:
+                    rating_text = rating_match.group(1).upper()
+                    if rating_text in ['BUY', '매수']:
+                        rating = '매수'
+                    elif rating_text in ['SELL', '매도']:
+                        rating = '매도'
+                    elif rating_text in ['HOLD', '중립']:
+                        rating = '중립'
+                
+                print(f"✓ 투자의견 발견: {rating}")
+                
+                # 같은 줄에서 의견변경 정보 찾기
+                if 'Maintain' in line or '유지' in line:
+                    opinion_change = '유지'
+                elif '상향' in line or 'UP' in line.upper():
+                    opinion_change = '상향'
+                elif '하향' in line or 'DOWN' in line.upper():
+                    opinion_change = '하향'
+                elif '신규' in line or 'NEW' in line.upper():
+                    opinion_change = '신규'
+                else:
+                    # 괄호 안의 정보에서 추출
+                    change_match = re.search(r'\((Maintain|상향|하향|유지|신규)\)', line, re.IGNORECASE)
+                    if change_match:
+                        change_text = change_match.group(1)
+                        if change_text.lower() == 'maintain' or change_text == '유지':
+                            opinion_change = '유지'
+                        else:
+                            opinion_change = change_text
+                
+                if opinion_change:
+                    print(f"✓ 의견변경 발견: {opinion_change}")
+                break
+        
+        # 기본값 설정
+        if not rating:
+            rating = '매수'  # 기본값
+        if not opinion_change:
+            opinion_change = '유지'  # 기본값
+        
+        print(f"최종 결과: 투자의견={rating}, 의견변경={opinion_change}")
+        return rating, opinion_change
+    
+    def parse_report_info(self, text, filename):
+        """리포트 정보 파싱"""
+        
+        lines = text.split('\n')
+        report_title = None
+        
+        # 6번째 줄을 우선적으로 제목으로 시도
+        if len(lines) >= 6:
+            sixth_line = lines[5].strip()  # 인덱스는 0부터 시작하므로 5가 6번째 줄
+            print(f"\n=== 6번째 줄 분석 ===")
+            print(f"6번째 줄: '{sixth_line}'")
+            
+            # 6번째 줄이 적절한 제목인지 확인
+            if (len(sixth_line) >= 3 and 
+                re.search(r'[가-힣]', sixth_line) and  # 한글 포함
+                not re.search(r'^\d+$', sixth_line) and  # 숫자만 아님
+                not re.search(r'\d{4}[-./]\d{1,2}[-./]\d{1,2}', sixth_line) and  # 날짜 아님
+                not re.match(r'^(삼성증권|키움증권|미래에셋증권|NH투자증권|한국투자증권)$', sixth_line) and  # 증권사명 아님
+                not re.search(r'^\d{1,3}(,\d{3})*원?$', sixth_line)):  # 가격 정보 아님
+                
+                report_title = sixth_line
+                print(f"✓ 6번째 줄을 제목으로 선택: '{report_title}'")
+        
+            
+        # 날짜 추출 (파일명에서)
+        date_match = re.search(r'(\d{4}-\d{2}-\d{2})', filename)
+        if date_match:
+            report_date = date_match.group(1)
+        else:
+            report_date = datetime.now().strftime('%Y-%m-%d')
+        
+        return report_title, report_date
+    
+    def parse_pdf(self, pdf_path):
+        """PDF 파싱 메인 함수"""
+        print(f"PDF 파싱 시작: {pdf_path}")
+        
+        # PDF에서 텍스트 추출
+        text = self.extract_text_from_pdf(pdf_path)
+        if not text:
+            print("텍스트 추출 실패")
+            return None
+        
+        filename = os.path.basename(pdf_path)
+        
+        # 정보 추출
+        stock_name, stock_code = self.parse_stock_info(text)
+        current_price, target_price, upside_potential = self.parse_price_info(text)
+        analyst_name, company_name = self.parse_analyst_info(text)
+        rating, opinion_change = self.parse_rating_info(text)
+        report_title, report_date = self.parse_report_info(text, filename)
+        
+        # 데이터 구성
+        data = {
+            'report_id': str(uuid.uuid4()),
+            'stock_code': stock_code,  # 이미 문자열이므로 그대로 사용
+            'stock_name': stock_name,
+            'report_title': report_title or f"{stock_name} 분석리포트",
+            'report_date': report_date,
+            'report_type': '기업분석',
+            'analyst_name': analyst_name or 'Unknown',
+            'company_name': company_name or 'Unknown',
+            'rating': rating or '매수',
+            'opinion_change': opinion_change or '유지',
+            'target_price': target_price,
+            'current_price': current_price,
+            'upside_potential': upside_potential,
+            'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
+        
+        self.data_list.append(data)
+        print(f"파싱 완료: {stock_name} ({stock_code})")
+        return data
+    
+    def save_to_csv(self, output_path):
+        """CSV 파일로 저장"""
+        if not self.data_list:
+            print("저장할 데이터가 없습니다.")
+            return
+        
+        df = pd.DataFrame(self.data_list)
+        
+        # 종목코드를 문자열로 명시적으로 변환 (앞의 0 보존)
+        df['stock_code'] = df['stock_code'].astype(str)
+        
+        # CSV 저장 시 종목코드 컬럼이 숫자로 해석되지 않도록 처리
+        df.to_csv(output_path, index=False, encoding='utf-8-sig')
+        
+        print(f"CSV 파일 저장 완료: {output_path}")
+        print(f"총 {len(self.data_list)}개 리포트 저장")
+        
+        # 저장된 데이터 확인
+        print(f"\n=== 저장된 종목코드 확인 ===")
+        for data in self.data_list:
+            print(f"{data['stock_name']}: {data['stock_code']} (타입: {type(data['stock_code'])})")
+    
+    def process_all_pdfs(self, pdf_folder_path):
+        """폴더 내 모든 PDF 파일 처리"""
+        print(f"PDF 폴더 스캔 시작: {pdf_folder_path}")
+        
+        # PDF 파일 목록 가져오기
+        if not os.path.exists(pdf_folder_path):
+            print(f"폴더가 존재하지 않습니다: {pdf_folder_path}")
+            return
+        
+        pdf_files = [f for f in os.listdir(pdf_folder_path) if f.endswith('.pdf')]
+        
+        if not pdf_files:
+            print("PDF 파일이 없습니다.")
+            return
+        
+        print(f"발견된 PDF 파일: {len(pdf_files)}개")
+        for i, pdf_file in enumerate(pdf_files):
+            print(f"{i+1}. {pdf_file}")
+        
+        # 각 PDF 파일 처리
+        success_count = 0
+        error_count = 0
+        
+        for i, pdf_file in enumerate(pdf_files):
+            pdf_path = os.path.join(pdf_folder_path, pdf_file)
+            print(f"\n{'='*80}")
+            print(f"처리 중 ({i+1}/{len(pdf_files)}): {pdf_file}")
+            print(f"{'='*80}")
+            
+            try:
+                result = self.parse_pdf(pdf_path)
+                if result:
+                    success_count += 1
+                    print(f"✓ 성공: {pdf_file}")
+                else:
+                    error_count += 1
+                    print(f"✗ 실패: {pdf_file} (파싱 결과 없음)")
+            except Exception as e:
+                error_count += 1
+                print(f"✗ 오류: {pdf_file} - {str(e)}")
+        
+        print(f"\n{'='*80}")
+        print(f"처리 완료 - 성공: {success_count}개, 실패: {error_count}개")
+        print(f"총 데이터: {len(self.data_list)}개")
+        print(f"{'='*80}")
+
+def main():
+    """메인 실행 함수"""
+    parser = KiwoomConsensusParser()
+    
+    # 현재 파일의 디렉토리 경로를 기준으로 상대경로 설정
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # PDF 폴더 경로 설정 (상대경로)
+    pdf_folder_path = os.path.join(current_dir, "..", "consensus", "kiwoom")
+    
+    # CSV 출력 경로 설정 (상대경로)
+    output_path = os.path.join(current_dir, "..", "consensus_csv", "kiwoom_consensus_reports.csv")
+    
+    # 출력 디렉토리 생성
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    
+    try:
+        # 폴더 내 모든 PDF 파일 처리
+        parser.process_all_pdfs(pdf_folder_path)
+        
+        # 처리 결과 출력
+        if parser.data_list:
+            print(f"\n{'='*80}")
+            print("전체 파싱 결과:")
+            print(f"{'='*80}")
+            
+            for i, data in enumerate(parser.data_list):
+                print(f"{i+1}. {data['stock_name']} ({data['stock_code']}) - {data['report_title']}")
+                print(f"   증권사: {data['company_name']}, 애널리스트: {data['analyst_name']}")
+                print(f"   투자의견: {data['rating']}, 목표가: {data['target_price']:,}원" if data['target_price'] else f"   투자의견: {data['rating']}, 목표가: None")
+            
+            # CSV 저장
+            parser.save_to_csv(output_path)
+            
+            # 요약 통계
+            print(f"\n{'='*80}")
+            print("요약 통계:")
+            print(f"{'='*80}")
+            
+            # 증권사별 통계
+            companies = {}
+            ratings = {}
+            
+            for data in parser.data_list:
+                company = data['company_name']
+                rating = data['rating']
+                
+                companies[company] = companies.get(company, 0) + 1
+                ratings[rating] = ratings.get(rating, 0) + 1
+            
+            print("증권사별 리포트 수:")
+            for company, count in companies.items():
+                print(f"  {company}: {count}개")
+            
+            print("\n투자의견별 분포:")
+            for rating, count in ratings.items():
+                print(f"  {rating}: {count}개")
+                
+        else:
+            print("처리된 데이터가 없습니다.")
+        
+    except Exception as e:
+        print(f"오류 발생: {e}")
+        import traceback
+        traceback.print_exc()
+
+if __name__ == "__main__":
+    main()
