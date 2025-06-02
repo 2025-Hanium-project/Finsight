@@ -5,6 +5,8 @@ import re
 import uuid
 from datetime import datetime
 import os
+import logging
+logging.getLogger("pdfminer").setLevel(logging.ERROR)
 
 class KiwoomConsensusParser:
     def __init__(self):
@@ -22,7 +24,8 @@ class KiwoomConsensusParser:
         except Exception as e:
             print(f"PDF 읽기 오류: {e}")
             return None
-        print(text[:1000])
+        # 디버깅용 출력
+        # print(text[:1000])
         return text
     
     def parse_stock_info(self, text):
@@ -223,21 +226,24 @@ class KiwoomConsensusParser:
         
         return current_price, target_price, upside_potential
     
-    def parse_analyst_info(self, text):
-        """애널리스트 정보 파싱"""
+    def parse_analyst_info(self, text, pdf_path=None):
+        """애널리스트 정보 파싱 (extract_words 보조)"""
         print(f"\n=== 애널리스트 정보 파싱 시작 ===")
-        
-        # 애널리스트명 추출
         analyst_patterns = [
-            r'Analyst\s+([가-힣]{2,4})',  # "Analyst 안영준" 패턴
+            r'Analyst[\s\n:]*([가-힣]{2,4})',
+            r'Analyst[\s\n:]*([가-힣]{2,4}),',
+            r'Analyst[\s\n:]*([가-힣]{2,4})[ ,]',
+            r'Analyst[\s\n:]*([가-힣]{2,4})[A-Za-z@]',
+            r'A\s*n\s*a\s*l\s*y\s*s\s*t\s*([가-힣]{2,4})',  # "A nalyst" 처럼 공백이 중간에 있는 경우
+            r'A\s*n\s*a\s*l\s*y\s*s\s*t\s*([가-힣]{2,4}),',  # "A nalyst 박상준," 패턴
+            r'A\s*n\s*a\s*l\s*y\s*s\s*t\s*([가-힣]{2,4})\s*,\s*([A-Za-z]+)',  # "A nalyst 박상준, CFA" 패턴
             r'애널리스트[:\s]*([가-힣]{2,4})',
             r'작성자[:\s]*([가-힣]{2,4})',
             r'Research[:\s]*([가-힣]{2,4})',
             r'연구원[:\s]*([가-힣]{2,4})',
-            r'([가-힣]{2,4})\s*애널리스트',  # "안영준 애널리스트" 패턴
+            r'([가-힣]{2,4})\s*애널리스트',
             r'([가-힣]{2,4})\s*연구원'
         ]
-        
         analyst_name = None
         for i, pattern in enumerate(analyst_patterns):
             match = re.search(pattern, text, re.IGNORECASE)
@@ -248,38 +254,36 @@ class KiwoomConsensusParser:
             else:
                 print(f"패턴 {i+1} '{pattern}': 매치 없음")
         
-        # 애널리스트를 찾지 못한 경우 추가 검색
+        # 특정 패턴 직접 검색 (예: "A nalyst 박상준, CFA" 패턴)
         if not analyst_name:
-            print("기본 패턴으로 찾지 못함. 줄별 검색 시작...")
-            lines = text.split('\n')
-            for i, line in enumerate(lines[:20]):  # 처음 20줄에서 검색
-                line = line.strip()
-                print(f"줄 {i+1}: '{line}'")
-                
-                # "보험/증권 Analyst 안영준" 같은 패턴
-                if 'Analyst' in line:
-                    # Analyst 뒤에 한글 이름 찾기
-                    analyst_match = re.search(r'Analyst\s+([가-힣]{2,4})', line, re.IGNORECASE)
-                    if analyst_match:
-                        analyst_name = analyst_match.group(1)
-                        print(f"✓ Analyst 패턴에서 발견: '{analyst_name}'")
-                        break
-                
-                # 애널리스트라는 단어가 포함된 줄에서 이름 찾기
-                if '애널리스트' in line:
-                    # 애널리스트 앞뒤로 한글 이름 찾기
-                    name_patterns = [
-                        r'([가-힣]{2,4})\s*애널리스트',
-                        r'애널리스트\s*([가-힣]{2,4})'
-                    ]
-                    for pattern in name_patterns:
-                        match = re.search(pattern, line)
-                        if match:
-                            analyst_name = match.group(1)
-                            print(f"✓ 애널리스트 줄에서 발견: '{analyst_name}'")
-                            break
-                    if analyst_name:
-                        break
+            special_match = re.search(r'A\s+nalyst\s+([가-힣]{2,4})', text)
+            if special_match:
+                analyst_name = special_match.group(1)
+                print(f"특수 패턴 'A nalyst'로 애널리스트 발견: '{analyst_name}'")
+        
+        # extract_words()로 보조 추출
+        if not analyst_name and pdf_path:
+            try:
+                with pdfplumber.open(pdf_path) as pdf:
+                    page = pdf.pages[0]
+                    words = page.extract_words()
+                    
+                    # "A" 다음에 "nalyst"가 있고, 그 뒤에 한글 이름이 있는지 확인
+                    for i, word in enumerate(words):
+                        if i+2 < len(words) and word['text'] == 'A' and 'nalyst' in words[i+1]['text']:
+                            if re.match(r'^[가-힣]{2,4}$', words[i+2]['text']):
+                                analyst_name = words[i+2]['text']
+                                print(f"extract_words()로 'A nalyst' 패턴에서 애널리스트 발견: '{analyst_name}'")
+                                break
+                        
+                        # 일반 "Analyst" 패턴도 체크
+                        if 'Analyst' in word['text']:
+                            if i+1 < len(words) and re.match(r'^[가-힣]{2,4}$', words[i+1]['text']):
+                                analyst_name = words[i+1]['text']
+                                print(f"extract_words()로 'Analyst' 패턴에서 애널리스트 발견: '{analyst_name}'")
+                                break
+            except Exception as e:
+                print(f"extract_words() 애널리스트 추출 오류: {e}")
         
         # 증권사명 추출
         print(f"\n=== 증권사명 추출 ===")
@@ -386,39 +390,59 @@ class KiwoomConsensusParser:
         print(f"최종 결과: 투자의견={rating}, 의견변경={opinion_change}")
         return rating, opinion_change
     
-    def parse_report_info(self, text, filename):
+    def extract_report_title_by_color(self, pdf_path):
+        """Extract report title by joining all chars with the target color on the first page, grouped by y (top) position."""
+        try:
+            with pdfplumber.open(pdf_path) as pdf:
+                page = pdf.pages[0]
+                target_color = (0.745, 0.38, 0.522)
+                # 색상 일치하는 문자만 추출
+                color_chars = [char for char in page.chars if char.get("non_stroking_color") == target_color]
+                if not color_chars:
+                    return None
+                # y(top) 좌표별로 그룹화
+                from collections import defaultdict
+                lines = defaultdict(list)
+                for char in color_chars:
+                    y = round(char["top"], 1)  # y좌표를 반올림해서 같은 줄로 묶음
+                    lines[y].append(char)
+                # 각 줄을 x0 기준 정렬 후 텍스트로 합침
+                line_texts = []
+                for y, chars in lines.items():
+                    sorted_chars = sorted(chars, key=lambda c: c["x0"])
+                    text = "".join([c["text"] for c in sorted_chars]).strip()
+                    if text:
+                        line_texts.append((y, text))
+                if not line_texts:
+                    return None
+                # 가장 긴 줄(혹은 가장 위에 있는 줄)을 제목으로 선택
+                # 우선 길이순, 길이 같으면 y좌표가 큰(아래쪽) 것 우선
+                line_texts.sort(key=lambda x: (-len(x[1]), x[0]))
+                return line_texts[0][1]
+        except Exception as e:
+            print(f"Error extracting report title by color: {e}")
+        return None
+
+    def parse_report_info(self, text, filename, pdf_path):
         """리포트 정보 파싱"""
+        report_title = self.extract_report_title_by_color(pdf_path)
+        if not report_title:
+            # Fallback to the 6th line logic if no title is found by color
+            lines = text.split('\n')
+            if len(lines) >= 6:
+                sixth_line = lines[5].strip()
+                if (len(sixth_line) >= 3 and 
+                    re.search(r'[가-힣]', sixth_line) and  # 한글 포함
+                    not re.search(r'^\d+$', sixth_line) and  # 숫자만 아님
+                    not re.search(r'\d{4}[-./]\d{1,2}[-./]\d{1,2}', sixth_line) and  # 날짜 아님
+                    not re.search(r'^\d{1,3}(,\d{3})*원?$', sixth_line)):  # 가격 정보 아님
+                    report_title = sixth_line
         
-        lines = text.split('\n')
-        report_title = None
-        
-        # 6번째 줄을 우선적으로 제목으로 시도
-        if len(lines) >= 6:
-            sixth_line = lines[5].strip()  # 인덱스는 0부터 시작하므로 5가 6번째 줄
-            print(f"\n=== 6번째 줄 분석 ===")
-            print(f"6번째 줄: '{sixth_line}'")
-            
-            # 6번째 줄이 적절한 제목인지 확인
-            if (len(sixth_line) >= 3 and 
-                re.search(r'[가-힣]', sixth_line) and  # 한글 포함
-                not re.search(r'^\d+$', sixth_line) and  # 숫자만 아님
-                not re.search(r'\d{4}[-./]\d{1,2}[-./]\d{1,2}', sixth_line) and  # 날짜 아님
-                not re.match(r'^(삼성증권|키움증권|미래에셋증권|NH투자증권|한국투자증권)$', sixth_line) and  # 증권사명 아님
-                not re.search(r'^\d{1,3}(,\d{3})*원?$', sixth_line)):  # 가격 정보 아님
-                
-                report_title = sixth_line
-                print(f"✓ 6번째 줄을 제목으로 선택: '{report_title}'")
-        
-            
         # 날짜 추출 (파일명에서)
         date_match = re.search(r'(\d{4}-\d{2}-\d{2})', filename)
-        if date_match:
-            report_date = date_match.group(1)
-        else:
-            report_date = datetime.now().strftime('%Y-%m-%d')
-        
-        return report_title, report_date
-    
+        report_date = date_match.group(1) if date_match else datetime.now().strftime('%Y-%m-%d')
+
+        return report_title, report_date    
     def parse_pdf(self, pdf_path):
         """PDF 파싱 메인 함수"""
         print(f"PDF 파싱 시작: {pdf_path}")
@@ -434,9 +458,9 @@ class KiwoomConsensusParser:
         # 정보 추출
         stock_name, stock_code = self.parse_stock_info(text)
         current_price, target_price, upside_potential = self.parse_price_info(text)
-        analyst_name, company_name = self.parse_analyst_info(text)
+        analyst_name, company_name = self.parse_analyst_info(text, pdf_path) # pdf_path 인자 추가
         rating, opinion_change = self.parse_rating_info(text)
-        report_title, report_date = self.parse_report_info(text, filename)
+        report_title, report_date = self.parse_report_info(text, filename, pdf_path)
         
         # 데이터 구성
         data = {
@@ -448,7 +472,7 @@ class KiwoomConsensusParser:
             'report_type': '기업분석',
             'analyst_name': analyst_name or 'Unknown',
             'company_name': company_name or 'Unknown',
-            'rating': rating or '매수',
+            'rating': rating or 'Unknown',
             'opinion_change': opinion_change or '유지',
             'target_price': target_price,
             'current_price': current_price,
