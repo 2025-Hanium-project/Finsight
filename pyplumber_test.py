@@ -3,8 +3,8 @@ import os
 from PIL import Image, ImageDraw
 
 # 설정: 추출할 좌표 범위 (PDF 기준 좌표계, 단위: pt)
-XMIN, YMIN = 50, 100     # 좌상단
-XMAX, YMAX = 1000, 800    # 우하단
+XMIN, YMIN = 210, 280     # 좌상단
+XMAX, YMAX = 800, 800    # 우하단
 
 # 실행 예시
 current_dir = os.path.dirname(os.path.abspath(__file__))
