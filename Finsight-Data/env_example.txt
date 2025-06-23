@@ -1,0 +1,22 @@
+# API 키 설정
+KRX_API_KEY=your_krx_api_key_here
+DART_API_KEY=your_dart_api_key_here
+FRED_API_KEY=your_fred_api_key_here
+ECOS_API_KEY=your_ecos_api_key_here
+
+# 네이버 API 키 (뉴스 수집용)
+NAVER_CLIENT_ID=your_naver_client_id_here
+NAVER_CLIENT_SECRET=your_naver_client_secret_here
+
+# 데이터베이스 설정
+DATABASE_URL=sqlite:///finsight_data.db
+
+# 수집 설정
+COLLECTION_INTERVAL=60
+MAX_RETRIES=3
+TIMEOUT=30
+
+# 파일 경로 설정
+DATA_DIR=data
+REPORTS_DIR=reports
+LOGS_DIR=logs 
