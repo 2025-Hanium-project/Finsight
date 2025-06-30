@@ -25,12 +25,18 @@ logging.basicConfig(
 logger = logging.getLogger("KyoboCrawler")
 
 class KyoboSecuritiesReportCrawler:
-    def __init__(self, base_url="https://m.iprovest.com", save_dir="reports", download_dir=None):
+    def __init__(self, base_url="https://m.iprovest.com", save_dir=None, download_dir=None):
         self.base_url = base_url
         self.report_list_url = f"{base_url}/weblogic/ResearchServlet/newReports"
         
-        # 저장 디렉토리 구조 생성
-        self.save_dir = save_dir
+        # 저장 디렉토리 구조 생성 (project/consensus/kyobo)
+        if save_dir is None:
+            BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # crawling/kyobo 폴더
+            PROJECT_DIR = os.path.dirname(os.path.dirname(BASE_DIR))  # project 폴더
+            self.save_dir = os.path.join(PROJECT_DIR, "consensus", "kyobo")
+        else:
+            self.save_dir = save_dir
+            
         if not os.path.exists(self.save_dir):
             os.makedirs(self.save_dir)
         
@@ -60,7 +66,7 @@ class KyoboSecuritiesReportCrawler:
         chrome_options.add_experimental_option("prefs", prefs)
         
         # 필요한 옵션 설정
-        # chrome_options.add_argument('--headless')  # 실행 과정을 확인하기 위해 주석 처리
+        chrome_options.add_argument('--headless')  # 실행 과정을 확인하기 위해 주석 처리
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
         
@@ -82,14 +88,10 @@ class KyoboSecuritiesReportCrawler:
                 EC.presence_of_element_located((By.TAG_NAME, "body"))
             )
             
-            # 페이지 소스 저장
-            with open("page_source.html", "w", encoding="utf-8") as f:
-                f.write(self.driver.page_source)
-            logger.info("현재 페이지 소스 저장: page_source.html")
-            
-            # 스크린샷 저장
-            self.driver.save_screenshot("main_page.png")
-            logger.info("메인 페이지 스크린샷 저장: main_page.png")
+            # 디버깅 파일 생성 제거
+            # 페이지 소스 저장 제거
+            # 스크린샷 저장 제거
+            logger.info("메인 페이지 접속 및 로딩 완료")
             
             # 현재 페이지의 모든 요소 찾기를 시도
             self.find_all_elements_debug()
@@ -107,8 +109,7 @@ class KyoboSecuritiesReportCrawler:
                         self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", button)
                         time.sleep(1)
                         
-                        # 버튼 클릭 전 스크린샷
-                        self.driver.save_screenshot(f"before_click_{idx}.png")
+                        # 스크린샷 제거
                         
                         # 버튼 주변 요소에서 필요한 정보 추출
                         report_info = self.extract_report_info_from_button(button, idx)
@@ -122,8 +123,7 @@ class KyoboSecuritiesReportCrawler:
                             self.driver.execute_script("arguments[0].click();", button)
                         
                         # 다운로드 완료 대기
-                        time.sleep(5)
-                        
+                        time.sleep(2)
                         # 다운로드된 파일 처리
                         if report_info:
                             self.process_downloaded_file(**report_info)
@@ -135,11 +135,11 @@ class KyoboSecuritiesReportCrawler:
                 logger.warning("다운로드 버튼을 찾을 수 없습니다.")
             
             # 결과 저장
-            self.save_data_to_csv()
+            # self.save_data_to_csv()
             
         except Exception as e:
             logger.error(f"크롤링 중 오류 발생: {e}")
-            self.driver.save_screenshot("error.png")
+            # 오류 스크린샷 제거
         finally:
             # WebDriver 종료
             self.driver.quit()
@@ -264,8 +264,7 @@ class KyoboSecuritiesReportCrawler:
             
             # 부모 요소가 있다면 정보 추출 시도
             if parent:
-                # 부모 요소 스크린샷
-                self.driver.save_screenshot(f"parent_{idx}.png")
+                # 부모 요소 스크린샷 제거
                 
                 # 제목 추출
                 try:
@@ -353,19 +352,7 @@ class KyoboSecuritiesReportCrawler:
                 except:
                     date_obj = datetime.now()
             
-            # 파일 저장 경로 생성
-            year_dir = os.path.join(self.save_dir, str(date_obj.year))
-            if not os.path.exists(year_dir):
-                os.makedirs(year_dir)
-                
-            month_dir = os.path.join(year_dir, f"{date_obj.month:02d}")
-            if not os.path.exists(month_dir):
-                os.makedirs(month_dir)
-                
-            day_dir = os.path.join(month_dir, f"{date_obj.day:02d}")
-            if not os.path.exists(day_dir):
-                os.makedirs(day_dir)
-            
+            # 날짜별 폴더 구조 제거 - 직접 save_dir에 저장
             # 파일명 생성
             stock_name_clean = stock_name.replace('/', '_').strip() if stock_name else ""
             title_clean = title.replace('/', '_').strip()
@@ -380,7 +367,7 @@ class KyoboSecuritiesReportCrawler:
             filename = re.sub(r'[\\/:*?"<>|]', '', filename)
             filename = filename[:150] + '.pdf' if len(filename) > 150 else filename
             
-            target_path = os.path.join(day_dir, filename)
+            target_path = os.path.join(self.save_dir, filename)
             
             # 파일 복사
             shutil.copy2(downloaded_file, target_path)
@@ -435,25 +422,21 @@ class KyoboSecuritiesReportCrawler:
             logger.error(f"PDF 텍스트 추출 실패: {e}")
             return None
     
-    def save_data_to_csv(self):
-        """수집된 데이터를 CSV 파일로 저장"""
-        if not self.reports_data.empty:
-            csv_path = os.path.join(self.save_dir, f"kyobo_reports_{datetime.now().strftime('%Y%m%d')}.csv")
-            self.reports_data.to_csv(csv_path, index=False, encoding='utf-8-sig')
-            logger.info(f"데이터 CSV 저장 완료: {csv_path}")
-            return csv_path
-        return None
+    # def save_data_to_csv(self):
+    #     """수집된 데이터를 CSV 파일로 저장"""
+    #     if not self.reports_data.empty:
+    #         csv_path = os.path.join(self.save_dir, f"kyobo_reports_{datetime.now().strftime('%Y%m%d')}.csv")
+    #         self.reports_data.to_csv(csv_path, index=False, encoding='utf-8-sig')
+    #         logger.info(f"데이터 CSV 저장 완료: {csv_path}")
+    #         return csv_path
+    #     return None
 
 # 사용 예시
 if __name__ == "__main__":
-    # 저장 디렉토리 설정
-    save_dir = "kyobo_reports"
-    download_dir = "downloads"
-    
-    # 크롤러 객체 생성
-    crawler = KyoboSecuritiesReportCrawler(save_dir=save_dir, download_dir=download_dir)
+    # 크롤러 객체 생성 (저장 경로를 기본값으로 사용)
+    crawler = KyoboSecuritiesReportCrawler()
     
     # 크롤링 실행
     crawler.crawl_reports(max_pages=1)  # 첫 페이지만 테스트
     
-    print(f"크롤링 완료! 저장 경로: {os.path.abspath(save_dir)}")
+    print(f"크롤링 완료! 저장 경로: {os.path.abspath(crawler.save_dir)}")
