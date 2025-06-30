@@ -21,17 +21,24 @@ logging.basicConfig(
 logger = logging.getLogger('naver_finance_crawler')
 
 class NaverFinanceCrawler:
-    def __init__(self, download_path="./test/pdf_reports"):
+    def __init__(self, download_path=None):
         self.base_url = "https://finance.naver.com"
         self.research_url = "https://finance.naver.com/research/"
+        
+        # 저장 경로 설정 (project/consensus/naver)
+        if download_path is None:
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            download_path = os.path.join(base_dir, "project", "consensus", "naver")
+        
         self.download_path = download_path
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36'
         }
         
         # 다운로드 디렉토리 생성
-        if not os.path.exists(download_path):
-            os.makedirs(download_path)
+        if not os.path.exists(self.download_path):
+            os.makedirs(self.download_path)
+            print(f"네이버 크롤러 저장 경로 생성: {self.download_path}")
             
         # 셀레니움 설정
         chrome_options = Options()
@@ -42,7 +49,7 @@ class NaverFinanceCrawler:
         chrome_options.add_argument(f"--user-agent={self.headers['User-Agent']}")
         
         # 다운로드 경로 설정
-        prefs = {"download.default_directory": os.path.abspath(download_path)}
+        prefs = {"download.default_directory": os.path.abspath(self.download_path)}
         chrome_options.add_experimental_option("prefs", prefs)
         
         self.driver = webdriver.Chrome(options=chrome_options)
@@ -123,7 +130,6 @@ class NaverFinanceCrawler:
                 if not next_page or page_num == page + max_pages - 1:
                     break
 
-                time.sleep(random.uniform(1.0, 2.0))
 
             logger.info(f"총 {len(all_reports)}개 리포트 목록 수집 완료")
             return all_reports
@@ -219,13 +225,13 @@ class NaverFinanceCrawler:
                 report_result = {**report, **result}
                 results.append(report_result)
                 
-                # 서버 부하 방지를 위한 대기
-                time.sleep(random.uniform(1.5, 4.0))
             
-            # 6. 결과 저장
+            # 6. 결과 저장 (동일 폴더에 저장)
+            result_file = os.path.join(self.download_path, f'naver_finance_reports_{datetime.now().strftime("%Y%m%d")}.csv')
             result_df = pd.DataFrame(results)
-            result_df.to_csv(f'naver_finance_reports_{datetime.now().strftime("%Y%m%d")}.csv', index=False, encoding='utf-8-sig')
+            result_df.to_csv(result_file, index=False, encoding='utf-8-sig')
             logger.info(f"크롤링 완료: 총 {len(results)}개 리포트 처리")
+            logger.info(f"결과 저장: {result_file}")
             
             return result_df
             
@@ -233,5 +239,6 @@ class NaverFinanceCrawler:
             logger.error(f"크롤링 실행 중 오류: {str(e)}")
             return None
 
-crawler = NaverFinanceCrawler()
-crawler.run_crawler(days_limit=0, max_reports=100)
+if __name__ == "__main__":
+    crawler = NaverFinanceCrawler()
+    crawler.run_crawler(days_limit=0, max_reports=20)
