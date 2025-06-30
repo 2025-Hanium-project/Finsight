@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinSight - 프로필 수정</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/profile_edit.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="layout-container">
+        <!-- 사이드바 -->
+        <div class="main-sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <span class="logo-icon">📊</span>
+                    <span>FinSight</span>
+                </div>
+            </div>
+            <div class="sidebar-nav-item">
+                <i>📈</i>
+                <button onclick="window.location.href='{{ url_for('index') }}'">메인 대시보드</button>
+            </div>
+            <div class="sidebar-nav-item">
+                <i>📝</i>
+                <button onclick="window.location.href='{{ url_for('dday') }}'">D-day 보고서</button>
+            </div>
+            <div class="sidebar-nav-item">
+                <i>📊</i>
+                <button onclick="window.location.href='{{ url_for('dplus1') }}'">D+1 보고서</button>
+            </div>
+            <div class="sidebar-nav-item">
+                <i>🔍</i>
+                <button onclick="window.location.href='{{ url_for('detail') }}'">종목 상세 정보</button>
+            </div>
+            <div class="sidebar-nav-item active">
+                <i>👤</i>
+                <button onclick="window.location.href='{{ url_for('mypage') }}'">마이페이지</button>
+            </div>
+        </div>
+
+        <!-- 메인 콘텐츠 -->
+        <div class="main-dashboard-content">
+            <!-- 헤더 -->
+            <div class="header">
+                <div>
+                    <h1 class="page-title">프로필 수정</h1>
+                    <p class="date-info">개인정보 및 투자 설정을 관리하세요</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn-back" onclick="window.location.href='{{ url_for('mypage') }}'">
+                        <i class="fas fa-arrow-left"></i>
+                        돌아가기
+                    </button>
+                </div>
+            </div>
+
+            <!-- 프로필 수정 폼 -->
+            <form class="profile-form" id="profileForm">
+                <!-- 프로필 이미지 섹션 -->
+                <div class="profile-image-section">
+                    <div class="profile-card">
+                        <div class="profile-image-container">
+                            <div class="profile-avatar" id="profileAvatar">
+                                <span class="avatar-initial">김</span>
+                            </div>
+                            <div class="profile-image-overlay">
+                                <i class="fas fa-camera"></i>
+                                <span>변경</span>
+                            </div>
+                            <input type="file" id="profileImageInput" accept="image/*" hidden>
+                        </div>
+                        <div class="profile-image-info">
+                            <h3 class="current-name">김투자</h3>
+                            <p class="image-guide">JPG, PNG 파일만 업로드 가능 (최대 5MB)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 기본 정보 섹션 -->
+                <div class="form-section">
+                    <h2 class="section-title">기본 정보</h2>
+                    <div class="form-grid">
+                        <div class="input-field">
+                            <label for="name">이름 *</label>
+                            <input type="text" id="name" name="name" value="김투자" required>
+                        </div>
+                        <div class="input-field">
+                            <label for="birth">생년월일</label>
+                            <input type="date" id="birth" name="birth" value="1990-05-15">
+                        </div>
+                        <div class="input-field">
+                            <label for="email">이메일 *</label>
+                            <div class="input-with-status">
+                                <input type="email" id="email" name="email" value="investor@example.com" required>
+                                <span class="verification-status verified">
+                                    <i class="fas fa-check-circle"></i>
+                                    인증됨
+                                </span>
+                            </div>
+                        </div>
+                        <div class="input-field">
+                            <label for="phone">휴대폰 번호 *</label>
+                            <div class="input-with-status">
+                                <input type="tel" id="phone" name="phone" value="010-1234-5678" required>
+                                <span class="verification-status verified">
+                                    <i class="fas fa-check-circle"></i>
+                                    인증됨
+                                </span>
+                            </div>
+                        </div>
+                        <div class="input-field">
+                            <label for="address">주소</label>
+                            <div class="address-input">
+                                <div class="address-row">
+                                    <input type="text" id="zipcode" name="zipcode" placeholder="우편번호" readonly>
+                                    <button type="button" class="btn-address-search">주소 검색</button>
+                                </div>
+                                <input type="text" id="address" name="address" placeholder="기본 주소" readonly>
+                                <input type="text" id="detailAddress" name="detailAddress" placeholder="상세 주소">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 보안 설정 섹션 -->
+                <div class="form-section">
+                    <h2 class="section-title">보안 설정</h2>
+                    <div class="security-settings">
+                        <div class="security-item">
+                            <div class="security-info">
+                                <h4>비밀번호 변경</h4>
+                                <p>계정 보안을 위해 정기적으로 비밀번호를 변경하세요</p>
+                            </div>
+                            <button type="button" class="btn-security" id="changePasswordBtn">
+                                비밀번호 변경
+                            </button>
+                        </div>
+                        <div class="security-item">
+                            <div class="security-info">
+                                <h4>2단계 인증</h4>
+                                <p>SMS 또는 앱을 통한 추가 보안 인증</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" name="twoFactor" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="security-item">
+                            <div class="security-info">
+                                <h4>로그인 알림</h4>
+                                <p>새로운 기기에서 로그인 시 이메일 알림</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" name="loginNotification" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 저장 버튼 -->
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel" onclick="window.location.href='{{ url_for('mypage') }}'">
+                        취소
+                    </button>
+                    <button type="submit" class="btn-save">
+                        <i class="fas fa-save"></i>
+                        저장하기
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 비밀번호 변경 모달 -->
+    <div class="modal-overlay" id="passwordModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>비밀번호 변경</h3>
+                <button type="button" class="modal-close" id="closePasswordModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="passwordForm">
+                    <div class="input-field">
+                        <label for="currentPassword">현재 비밀번호 *</label>
+                        <input type="password" id="currentPassword" name="currentPassword" required>
+                    </div>
+                    <div class="input-field">
+                        <label for="newPassword">새 비밀번호 *</label>
+                        <input type="password" id="newPassword" name="newPassword" placeholder="8자 이상, 영문/숫자/특수문자 포함" required>
+                        <div class="password-strength" id="passwordStrength">
+                            <div class="strength-bar">
+                                <div class="strength-fill"></div>
+                            </div>
+                            <div class="strength-text">비밀번호 강도</div>
+                        </div>
+                    </div>
+                    <div class="input-field">
+                        <label for="confirmNewPassword">새 비밀번호 확인 *</label>
+                        <input type="password" id="confirmNewPassword" name="confirmNewPassword" required>
+                        <div class="input-message" id="passwordMessage"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" id="cancelPasswordChange">취소</button>
+                <button type="button" class="btn-save" id="savePasswordChange">변경하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // 프로필 이미지 변경
+        document.querySelector('.profile-image-container').addEventListener('click', function() {
+            document.getElementById('profileImageInput').click();
+        });
+
+        document.getElementById('profileImageInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const avatar = document.getElementById('profileAvatar');
+                    avatar.innerHTML = `<img src="${e.target.result}" alt="프로필 이미지" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // 관심 분야 태그 토글 (제거됨)
+
+        // 초기 태그 상태 설정 (제거됨)
+
+        // 비밀번호 변경 모달
+        document.getElementById('changePasswordBtn').addEventListener('click', function() {
+            document.getElementById('passwordModal').style.display = 'flex';
+        });
+
+        document.getElementById('closePasswordModal').addEventListener('click', function() {
+            document.getElementById('passwordModal').style.display = 'none';
+        });
+
+        document.getElementById('cancelPasswordChange').addEventListener('click', function() {
+            document.getElementById('passwordModal').style.display = 'none';
+        });
+
+        // 비밀번호 강도 체크
+        function checkPasswordStrength(password) {
+            let strength = 0;
+            const strengthBar = document.querySelector('.strength-fill');
+            const strengthText = document.querySelector('.strength-text');
+            
+            if (password.length >= 8) strength += 1;
+            if (/[a-z]/.test(password)) strength += 1;
+            if (/[A-Z]/.test(password)) strength += 1;
+            if (/[0-9]/.test(password)) strength += 1;
+            if (/[^A-Za-z0-9]/.test(password)) strength += 1;
+            
+            const percentage = (strength / 5) * 100;
+            strengthBar.style.width = percentage + '%';
+            
+            if (strength < 2) {
+                strengthBar.style.backgroundColor = '#ef4444';
+                strengthText.textContent = '약함';
+            } else if (strength < 4) {
+                strengthBar.style.backgroundColor = '#f59e0b';
+                strengthText.textContent = '보통';
+            } else {
+                strengthBar.style.backgroundColor = '#10b981';
+                strengthText.textContent = '강함';
+            }
+            
+            return strength >= 3;
+        }
+
+        // 비밀번호 확인
+        function checkPasswordMatch() {
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmNewPassword').value;
+            const messageElement = document.getElementById('passwordMessage');
+            
+            if (confirmPassword && newPassword !== confirmPassword) {
+                messageElement.textContent = '비밀번호가 일치하지 않습니다.';
+                messageElement.style.color = '#ef4444';
+                return false;
+            } else if (confirmPassword && newPassword === confirmPassword) {
+                messageElement.textContent = '비밀번호가 일치합니다.';
+                messageElement.style.color = '#10b981';
+                return true;
+            }
+            messageElement.textContent = '';
+            return false;
+        }
+
+        document.getElementById('newPassword').addEventListener('input', function() {
+            checkPasswordStrength(this.value);
+        });
+
+        document.getElementById('confirmNewPassword').addEventListener('input', function() {
+            checkPasswordMatch();
+        });
+
+        // 비밀번호 변경 처리
+        document.getElementById('savePasswordChange').addEventListener('click', function() {
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmNewPassword').value;
+            
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                alert('모든 필드를 입력해주세요.');
+                return;
+            }
+            
+            if (!checkPasswordStrength(newPassword)) {
+                alert('비밀번호가 너무 약합니다.');
+                return;
+            }
+            
+            if (!checkPasswordMatch()) {
+                alert('새 비밀번호가 일치하지 않습니다.');
+                return;
+            }
+            
+            // 실제 구현에서는 서버로 전송
+            alert('비밀번호가 성공적으로 변경되었습니다.');
+            document.getElementById('passwordModal').style.display = 'none';
+            document.getElementById('passwordForm').reset();
+        });
+
+        // 주소 검색 (실제 구현 시 다음 우편번호 API 등 사용)
+        document.querySelector('.btn-address-search').addEventListener('click', function() {
+            // 실제 구현에서는 다음 우편번호 API 등을 사용
+            alert('주소 검색 기능을 구현하세요.');
+        });
+
+        // 폼 저장
+        document.getElementById('profileForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // 실제 구현에서는 서버로 데이터 전송
+            alert('프로필이 성공적으로 저장되었습니다.');
+            window.location.href = '{{ url_for("mypage") }}';
+        });
+
+        // 모달 외부 클릭 시 닫기
+        document.getElementById('passwordModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

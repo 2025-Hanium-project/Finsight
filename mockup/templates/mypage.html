@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinSight - 마이페이지</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mypage.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="layout-container">
+        <!-- 사이드바 -->
+        <div class="main-sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <span class="logo-icon">📊</span>
+                    <span>FinSight</span>
+                </div>
+            </div>
+            <div class="sidebar-nav-item">
+                <i>📈</i>
+                <button onclick="window.location.href='{{ url_for('index') }}'">메인 대시보드</button>
+            </div>
+            <div class="sidebar-nav-item">
+                <i>📝</i>
+                <button onclick="window.location.href='{{ url_for('dday') }}'">D-day 보고서</button>
+            </div>
+            <div class="sidebar-nav-item">
+                <i>📊</i>
+                <button onclick="window.location.href='{{ url_for('dplus1') }}'">D+1 보고서</button>
+            </div>
+            <div class="sidebar-nav-item">
+                <i>🔍</i>
+                <button onclick="window.location.href='{{ url_for('detail') }}'">종목 상세 정보</button>
+            </div>
+        </div>
+
+        <!-- 메인 콘텐츠 -->
+        <div class="main-dashboard-content">
+            <!-- 헤더 -->
+            <div class="header">
+                <div>
+                    <h1 class="page-title">마이페이지</h1>
+                    <p class="date-info">2025년 5월 2일 금요일</p>
+                </div>
+                <div class="header-actions">
+                </div>
+            </div>
+
+            <!-- 프로필 섹션 -->
+            <div class="profile-section">
+                <div class="profile-card">
+                    <div class="profile-avatar">
+                        <span class="avatar-initial">김</span>
+                    </div>
+                    <div class="profile-info">
+                        <h2 class="profile-name">김투자</h2>
+                        <p class="profile-email">investor@example.com</p>
+                        <div class="profile-stats">
+                            <div class="stat-item">
+                                <div class="stat-label">관심 종목</div>
+                                <div class="stat-value">프리미엄</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">가입일</div>
+                                <div class="stat-value">2024.03.15</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">회원 등급</div>
+                                <div class="stat-value">프리미엄</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="profile-actions">
+                        <button class="btn-edit-profile" onclick="window.location.href='{{ url_for('profile_edit') }}'">프로필 수정</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 관심 종목 섹션 -->
+            <div class="section-title-with-action">
+                <h2 class="section-title">관심 종목</h2>
+                <button class="btn-add-watchlist">
+                    <i class="fas fa-plus"></i>
+                    종목 추가
+                </button>
+            </div>
+
+            <div class="watchlist-section">
+                <!-- 관심 종목 탭 -->
+                <div class="watchlist-tabs">
+                    <div class="tab active">전체 (6)</div>
+                    <div class="watchlist-limit-info">
+                        <span class="limit-text">최대 6개까지 등록 가능</span>
+                        <span class="limit-count">6/6</span>
+                    </div>
+                </div>
+
+                <!-- 관심 종목 툴바 -->
+                <div class="watchlist-content">
+                    <div class="watchlist-toolbar">
+                        <div class="toolbar-left">
+                            <select class="sort-select">
+                                <option value="name">종목명 순</option>
+                                <option value="price">현재가 순</option>
+                                <option value="change">변동률 순</option>
+                                <option value="volume">거래량 순</option>
+                            </select>
+                            <button class="view-toggle" data-view="grid">
+                                <i class="fas fa-th"></i>
+                            </button>
+                            <button class="view-toggle active" data-view="list">
+                                <i class="fas fa-list"></i>
+                            </button>
+                        </div>
+                        <div class="toolbar-right">
+                            <button class="btn-export">
+                                <i class="fas fa-download"></i>
+                                내보내기
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 관심 종목 그리드 -->
+                    <div class="watchlist-grid" id="watchlist-grid">
+                        <!-- 삼성전자 -->
+                        <div class="watchlist-item">
+                            <div class="watchlist-header">
+                                <div class="stock-symbol">삼</div>
+                                <div class="watchlist-actions">
+                                    <button class="btn-alert" title="알림 설정">
+                                        <i class="fas fa-bell"></i>
+                                    </button>
+                                    <button class="btn-remove" title="관심 종목에서 제거">
+                                        <i class="fas fa-heart-broken"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="stock-info">
+                                <h3 class="stock-name">삼성전자</h3>
+                                <p class="stock-code">005930</p>
+                                <div class="price-info">
+                                    <span class="current-price">75,800원</span>
+                                    <span class="price-change up">+1,600원 (+2.16%)</span>
+                                </div>
+                            </div>
+                            <div class="stock-metrics">
+                                <div class="metric">
+                                    <span class="metric-label">목표가</span>
+                                    <span class="metric-value">85,000원</span>
+                                </div>
+                                <div class="metric">
+                                    <span class="metric-label">상승여력</span>
+                                    <span class="metric-value up">+12.1%</span>
+                                </div>
+                            </div>
+                            <div class="consensus-info">
+                                <div class="consensus-label">컨센서스</div>
+                                <div class="consensus-bar">
+                                    <div class="consensus-fill" style="width: 92%;"></div>
+                                </div>
+                                <div class="consensus-text">매수 92%</div>
+                            </div>
+                        </div>
+
+                        <!-- SK하이닉스 -->
+                        <div class="watchlist-item">
+                            <div class="watchlist-header">
+                                <div class="stock-symbol">SK</div>
+                                <div class="watchlist-actions">
+                                    <button class="btn-alert active" title="알림 설정">
+                                        <i class="fas fa-bell"></i>
+                                    </button>
+                                    <button class="btn-remove" title="관심 종목에서 제거">
+                                        <i class="fas fa-heart-broken"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="stock-info">
+                                <h3 class="stock-name">SK하이닉스</h3>
+                                <p class="stock-code">000660</p>
+                                <div class="price-info">
+                                    <span class="current-price">169,500원</span>
+                                    <span class="price-change up">+3,000원 (+1.77%)</span>
+                                </div>
+                            </div>
+                            <div class="stock-metrics">
+                                <div class="metric">
+                                    <span class="metric-label">목표가</span>
+                                    <span class="metric-value">200,000원</span>
+                                </div>
+                                <div class="metric">
+                                    <span class="metric-label">상승여력</span>
+                                    <span class="metric-value up">+18.0%</span>
+                                </div>
+                            </div>
+                            <div class="consensus-info">
+                                <div class="consensus-label">컨센서스</div>
+                                <div class="consensus-bar">
+                                    <div class="consensus-fill" style="width: 95%;"></div>
+                                </div>
+                                <div class="consensus-text">강력매수 95%</div>
+                            </div>
+                        </div>
+
+                        <!-- 네이버 -->
+                        <div class="watchlist-item">
+                            <div class="watchlist-header">
+                                <div class="stock-symbol">N</div>
+                                <div class="watchlist-actions">
+                                    <button class="btn-alert" title="알림 설정">
+                                        <i class="fas fa-bell"></i>
+                                    </button>
+                                    <button class="btn-remove" title="관심 종목에서 제거">
+                                        <i class="fas fa-heart-broken"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="stock-info">
+                                <h3 class="stock-name">네이버</h3>
+                                <p class="stock-code">035420</p>
+                                <div class="price-info">
+                                    <span class="current-price">280,500원</span>
+                                    <span class="price-change up">+14,600원 (+5.20%)</span>
+                                </div>
+                            </div>
+                            <div class="stock-metrics">
+                                <div class="metric">
+                                    <span class="metric-label">목표가</span>
+                                    <span class="metric-value">320,000원</span>
+                                </div>
+                                <div class="metric">
+                                    <span class="metric-label">상승여력</span>
+                                    <span class="metric-value up">+14.1%</span>
+                                </div>
+                            </div>
+                            <div class="consensus-info">
+                                <div class="consensus-label">컨센서스</div>
+                                <div class="consensus-bar">
+                                    <div class="consensus-fill" style="width: 87%;"></div>
+                                </div>
+                                <div class="consensus-text">매수 87%</div>
+                            </div>
+                        </div>
+
+                        <!-- KB금융 -->
+                        <div class="watchlist-item">
+                            <div class="watchlist-header">
+                                <div class="stock-symbol">KB</div>
+                                <div class="watchlist-actions">
+                                    <button class="btn-alert" title="알림 설정">
+                                        <i class="fas fa-bell"></i>
+                                    </button>
+                                    <button class="btn-remove" title="관심 종목에서 제거">
+                                        <i class="fas fa-heart-broken"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="stock-info">
+                                <h3 class="stock-name">KB금융</h3>
+                                <p class="stock-code">105560</p>
+                                <div class="price-info">
+                                    <span class="current-price">72,400원</span>
+                                    <span class="price-change down">-800원 (-1.09%)</span>
+                                </div>
+                            </div>
+                            <div class="stock-metrics">
+                                <div class="metric">
+                                    <span class="metric-label">목표가</span>
+                                    <span class="metric-value">78,000원</span>
+                                </div>
+                                <div class="metric">
+                                    <span class="metric-label">상승여력</span>
+                                    <span class="metric-value up">+7.7%</span>
+                                </div>
+                            </div>
+                            <div class="consensus-info">
+                                <div class="consensus-label">컨센서스</div>
+                                <div class="consensus-bar">
+                                    <div class="consensus-fill" style="width: 75%;"></div>
+                                </div>
+                                <div class="consensus-text">매수 75%</div>
+                            </div>
+                        </div>
+
+                        <!-- 현대차 -->
+                        <div class="watchlist-item">
+                            <div class="watchlist-header">
+                                <div class="stock-symbol">현</div>
+                                <div class="watchlist-actions">
+                                    <button class="btn-alert" title="알림 설정">
+                                        <i class="fas fa-bell"></i>
+                                    </button>
+                                    <button class="btn-remove" title="관심 종목에서 제거">
+                                        <i class="fas fa-heart-broken"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="stock-info">
+                                <h3 class="stock-name">현대차</h3>
+                                <p class="stock-code">005380</p>
+                                <div class="price-info">
+                                    <span class="current-price">196,000원</span>
+                                    <span class="price-change down">-1,000원 (-0.51%)</span>
+                                </div>
+                            </div>
+                            <div class="stock-metrics">
+                                <div class="metric">
+                                    <span class="metric-label">목표가</span>
+                                    <span class="metric-value">210,000원</span>
+                                </div>
+                                <div class="metric">
+                                    <span class="metric-label">상승여력</span>
+                                    <span class="metric-value up">+7.1%</span>
+                                </div>
+                            </div>
+                            <div class="consensus-info">
+                                <div class="consensus-label">컨센서스</div>
+                                <div class="consensus-bar">
+                                    <div class="consensus-fill" style="width: 85%;"></div>
+                                </div>
+                                <div class="consensus-text">매수 85%</div>
+                            </div>
+                        </div>
+
+                        <!-- 셀트리온 -->
+                        <div class="watchlist-item">
+                            <div class="watchlist-header">
+                                <div class="stock-symbol">셀</div>
+                                <div class="watchlist-actions">
+                                    <button class="btn-alert active" title="알림 설정">
+                                        <i class="fas fa-bell"></i>
+                                    </button>
+                                    <button class="btn-remove" title="관심 종목에서 제거">
+                                        <i class="fas fa-heart-broken"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="stock-info">
+                                <h3 class="stock-name">셀트리온</h3>
+                                <p class="stock-code">068270</p>
+                                <div class="price-info">
+                                    <span class="current-price">189,000원</span>
+                                    <span class="price-change up">+6,600원 (+3.61%)</span>
+                                </div>
+                            </div>
+                            <div class="stock-metrics">
+                                <div class="metric">
+                                    <span class="metric-label">목표가</span>
+                                    <span class="metric-value">220,000원</span>
+                                </div>
+                                <div class="metric">
+                                    <span class="metric-label">상승여력</span>
+                                    <span class="metric-value up">+16.4%</span>
+                                </div>
+                            </div>
+                            <div class="consensus-info">
+                                <div class="consensus-label">컨센서스</div>
+                                <div class="consensus-bar">
+                                    <div class="consensus-fill" style="width: 78%;"></div>
+                                </div>
+                                <div class="consensus-text">매수 78%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 설정 섹션 -->
+            <div class="settings-grid">
+                <!-- 투자 설정 -->
+                <div class="settings-card">
+                    <div class="card-header">
+                        <h3 class="card-title">투자 설정</h3>
+                        <div class="card-icon">⚙️</div>
+                    </div>
+                    <div class="settings-content">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label">위험도 선호</div>
+                                <div class="setting-description">투자 성향에 맞는 종목 추천을 받으세요</div>
+                            </div>
+                            <select class="setting-select">
+                                <option value="conservative">보수적</option>
+                                <option value="moderate" selected>중도적</option>
+                                <option value="aggressive">공격적</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label">투자 금액 범위</div>
+                                <div class="setting-description">목표 투자 금액을 설정하세요</div>
+                            </div>
+                            <select class="setting-select">
+                                <option value="low">1천만원 이하</option>
+                                <option value="medium" selected>1천만원 - 5천만원</option>
+                                <option value="high">5천만원 이상</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label">관심 업종</div>
+                                <div class="setting-description">선호하는 업종을 선택하세요</div>
+                            </div>
+                            <div class="industry-tags">
+                                <span class="tag active">IT/기술</span>
+                                <span class="tag active">금융</span>
+                                <span class="tag">바이오</span>
+                                <span class="tag active">자동차</span>
+                                <span class="tag">에너지</span>
+                                <span class="tag">소비재</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 알림 설정 -->
+                <div class="settings-card">
+                    <div class="card-header">
+                        <h3 class="card-title">알림 설정</h3>
+                        <div class="card-icon">🔔</div>
+                    </div>
+                    <div class="settings-content">
+                        <div class="notification-item">
+                            <div class="notification-info">
+                                <div class="notification-label">가격 알림</div>
+                                <div class="notification-description">목표가 도달 시 알림</div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="notification-item">
+                            <div class="notification-info">
+                                <div class="notification-label">실적 발표</div>
+                                <div class="notification-description">관심 종목 실적 발표일 알림</div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="notification-item">
+                            <div class="notification-info">
+                                <div class="notification-label">리포트 업데이트</div>
+                                <div class="notification-description">애널리스트 리포트 신규 발행 알림</div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="notification-item">
+                            <div class="notification-info">
+                                <div class="notification-label">시장 동향</div>
+                                <div class="notification-description">주요 시장 이슈 및 동향 알림</div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+    <!-- JavaScript -->
+    <script>
+        // 관심 종목 개수 업데이트 함수
+        function updateWatchlistCount() {
+            const items = document.querySelectorAll('.watchlist-item');
+            const count = items.length;
+            const maxCount = 6;
+            
+            // 탭 카운트 업데이트
+            document.querySelector('.watchlist-tabs .tab').textContent = `전체 (${count})`;
+            
+            // 제한 정보 업데이트
+            document.querySelector('.limit-count').textContent = `${count}/${maxCount}`;
+            
+            // 종목 추가 버튼 상태 업데이트
+            const addButton = document.querySelector('.btn-add-watchlist');
+            if (count >= maxCount) {
+                addButton.disabled = true;
+                addButton.style.opacity = '0.5';
+                addButton.style.cursor = 'not-allowed';
+            } else {
+                addButton.disabled = false;
+                addButton.style.opacity = '1';
+                addButton.style.cursor = 'pointer';
+            }
+            
+            // 프로필 통계 업데이트
+            document.querySelector('.profile-stats .stat-value').textContent = `${count}개`;
+        }
+
+        // 활동 탭 전환 기능
+        document.querySelectorAll('.activity-tabs .tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                this.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // 보기 방식 전환
+        document.querySelectorAll('.view-toggle').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.view-toggle').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                const grid = document.getElementById('watchlist-grid');
+                if (this.dataset.view === 'list') {
+                    grid.classList.remove('grid-view');
+                    grid.classList.add('list-view');
+                } else {
+                    grid.classList.remove('list-view');
+                    grid.classList.add('grid-view');
+                }
+            });
+        });
+
+        // 알림 버튼 토글
+        document.querySelectorAll('.btn-alert').forEach(btn => {
+            btn.addEventListener('click', function() {
+                this.classList.toggle('active');
+            });
+        });
+
+        // 관심 종목 제거
+        document.querySelectorAll('.btn-remove').forEach(btn => {
+            btn.addEventListener('click', function() {
+                if (confirm('이 종목을 관심 목록에서 제거하시겠습니까?')) {
+                    this.closest('.watchlist-item').remove();
+                    updateWatchlistCount();
+                }
+            });
+        });
+
+        // 업종 태그 토글
+        document.querySelectorAll('.industry-tags .tag').forEach(tag => {
+            tag.addEventListener('click', function() {
+                this.classList.toggle('active');
+            });
+        });
+
+        // 정렬 기능
+        document.querySelector('.sort-select').addEventListener('change', function() {
+            console.log('정렬 기준:', this.value);
+        });
+
+        // 종목 추가 버튼
+        document.querySelector('.btn-add-watchlist').addEventListener('click', function() {
+            const currentCount = document.querySelectorAll('.watchlist-item').length;
+            if (currentCount >= 6) {
+                alert('관심 종목은 최대 6개까지만 등록할 수 있습니다.');
+                return;
+            }
+            alert('종목 추가 기능을 구현하세요.');
+        });
+
+        // 초기 로드 시 개수 업데이트
+        updateWatchlistCount();
+    </script>
+</body>
+</html>

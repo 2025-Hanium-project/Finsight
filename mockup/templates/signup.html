@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinSight - 회원가입</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/signup.css') }}">
+</head>
+<body>
+    <div class="signup-container">
+        <!-- 회원가입 영역 -->
+        <div class="signup-side">
+            <div class="signup-logo">
+                <span class="signup-logo-icon">📊</span>
+                <span class="signup-logo-text">FinSight</span>
+            </div>
+            <p class="signup-subtitle">투자 의사결정을 위한 AI 분석 플랫폼</p>
+            
+            <h1 class="signup-title">회원가입</h1>
+            
+            <form class="signup-form" id="signupForm">
+                <!-- 기본 정보 -->
+                <div class="form-section">
+                    <h3 class="section-title">기본 정보</h3>
+                    
+                    <div class="input-row">
+                        <div class="input-field">
+                            <label for="name">이름 *</label>
+                            <input type="text" id="name" name="name" placeholder="실명을 입력하세요" required>
+                        </div>
+                        <div class="input-field">
+                            <label for="birth">생년월일 *</label>
+                            <input type="date" id="birth" name="birth" required>
+                        </div>
+                    </div>
+                    
+                    <div class="input-field">
+                        <label for="email">이메일 *</label>
+                        <div class="input-with-button">
+                            <input type="email" id="email" name="email" placeholder="example@email.com" required>
+                            <button type="button" class="verify-button" id="emailVerify">인증</button>
+                        </div>
+                        <div class="input-message" id="emailMessage"></div>
+                    </div>
+                    
+                    <div class="input-field">
+                        <label for="phone">휴대폰 번호 *</label>
+                        <div class="input-with-button">
+                            <input type="tel" id="phone" name="phone" placeholder="010-0000-0000" required>
+                            <button type="button" class="verify-button" id="phoneVerify">인증</button>
+                        </div>
+                        <div class="input-message" id="phoneMessage"></div>
+                    </div>
+                </div>
+
+                <!-- 계정 정보 -->
+                <div class="form-section">
+                    <h3 class="section-title">계정 정보</h3>
+                    
+                    <div class="input-field">
+                        <label for="password">비밀번호 *</label>
+                        <input type="password" id="password" name="password" placeholder="8자 이상, 영문/숫자/특수문자 포함" required>
+                        <div class="password-strength" id="passwordStrength">
+                            <div class="strength-bar">
+                                <div class="strength-fill"></div>
+                            </div>
+                            <div class="strength-text">비밀번호 강도</div>
+                        </div>
+                    </div>
+                    
+                    <div class="input-field">
+                        <label for="confirmPassword">비밀번호 확인 *</label>
+                        <input type="password" id="confirmPassword" name="confirmPassword" placeholder="비밀번호를 다시 입력하세요" required>
+                        <div class="input-message" id="passwordMessage"></div>
+                    </div>
+                </div>
+
+                <!-- 투자 정보 -->
+                <div class="form-section">
+                    <h3 class="section-title">투자 정보</h3>
+                    
+                    <div class="input-field">
+                        <label for="experience">투자 경험</label>
+                        <select id="experience" name="experience">
+                            <option value="">선택하세요</option>
+                            <option value="beginner">초보자 (1년 미만)</option>
+                            <option value="intermediate">중급자 (1-5년)</option>
+                            <option value="advanced">고급자 (5년 이상)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-field">
+                        <label for="riskTolerance">위험 성향</label>
+                        <select id="riskTolerance" name="riskTolerance">
+                            <option value="">선택하세요</option>
+                            <option value="conservative">보수적</option>
+                            <option value="moderate">중도적</option>
+                            <option value="aggressive">공격적</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-field">
+                        <label for="investmentAmount">투자 목표 금액</label>
+                        <select id="investmentAmount" name="investmentAmount">
+                            <option value="">선택하세요</option>
+                            <option value="low">1천만원 이하</option>
+                            <option value="medium">1천만원 - 5천만원</option>
+                            <option value="high">5천만원 - 1억원</option>
+                            <option value="very-high">1억원 이상</option>
+                        </select>
+                    </div>
+                    
+                    
+                </div>
+
+                <!-- 약관 동의 -->
+                <div class="form-section">
+                    <h3 class="section-title">약관 동의</h3>
+                    
+                    <div class="agreement-section">
+                        <label class="agreement-item">
+                            <input type="checkbox" id="agreeAll">
+                            <span class="checkmark"></span>
+                            <span class="agreement-text main">전체 동의</span>
+                        </label>
+                        
+                        <div class="agreement-details">
+                            <label class="agreement-item">
+                                <input type="checkbox" name="agreements" value="terms" required>
+                                <span class="checkmark"></span>
+                                <span class="agreement-text">[필수] 서비스 이용약관 동의</span>
+                                <a href="#" class="agreement-link">보기</a>
+                            </label>
+                            
+                            <label class="agreement-item">
+                                <input type="checkbox" name="agreements" value="privacy" required>
+                                <span class="checkmark"></span>
+                                <span class="agreement-text">[필수] 개인정보 처리방침 동의</span>
+                                <a href="#" class="agreement-link">보기</a>
+                            </label>
+                            
+                            <label class="agreement-item">
+                                <input type="checkbox" name="agreements" value="investment">
+                                <span class="checkmark"></span>
+                                <span class="agreement-text">[필수] 투자정보 활용 동의</span>
+                                <a href="#" class="agreement-link">보기</a>
+                            </label>
+                            
+                            <label class="agreement-item">
+                                <input type="checkbox" name="agreements" value="marketing">
+                                <span class="checkmark"></span>
+                                <span class="agreement-text">[선택] 마케팅 정보 수신 동의</span>
+                                <a href="#" class="agreement-link">보기</a>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="submit" class="signup-button" id="submitButton" disabled>회원가입</button>
+            </form>
+            
+            <div class="login-link">
+                <p>이미 계정이 있으신가요? <a href="{{ url_for('login') }}">로그인</a></p>
+            </div>
+            
+            <div class="copyright">
+                <p>© 2025 FinSight. All rights reserved.</p>
+            </div>
+        </div>
+        
+        <!-- 오른쪽 소개 영역 -->
+        <div class="showcase-side">
+            <div class="showcase-content">
+                <h2 class="showcase-title">AI가 제안하는<br>스마트한 투자 전략</h2>
+                <p class="showcase-description">개인 맞춤형 포트폴리오 추천부터 실시간 시장 분석까지<br>FinSight와 함께 투자의 새로운 경험을 시작하세요.</p>
+                
+                <div class="feature-list">
+                    <div class="feature-item">
+                        <div class="feature-icon">🎯</div>
+                        <div class="feature-content">
+                            <div class="feature-title">맞춤형 추천</div>
+                            <div class="feature-desc">투자 성향에 맞는 종목 분석</div>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">📊</div>
+                        <div class="feature-content">
+                            <div class="feature-title">실시간 분석</div>
+                            <div class="feature-desc">AI 기반 시장 동향 분석</div>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">🔔</div>
+                        <div class="feature-content">
+                            <div class="feature-title">스마트 알림</div>
+                            <div class="feature-desc">중요한 투자 기회 놓치지 않기</div>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">🛡️</div>
+                        <div class="feature-content">
+                            <div class="feature-title">안전한 서비스</div>
+                            <div class="feature-desc">금융 보안 표준 준수</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="signup-benefits">
+                <h3 class="benefits-title">FinSight 회원 혜택</h3>
+                <div class="benefits-list">
+                    <div class="benefit-item">
+                        <span class="benefit-icon">✓</span>
+                        <span>무료 포트폴리오 분석 (월 5회)</span>
+                    </div>
+                    <div class="benefit-item">
+                        <span class="benefit-icon">✓</span>
+                        <span>실시간 시장 알림 서비스</span>
+                    </div>
+                    <div class="benefit-item">
+                        <span class="benefit-icon">✓</span>
+                        <span>프리미엄 리포트 열람 권한</span>
+                    </div>
+                    <div class="benefit-item">
+                        <span class="benefit-icon">✓</span>
+                        <span>투자 교육 콘텐츠 무료 제공</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 폼 요소들
+        const form = document.getElementById('signupForm');
+        const submitButton = document.getElementById('submitButton');
+        const agreeAllCheckbox = document.getElementById('agreeAll');
+        const requiredAgreements = document.querySelectorAll('input[name="agreements"][required]');
+        const passwordField = document.getElementById('password');
+        const confirmPasswordField = document.getElementById('confirmPassword');
+        const emailField = document.getElementById('email');
+        const phoneField = document.getElementById('phone');
+
+        // 비밀번호 강도 체크
+        function checkPasswordStrength(password) {
+            let strength = 0;
+            const strengthBar = document.querySelector('.strength-fill');
+            const strengthText = document.querySelector('.strength-text');
+            
+            if (password.length >= 8) strength += 1;
+            if (/[a-z]/.test(password)) strength += 1;
+            if (/[A-Z]/.test(password)) strength += 1;
+            if (/[0-9]/.test(password)) strength += 1;
+            if (/[^A-Za-z0-9]/.test(password)) strength += 1;
+            
+            const percentage = (strength / 5) * 100;
+            strengthBar.style.width = percentage + '%';
+            
+            if (strength < 2) {
+                strengthBar.style.backgroundColor = '#ef4444';
+                strengthText.textContent = '약함';
+            } else if (strength < 4) {
+                strengthBar.style.backgroundColor = '#f59e0b';
+                strengthText.textContent = '보통';
+            } else {
+                strengthBar.style.backgroundColor = '#10b981';
+                strengthText.textContent = '강함';
+            }
+            
+            return strength >= 3;
+        }
+
+        // 비밀번호 확인
+        function checkPasswordMatch() {
+            const password = passwordField.value;
+            const confirmPassword = confirmPasswordField.value;
+            const messageElement = document.getElementById('passwordMessage');
+            
+            if (confirmPassword && password !== confirmPassword) {
+                messageElement.textContent = '비밀번호가 일치하지 않습니다.';
+                messageElement.style.color = '#ef4444';
+                return false;
+            } else if (confirmPassword && password === confirmPassword) {
+                messageElement.textContent = '비밀번호가 일치합니다.';
+                messageElement.style.color = '#10b981';
+                return true;
+            }
+            messageElement.textContent = '';
+            return false;
+        }
+
+        // 이메일 유효성 검사
+        function validateEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        // 전체 동의 체크박스
+        agreeAllCheckbox.addEventListener('change', function() {
+            const allAgreements = document.querySelectorAll('input[name="agreements"]');
+            allAgreements.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            checkFormValidity();
+        });
+
+        // 개별 약관 동의 체크박스
+        document.querySelectorAll('input[name="agreements"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const allAgreements = document.querySelectorAll('input[name="agreements"]');
+                const checkedAgreements = document.querySelectorAll('input[name="agreements"]:checked');
+                
+                agreeAllCheckbox.checked = allAgreements.length === checkedAgreements.length;
+                checkFormValidity();
+            });
+        });
+
+        // 폼 유효성 검사
+        function checkFormValidity() {
+            const requiredFields = document.querySelectorAll('input[required]');
+            const allRequiredFilled = Array.from(requiredFields).every(field => field.value.trim() !== '');
+            const requiredAgreementsChecked = Array.from(requiredAgreements).every(agreement => agreement.checked);
+            const passwordValid = checkPasswordStrength(passwordField.value);
+            const passwordMatches = checkPasswordMatch();
+            
+            submitButton.disabled = !(allRequiredFilled && requiredAgreementsChecked && passwordValid && passwordMatches);
+        }
+
+        // 이벤트 리스너
+        passwordField.addEventListener('input', function() {
+            checkPasswordStrength(this.value);
+            checkFormValidity();
+        });
+
+        confirmPasswordField.addEventListener('input', function() {
+            checkPasswordMatch();
+            checkFormValidity();
+        });
+
+        // 필수 입력 필드 체크
+        document.querySelectorAll('input[required]').forEach(field => {
+            field.addEventListener('input', checkFormValidity);
+        });
+
+        // 이메일 인증 버튼
+        document.getElementById('emailVerify').addEventListener('click', function() {
+            const email = emailField.value;
+            const messageElement = document.getElementById('emailMessage');
+            
+            if (!validateEmail(email)) {
+                messageElement.textContent = '올바른 이메일 형식을 입력하세요.';
+                messageElement.style.color = '#ef4444';
+                return;
+            }
+            
+            this.textContent = '인증중...';
+            this.disabled = true;
+            
+            // 실제 구현에서는 서버로 인증 요청
+            setTimeout(() => {
+                messageElement.textContent = '인증번호가 발송되었습니다.';
+                messageElement.style.color = '#10b981';
+                this.textContent = '재발송';
+                this.disabled = false;
+            }, 2000);
+        });
+
+        // 휴대폰 인증 버튼
+        document.getElementById('phoneVerify').addEventListener('click', function() {
+            const phone = phoneField.value;
+            const messageElement = document.getElementById('phoneMessage');
+            
+            if (!/^01[0-9]-[0-9]{4}-[0-9]{4}$/.test(phone)) {
+                messageElement.textContent = '올바른 휴대폰 번호 형식을 입력하세요. (010-0000-0000)';
+                messageElement.style.color = '#ef4444';
+                return;
+            }
+            
+            this.textContent = '인증중...';
+            this.disabled = true;
+            
+            // 실제 구현에서는 서버로 인증 요청
+            setTimeout(() => {
+                messageElement.textContent = '인증번호가 발송되었습니다.';
+                messageElement.style.color = '#10b981';
+                this.textContent = '재발송';
+                this.disabled = false;
+            }, 2000);
+        });
+
+        // 폼 제출
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!submitButton.disabled) {
+                // 실제 구현에서는 서버로 데이터 전송
+                alert('회원가입이 완료되었습니다! 로그인 페이지로 이동합니다.');
+                window.location.href = '{{ url_for("login") }}';
+            }
+        });
+
+        // 휴대폰 번호 자동 포맷팅
+        phoneField.addEventListener('input', function() {
+            let value = this.value.replace(/[^0-9]/g, '');
+            if (value.length >= 11) {
+                value = value.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+            } else if (value.length >= 7) {
+                value = value.replace(/(\d{3})(\d{4})/, '$1-$2');
+            } else if (value.length >= 3) {
+                value = value.replace(/(\d{3})/, '$1-');
+            }
+            this.value = value;
+        });
+    </script>
+</body>
+</html>
