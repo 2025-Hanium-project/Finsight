@@ -563,7 +563,7 @@ def main():
     pdf_folder_path = os.path.join(current_dir, "..", "consensus", "kiwoom")
     
     # CSV 출력 경로 설정 (상대경로)
-    output_path = os.path.join(current_dir, "..", "consensus_csv", "kiwoom_consensus_reports.csv")
+    output_path = os.path.join(current_dir, "..", "consensus_parsed", "kiwoom_consensus_reports.csv")
     
     # 출력 디렉토리 생성
     os.makedirs(os.path.dirname(output_path), exist_ok=True)

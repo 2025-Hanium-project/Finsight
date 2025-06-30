@@ -1,4 +1,3 @@
-
 import os
 import time
 import re
@@ -35,14 +34,14 @@ class YuantaResearchCrawler:
         self.base_url = "https://www.myasset.com/myasset/research/rs_list/rs_list.cmd?cd006=&cd007=RE01&cd008="
         self.file_base_url = "https://file.myasset.com/sitemanager/upload/"
         
-        # 저장 디렉토리 설정
-        self.base_dir = "유안타증권_리포트"
-        self.pdf_dir = os.path.join(self.base_dir, "pdfs")
-        self.data_dir = os.path.join(self.base_dir, "data")
+        # 저장 디렉토리 설정 (project/consensus 폴더 기준)
+        project_root = os.path.join(os.path.dirname(__file__), "..", "..")  # project 폴더로 이동
+        self.base_dir = os.path.join(project_root, "consensus", "yuanta")
+        self.pdf_dir = self.base_dir  # PDF 파일을 project/consensus/yuanta에 직접 저장
+        self.data_dir = self.base_dir  # 메타데이터도 같은 폴더에 저장
         
         # 디렉토리 생성
         os.makedirs(self.pdf_dir, exist_ok=True)
-        os.makedirs(self.data_dir, exist_ok=True)
         
         # 메타데이터 저장 파일
         self.metadata_file = os.path.join(self.data_dir, "reports_metadata.csv")
@@ -50,6 +49,10 @@ class YuantaResearchCrawler:
         
         # 웹드라이버 설정
         self.setup_driver()
+        
+        # HTTP 세션 설정 (다운로드 속도 개선)
+        self.session = requests.Session()
+        self.session.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
         
         # 이미 다운로드한 파일 목록 (중복 방지)
         self.existing_files = self.load_existing_files()
@@ -59,7 +62,7 @@ class YuantaResearchCrawler:
         # 크롬 옵션 설정
         chrome_options = Options()
         # 브라우저 창 숨기기 (헤드리스 모드)
-        # chrome_options.add_argument("--headless")  # 디버깅 시에는 주석 처리
+        chrome_options.add_argument("--headless")  # 디버깅 시에는 주석 처리
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--window-size=1920,1080")
         chrome_options.add_argument("--disable-extensions")
@@ -70,8 +73,8 @@ class YuantaResearchCrawler:
         
         # 웹드라이버 초기화
         self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
-        self.driver.implicitly_wait(10)
-        self.driver.set_page_load_timeout(30)  # 페이지 로드 타임아웃 설정
+        self.driver.implicitly_wait(3)  # 10초에서 5초로 단축
+        self.driver.set_page_load_timeout(15)  # 30초에서 15초로 단축
         
         logger.info("웹드라이버 설정 완료")
     
@@ -146,11 +149,11 @@ class YuantaResearchCrawler:
             try:
                 self.driver.get(self.base_url)
                 logger.info(f"페이지 접속: {self.base_url}")
-                time.sleep(5)  # 페이지 로딩 기다리기
+                time.sleep(2)  # 5초에서 2초로 단축
             except TimeoutException:
                 logger.error("페이지 로딩 시간 초과, 새로고침 시도")
                 self.driver.refresh()
-                time.sleep(5)
+                time.sleep(2)  # 5초에서 2초로 단축
             
             # 메타데이터 저장 리스트
             reports_metadata = []
@@ -170,7 +173,7 @@ class YuantaResearchCrawler:
                 
                 # 현재 페이지의 모든 리포트 행 찾기
                 try:
-                    WebDriverWait(self.driver, 20).until(
+                    WebDriverWait(self.driver, 10).until(  # 20초에서 10초로 단축
                         EC.presence_of_element_located((By.CSS_SELECTOR, "table tbody tr"))
                     )
                     rows = self.driver.find_elements(By.CSS_SELECTOR, "table tbody tr")
@@ -180,7 +183,16 @@ class YuantaResearchCrawler:
                 
                 logger.info(f"페이지 {page}에서 {len(rows)}개의 행 발견")
                 
-                for idx, row in enumerate(rows):
+                # 빈 행이나 헤더 행 필터링
+                valid_rows = []
+                for row in rows:
+                    cells = row.find_elements(By.TAG_NAME, "td")
+                    if len(cells) >= 5 and cells[0].text.strip():  # 날짜가 있는 행만 처리
+                        valid_rows.append(row)
+                
+                logger.info(f"페이지 {page}에서 {len(valid_rows)}개의 유효한 행 처리 예정")
+                
+                for idx, row in enumerate(valid_rows):
                     try:
                         # 데이터 추출
                         report_data = self.extract_row_data(row)
@@ -200,7 +212,7 @@ class YuantaResearchCrawler:
                         if 'original_filename' in report_data and report_data['original_filename']:
                             pdf_path = self.download_pdf_by_filename(report_data)
                         
-                        # 2. 첫 번째 방법 실패 시 첨부 파일 직접 클릭하여 다운로드 시도
+                        # 2. 첫 번째 방법 실패 시에만 첨부 파일 직접 클릭하여 다운로드 시도
                         if not pdf_path:
                             pdf_path = self.download_pdf_direct(row, report_data)
                         
@@ -208,6 +220,7 @@ class YuantaResearchCrawler:
                             report_data['pdf_path'] = pdf_path
                             reports_metadata.append(report_data)
                             self.existing_files.add(report_data['pdf_filename'])
+                            logger.info(f"진행률: {idx+1}/{len(valid_rows)} ({((idx+1)/len(valid_rows)*100):.1f}%)")
                         
                         # 건너뛰기 (디버깅용)
                         # if idx >= 2:  # 테스트를 위해 처음 2개만 처리
@@ -227,6 +240,9 @@ class YuantaResearchCrawler:
             return []
         
         finally:
+            # 세션 종료
+            if hasattr(self, 'session'):
+                self.session.close()
             # 브라우저 종료
             self.driver.quit()
             logger.info("크롤링 완료 및 브라우저 종료")
@@ -235,7 +251,7 @@ class YuantaResearchCrawler:
         """총 페이지 수 확인"""
         try:
             # 페이지가 완전히 로드될 때까지 대기
-            time.sleep(3)
+            time.sleep(1)  # 3초에서 1초로 단축
             
             # 페이지네이션 요소 찾기
             pagination_selectors = [
@@ -283,7 +299,7 @@ class YuantaResearchCrawler:
                 try:
                     page_link = self.driver.find_element(By.XPATH, selector)
                     page_link.click()
-                    time.sleep(5)  # 페이지 로드 대기
+                    time.sleep(2)  # 5초에서 2초로 단축
                     logger.info(f"페이지 {page_num}로 이동 성공")
                     return True
                 except:
@@ -417,16 +433,16 @@ class YuantaResearchCrawler:
                     logger.info(f"파일명으로 URL 구성: {pdf_url}")
                     
                     # PDF 다운로드
-                    response = requests.get(
+                    response = self.session.get(  # requests.get 대신 세션 사용
                         pdf_url, 
-                        headers={'User-Agent': 'Mozilla/5.0'},
                         stream=True,
-                        timeout=30
+                        timeout=15  # 30초에서 15초로 단축
                     )
                     
                     if response.status_code == 200:
+                        # 청크 크기를 늘려서 다운로드 속도 개선
                         with open(filepath, 'wb') as f:
-                            for chunk in response.iter_content(chunk_size=8192):
+                            for chunk in response.iter_content(chunk_size=32768):  # 8192에서 32768로 증가
                                 if chunk:
                                     f.write(chunk)
                         logger.info(f"PDF 다운로드 완료: {filename}")
@@ -461,7 +477,7 @@ class YuantaResearchCrawler:
                 
                 # 안전하게 새 탭에서 열기
                 self.driver.execute_script("window.open(arguments[0].href, '_blank');", attachment_link)
-                time.sleep(3)  # 탭 열림 대기
+                time.sleep(1)  # 3초에서 1초로 단축
                 
                 # 새 탭이 열렸는지 확인
                 if len(self.driver.window_handles) > 1:
@@ -479,16 +495,16 @@ class YuantaResearchCrawler:
                         
                         # 안전한 다운로드 시도
                         try:
-                            response = requests.get(
+                            response = self.session.get(  # requests.get 대신 세션 사용
                                 pdf_url, 
-                                headers={'User-Agent': 'Mozilla/5.0'},
                                 stream=True,
-                                timeout=30  # 더 긴 타임아웃 설정
+                                timeout=15  # 30초에서 15초로 단축
                             )
                             
                             if response.status_code == 200:
+                                # 청크 크기를 늘려서 다운로드 속도 개선
                                 with open(filepath, 'wb') as f:
-                                    for chunk in response.iter_content(chunk_size=8192):
+                                    for chunk in response.iter_content(chunk_size=32768):  # 8192에서 32768로 증가
                                         if chunk:
                                             f.write(chunk)
                                 logger.info(f"PDF 다운로드 완료: {filename}")
