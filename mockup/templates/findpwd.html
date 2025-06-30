@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinSight - 비밀번호 재설정</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/findpwd.css') }}">
+</head>
+<body>
+    <div class="findpwd-container">
+        <!-- 왼쪽 비밀번호 찾기 영역 -->
+        <div class="findpwd-side">
+            <div class="findpwd-logo">
+                <span class="findpwd-logo-icon">📊</span>
+                <span class="findpwd-logo-text">FinSight</span>
+            </div>
+            <p class="findpwd-subtitle">투자 의사결정을 위한 AI 분석 플랫폼</p>
+            
+            <!-- 1단계: 이메일 인증 -->
+            <div id="step1-form">
+                <h1 class="findpwd-title">비밀번호 재설정</h1>
+                <p class="findpwd-description">
+                    가입하신 이메일 주소를 입력해주세요.<br>
+                    본인 확인을 위한 인증코드를 발송해드립니다.
+                </p>
+                
+                <div class="step-indicator">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-text">본인 인증</div>
+                    </div>
+                    <div class="step-arrow">→</div>
+                    <div class="step">
+                        <div class="step-number inactive">2</div>
+                        <div class="step-text">인증코드 확인</div>
+                    </div>
+                    <div class="step-arrow">→</div>
+                    <div class="step">
+                        <div class="step-number inactive">3</div>
+                        <div class="step-text">새 비밀번호</div>
+                    </div>
+                </div>
+                
+                <form id="email-form">
+                    <div class="input-field" id="email-field">
+                        <label for="email">이메일 주소</label>
+                        <input type="email" id="email" placeholder="가입하신 이메일 주소를 입력하세요" required>
+                        <div class="error-message" id="email-error"></div>
+                    </div>
+                    
+                    <button type="submit" class="findpwd-button" id="email-submit-btn">
+                        인증코드 받기
+                    </button>
+                </form>
+            </div>
+
+            <!-- 2단계: 인증코드 입력 -->
+            <div id="step2-form" style="display: none;">
+                <h1 class="findpwd-title">인증코드 확인</h1>
+                <p class="findpwd-description">
+                    <span id="user-email"></span>로 발송된<br>
+                    6자리 인증코드를 입력해주세요.
+                </p>
+                
+                <div class="step-indicator">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-text">본인 인증</div>
+                    </div>
+                    <div class="step-arrow">→</div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-text">인증코드 확인</div>
+                    </div>
+                    <div class="step-arrow">→</div>
+                    <div class="step">
+                        <div class="step-number inactive">3</div>
+                        <div class="step-text">새 비밀번호</div>
+                    </div>
+                </div>
+                
+                <form id="code-form">
+                    <div class="input-field" id="code-field">
+                        <label for="verification-code">인증코드</label>
+                        <input type="text" id="verification-code" placeholder="6자리 인증코드를 입력하세요" maxlength="6" required>
+                        <div class="error-message" id="code-error"></div>
+                        <div class="success-message" id="code-success"></div>
+                    </div>
+                    
+                    <div class="code-info">
+                        <p>인증코드가 오지 않나요? <button type="button" class="resend-btn" onclick="resendCode()">다시 받기</button></p>
+                        <p class="timer">유효시간: <span id="timer">03:00</span></p>
+                    </div>
+                    
+                    <button type="submit" class="findpwd-button" id="code-submit-btn">
+                        인증코드 확인
+                    </button>
+                </form>
+            </div>
+
+            <!-- 3단계: 새 비밀번호 설정 -->
+            <div id="step3-form" style="display: none;">
+                <h1 class="findpwd-title">새 비밀번호 설정</h1>
+                <p class="findpwd-description">
+                    보안을 위해 이전과 다른 새로운 비밀번호를<br>
+                    설정해주세요.
+                </p>
+                
+                <div class="step-indicator">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-text">본인 인증</div>
+                    </div>
+                    <div class="step-arrow">→</div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-text">인증코드 확인</div>
+                    </div>
+                    <div class="step-arrow">→</div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-text">새 비밀번호</div>
+                    </div>
+                </div>
+                
+                <form id="password-form">
+                    <div class="input-field" id="new-password-field">
+                        <label for="new-password">새 비밀번호</label>
+                        <input type="password" id="new-password" placeholder="8자 이상, 영문/숫자/특수문자 포함" required>
+                        <div class="error-message" id="password-error"></div>
+                    </div>
+                    
+                    <div class="input-field" id="confirm-password-field">
+                        <label for="confirm-password">비밀번호 확인</label>
+                        <input type="password" id="confirm-password" placeholder="새 비밀번호를 다시 입력하세요" required>
+                        <div class="error-message" id="confirm-error"></div>
+                    </div>
+                    
+                    <div class="password-requirements">
+                        <p>비밀번호 요구사항:</p>
+                        <ul>
+                            <li class="requirement" id="req-length">8자 이상</li>
+                            <li class="requirement" id="req-letter">영문 포함</li>
+                            <li class="requirement" id="req-number">숫자 포함</li>
+                            <li class="requirement" id="req-special">특수문자 포함</li>
+                        </ul>
+                    </div>
+                    
+                    <button type="submit" class="findpwd-button" id="password-submit-btn">
+                        비밀번호 변경하기
+                    </button>
+                </form>
+            </div>
+            
+            <!-- 완료 상태 -->
+            <div id="success-state" class="success-state" style="display: none;">
+                <div class="success-icon">✅</div>
+                <h2 class="success-title">비밀번호 변경 완료!</h2>
+                <p class="success-description">
+                    비밀번호가 성공적으로 변경되었습니다.<br>
+                    새로운 비밀번호로 로그인해주세요.
+                </p>
+                <button class="findpwd-button" onclick="window.location.href='{{ url_for('login') }}'">
+                    로그인 페이지로 이동
+                </button>
+            </div>
+            
+            <div class="back-to-login">
+                <p>로그인 페이지로 돌아가기 <a href="{{ url_for('login') }}">로그인</a></p>
+            </div>
+            
+            <div class="copyright">
+                <p>© 2025 FinSight. All rights reserved.</p>
+            </div>
+        </div>
+        
+        <!-- 오른쪽 안내 영역 -->
+        <div class="info-side">
+            <div class="info-content">
+                <h2 class="info-title">안전한 비밀번호<br>재설정 프로세스</h2>
+                <p class="info-description">
+                    FinSight는 3단계 인증을 통해 고객의 계정을<br>
+                    안전하게 보호하고 있습니다.
+                </p>
+                
+                <div class="security-features">
+                    <div class="security-item">
+                        <div class="security-icon">📧</div>
+                        <div class="security-text">
+                            이메일 본인 인증
+                            <small>가입하신 이메일로 인증코드를 발송합니다</small>
+                        </div>
+                    </div>
+                    <div class="security-item">
+                        <div class="security-icon">🔢</div>
+                        <div class="security-text">
+                            6자리 인증코드
+                            <small>3분 이내에 입력해야 하는 일회용 코드</small>
+                        </div>
+                    </div>
+                    <div class="security-item">
+                        <div class="security-icon">🔐</div>
+                        <div class="security-text">
+                            강력한 비밀번호
+                            <small>영문, 숫자, 특수문자를 포함한 8자 이상</small>
+                        </div>
+                    </div>
+                    <div class="security-item">
+                        <div class="security-icon">🛡️</div>
+                        <div class="security-text">
+                            즉시 적용
+                            <small>변경된 비밀번호는 바로 적용됩니다</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let timer;
+        let timeLeft = 180; // 3분
+        
+        // 1단계: 이메일 폼 제출
+        document.getElementById('email-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const emailField = document.getElementById('email-field');
+            const emailError = document.getElementById('email-error');
+            const submitBtn = document.getElementById('email-submit-btn');
+            
+            // 이메일 유효성 검사
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            
+            if (!email) {
+                showError(emailField, emailError, '이메일 주소를 입력해주세요.');
+                return;
+            }
+            
+            if (!emailRegex.test(email)) {
+                showError(emailField, emailError, '올바른 이메일 주소를 입력해주세요.');
+                return;
+            }
+            
+            // 로딩 상태
+            submitBtn.disabled = true;
+            submitBtn.textContent = '인증코드 발송 중...';
+            
+            // 실제 구현에서는 서버로 요청을 보냄
+            setTimeout(() => {
+                goToStep2(email);
+            }, 1500);
+        });
+        
+        // 2단계: 인증코드 폼 제출
+        document.getElementById('code-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const code = document.getElementById('verification-code').value;
+            const codeField = document.getElementById('code-field');
+            const codeError = document.getElementById('code-error');
+            const submitBtn = document.getElementById('code-submit-btn');
+            
+            if (!code) {
+                showError(codeField, codeError, '인증코드를 입력해주세요.');
+                return;
+            }
+            
+            if (code.length !== 6) {
+                showError(codeField, codeError, '6자리 인증코드를 입력해주세요.');
+                return;
+            }
+            
+            // 데모용 코드 (실제로는 서버에서 검증)
+            // 여기서는 '123456'을 올바른 코드로 가정
+            clearError(codeField, codeError);
+            if (code !== '123456') {
+                showError(codeField, codeError, '인증코드가 올바르지 않습니다.');
+                return;
+            }
+            
+            // 로딩 상태
+            submitBtn.disabled = true;
+            submitBtn.textContent = '인증 중...';
+            
+            setTimeout(() => {
+                goToStep3();
+            }, 1000);
+        });
+        
+        // 3단계: 비밀번호 폼 제출
+        document.getElementById('password-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const newPassword = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            const submitBtn = document.getElementById('password-submit-btn');
+            
+            if (!validatePassword(newPassword, confirmPassword)) {
+                return;
+            }
+            
+            // 로딩 상태
+            submitBtn.disabled = true;
+            submitBtn.textContent = '비밀번호 변경 중...';
+            
+            setTimeout(() => {
+                showSuccess();
+            }, 1500);
+        });
+        
+        function goToStep2(email) {
+            document.getElementById('step1-form').style.display = 'none';
+            document.getElementById('step2-form').style.display = 'block';
+            document.getElementById('user-email').textContent = email;
+            
+            // 2단계 활성화
+            const stepNumbers = document.querySelectorAll('.step-number');
+            stepNumbers[1].classList.remove('inactive');
+            
+            // 타이머 시작
+            startTimer();
+        }
+        
+        function goToStep3() {
+            document.getElementById('step2-form').style.display = 'none';
+            document.getElementById('step3-form').style.display = 'block';
+            
+            // 3단계 활성화
+            const stepNumbers = document.querySelectorAll('.step-number');
+            stepNumbers[2].classList.remove('inactive');
+            
+            // 타이머 정지
+            clearInterval(timer);
+        }
+        
+        function showSuccess() {
+            document.getElementById('step3-form').style.display = 'none';
+            document.getElementById('success-state').style.display = 'block';
+        }
+        
+        function showError(field, errorElement, message) {
+            field.classList.add('error');
+            errorElement.textContent = message;
+        }
+        
+        function clearError(field, errorElement) {
+            field.classList.remove('error');
+            errorElement.textContent = '';
+        }
+        
+        function startTimer() {
+            timer = setInterval(() => {
+                timeLeft--;
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                document.getElementById('timer').textContent = 
+                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    alert('인증코드가 만료되었습니다. 다시 받기를 클릭해주세요.');
+                }
+            }, 1000);
+        }
+        
+        function resendCode() {
+            timeLeft = 180;
+            startTimer();
+            alert('인증코드가 다시 발송되었습니다.');
+        }
+        
+        function validatePassword(password, confirmPassword) {
+            const passwordField = document.getElementById('new-password-field');
+            const confirmField = document.getElementById('confirm-password-field');
+            const passwordError = document.getElementById('password-error');
+            const confirmError = document.getElementById('confirm-error');
+            
+            let isValid = true;
+            
+            // 비밀번호 요구사항 체크
+            const requirements = {
+                length: password.length >= 8,
+                letter: /[a-zA-Z]/.test(password),
+                number: /\d/.test(password),
+                special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+            };
+            
+            // 요구사항 UI 업데이트
+            Object.keys(requirements).forEach(req => {
+                const element = document.getElementById(`req-${req}`);
+                if (requirements[req]) {
+                    element.classList.add('valid');
+                } else {
+                    element.classList.remove('valid');
+                    isValid = false;
+                }
+            });
+            
+            if (!Object.values(requirements).every(req => req)) {
+                showError(passwordField, passwordError, '비밀번호 요구사항을 모두 충족해야 합니다.');
+                isValid = false;
+            } else {
+                clearError(passwordField, passwordError);
+            }
+            
+            // 비밀번호 확인
+            if (password !== confirmPassword) {
+                showError(confirmField, confirmError, '비밀번호가 일치하지 않습니다.');
+                isValid = false;
+            } else {
+                clearError(confirmField, confirmError);
+            }
+            
+            return isValid;
+        }
+        
+        // 입력 필드 에러 상태 초기화
+        document.getElementById('email').addEventListener('input', function() {
+            clearError(document.getElementById('email-field'), document.getElementById('email-error'));
+        });
+        
+        document.getElementById('verification-code').addEventListener('input', function() {
+            clearError(document.getElementById('code-field'), document.getElementById('code-error'));
+        });
+        
+        document.getElementById('new-password').addEventListener('input', function() {
+            const password = this.value;
+            
+            // 실시간 요구사항 체크
+            const requirements = {
+                length: password.length >= 8,
+                letter: /[a-zA-Z]/.test(password),
+                number: /\d/.test(password),
+                special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+            };
+            
+            Object.keys(requirements).forEach(req => {
+                const element = document.getElementById(`req-${req}`);
+                if (requirements[req]) {
+                    element.classList.add('valid');
+                } else {
+                    element.classList.remove('valid');
+                }
+            });
+            
+            clearError(document.getElementById('new-password-field'), document.getElementById('password-error'));
+        });
+        
+        document.getElementById('confirm-password').addEventListener('input', function() {
+            clearError(document.getElementById('confirm-password-field'), document.getElementById('confirm-error'));
+        });
+    </script>
+</body>
+</html>
