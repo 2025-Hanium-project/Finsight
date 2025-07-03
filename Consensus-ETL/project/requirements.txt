@@ -1,9 +1,11 @@
 # Web automation
 selenium>=4.0.0
 undetected-chromedriver>=3.5.0
+webdriver-manager>=4.0.0
 
 # HTML parsing
 beautifulsoup4>=4.11.0
+lxml>=4.9.0
 
 # HTTP requests
 requests>=2.28.0
@@ -13,3 +15,43 @@ pytesseract>=0.3.10
 Pillow>=9.2.0
 opencv-python>=4.6.0.66
 numpy>=1.23.0
+
+# PDF parsing
+pdfplumber>=0.7.0
+PyPDF2>=3.0.0
+
+# Database
+mariadb>=1.1.0
+
+# Message Queue
+kafka-python>=2.0.0
+
+# Data processing
+pandas>=1.5.0
+
+# Configuration
+python-dotenv>=1.0.0
+
+# Logging & monitoring
+logging>=0.4.9.6
+
+# Date/time handling
+python-dateutil>=2.8.0
+
+# JSON handling (built-in, but for completeness)
+# json - built-in module
+
+# File handling
+pathlib2>=2.3.7; python_version<"3.4"
+
+# URL parsing (built-in urllib.parse)
+# urllib3>=1.26.0  # for advanced HTTP features if needed
+
+# Random operations (built-in)
+# random - built-in module
+
+# Regular expressions (built-in)  
+# re - built-in module
+
+# System operations (built-in)
+# os, time, shutil - built-in modules
