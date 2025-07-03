@@ -390,6 +390,129 @@ class KiwoomConsensusParser:
         print(f"최종 결과: 투자의견={rating}, 의견변경={opinion_change}")
         return rating, opinion_change
     
+    def extract_investment_rationale(self, pdf_path):
+        """좌표 기반으로 투자 의견 근거 추출 (키움증권 리포트 전용)"""
+        print(f"\n=== 투자 근거 추출 시작 (좌표 기반) ===")
+        
+        try:
+            with pdfplumber.open(pdf_path) as pdf:
+                page = pdf.pages[0]  # 첫 번째 페이지에서 추출
+                
+                # 페이지 크기 정보
+                page_width = page.width
+                page_height = page.height
+                print(f"페이지 크기: {page_width} x {page_height}")
+                
+                # 키움증권 리포트의 투자 근거 영역 좌표 설정
+                # GUI 도구로 확인한 정확한 좌표 사용: x=232, y=165부터 문서 끝까지
+                rationale_bbox = (232, 165, page_width, page_height)  # (x0, y0, x1, y1)
+                print(f"투자 근거 추출 영역: x={rationale_bbox[0]}~{rationale_bbox[2]}, y={rationale_bbox[1]}~{rationale_bbox[3]}")
+                
+                # 지정된 좌표 영역에서 텍스트 추출
+                cropped_page = page.crop(rationale_bbox)
+                rationale_text = cropped_page.extract_text()
+                
+                if rationale_text:
+                    print(f"추출된 원본 텍스트 길이: {len(rationale_text)}")
+                    print(f"원본 텍스트 미리보기:")
+                    print("-" * 50)
+                    print(rationale_text[:500])
+                    print("-" * 50)
+                    
+                    # 텍스트 정리 및 필터링
+                    cleaned_text = self.clean_rationale_text(rationale_text)
+                    
+                    if cleaned_text and len(cleaned_text) > 20:
+                        print(f"\n=== 정리된 투자 근거 ===")
+                        print(f"정리된 텍스트 길이: {len(cleaned_text)}")
+                        print(f"정리된 내용 미리보기:")
+                        print("-" * 50)
+                        print(cleaned_text[:300])
+                        if len(cleaned_text) > 300:
+                            print("...")
+                        print("-" * 50)
+                        return cleaned_text
+                    else:
+                        print("정리 후 유효한 투자 근거가 없습니다.")
+                        return None
+                else:
+                    print("지정된 좌표 영역에서 텍스트를 추출할 수 없습니다.")
+                    return None
+                    
+        except Exception as e:
+            print(f"투자 근거 추출 오류: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+    
+    def clean_rationale_text(self, text):
+        """투자 근거 텍스트 정리 (키움증권 전용)"""
+        if not text:
+            return None
+        
+        # 기본 정리
+        text = text.strip()
+        
+        # 줄바꿈을 공백으로 변경하되 단락 구분은 유지
+        text = re.sub(r'\n\s*\n', '\n\n', text)  # 연속된 줄바꿈은 단락 구분으로 유지
+        text = re.sub(r'\n', ' ', text)  # 단일 줄바꿈은 공백으로
+        text = re.sub(r'\s+', ' ', text)  # 연속된 공백을 하나로
+        
+        # 키움증권 리포트에서 불필요한 헤더/푸터 정보 제거
+        unwanted_patterns = [
+            r'키움증권.*?\d{4}\.\s*\d{1,2}\.\s*\d{1,2}',  # "키움증권 2025. 5. 16" 형태
+            r'Analyst.*?CFA',  # 애널리스트 정보
+            r'Stock Data.*?(?=\w)',  # Stock Data 섹션 시작 부분
+            r'Company Data.*?(?=\w)',  # Company Data 섹션 시작 부분
+            r'KOSPI\s+[\d,\.]+pt',  # KOSPI 지수 정보
+            r'시가총액\s+[\d,]+억\s*원',  # 시가총액 정보
+            r'\d+주\s+일평균\s+거래량',  # 거래량 정보
+            r'최고가\s+최저가',  # 주가 정보 헤더
+            r'[\d,]+원\s+[\d,]+원',  # 연속된 가격 정보
+            r'발행주식수\s+[\d,]+천주',  # 발행주식수
+            r'외국인\s+지분율\s+[\d\.]+%',  # 외국인 지분율
+            r'배당수익률.*?[\d\.]+%',  # 배당수익률
+            r'BPS.*?[\d,]+원',  # BPS 정보
+        ]
+        
+        for pattern in unwanted_patterns:
+            text = re.sub(pattern, ' ', text, flags=re.IGNORECASE)
+        
+        # 연속된 숫자와 % 조합 정리 (재무 데이터)
+        text = re.sub(r'\d+%\s*\(\s*YoY\s*\)', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'\d+%\s*\(\s*\w+\s*\)', '', text, flags=re.IGNORECASE)
+        
+        # 테이블 형태의 데이터 제거 (숫자와 단위가 반복되는 패턴)
+        text = re.sub(r'(\d+[,\.]\d+\s*){3,}', ' ', text)
+        text = re.sub(r'([\d,]+억\s*){2,}', ' ', text)
+        
+        # 특수 문자 정리 (한글, 영문, 숫자, 기본 문장부호만 유지)
+        text = re.sub(r'[^\w\s가-힣.,!?()%-]', ' ', text)
+        
+        # 연속된 공백 정리
+        text = re.sub(r'\s+', ' ', text).strip()
+        
+        # 너무 짧은 텍스트 제외
+        if len(text) < 20:
+            return None
+        
+        # 의미 있는 투자 근거 문장이 포함되어 있는지 확인
+        meaningful_keywords = [
+            '매수', '투자', '성장', '실적', '수익', '영업', '매출', '이익',
+            '전망', '예상', '기대', '개선', '증가', '상승', '긍정', '호조',
+            '경쟁력', '시장', '사업', '부문', '확대', '기회', '잠재력'
+        ]
+        
+        keyword_count = sum(1 for keyword in meaningful_keywords if keyword in text)
+        if keyword_count < 2:  # 의미 있는 키워드가 2개 미만이면 제외
+            return None
+        
+        # 최종 길이 체크
+        if len(text) < 30:
+            return None
+        
+        return text.strip()
+
     def extract_report_title_by_color(self, pdf_path):
         """Extract report title by joining all chars with the target color on the first page, grouped by y (top) position."""
         try:
@@ -461,6 +584,7 @@ class KiwoomConsensusParser:
         analyst_name, company_name = self.parse_analyst_info(text, pdf_path) # pdf_path 인자 추가
         rating, opinion_change = self.parse_rating_info(text)
         report_title, report_date = self.parse_report_info(text, filename, pdf_path)
+        investment_rationale = self.extract_investment_rationale(pdf_path)  # 투자 근거 추출
         
         # 데이터 구성
         data = {
@@ -477,6 +601,7 @@ class KiwoomConsensusParser:
             'target_price': target_price,
             'current_price': current_price,
             'upside_potential': upside_potential,
+            'investment_rationale': investment_rationale or '투자 근거 정보 없음',  # 투자 근거 추가
             'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         
@@ -582,6 +707,9 @@ def main():
                 print(f"{i+1}. {data['stock_name']} ({data['stock_code']}) - {data['report_title']}")
                 print(f"   증권사: {data['company_name']}, 애널리스트: {data['analyst_name']}")
                 print(f"   투자의견: {data['rating']}, 목표가: {data['target_price']:,}원" if data['target_price'] else f"   투자의견: {data['rating']}, 목표가: None")
+                if data.get('investment_rationale') and data['investment_rationale'] != '투자 근거 정보 없음':
+                    rationale_preview = data['investment_rationale'][:100] + "..." if len(data['investment_rationale']) > 100 else data['investment_rationale']
+                    print(f"   투자근거: {rationale_preview}")
             
             # CSV 저장
             parser.save_to_csv(output_path)
