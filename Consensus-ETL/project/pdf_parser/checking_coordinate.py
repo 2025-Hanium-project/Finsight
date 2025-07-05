@@ -345,13 +345,13 @@ def main():
         
         # 기본 PDF 파일이 있다면 자동 로드
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        kiwoom_folder = os.path.join(current_dir, "consensus", "ibks")
+        kiwoom_folder = os.path.join(current_dir, "consensus", "kyobo")
         
         if os.path.exists(kiwoom_folder):
             pdf_files = [f for f in os.listdir(kiwoom_folder) if f.endswith('.pdf')]
             if pdf_files:
                 # 디오 파일 우선 검색
-                dio_files = [f for f in pdf_files if '덕산네오룩스' in f]
+                dio_files = [f for f in pdf_files if '공공부문 수요 정상화 예상_20250624' in f]
                 if dio_files:
                     default_pdf = os.path.join(kiwoom_folder, dio_files[0])
                     app.pdf_path = default_pdf
