@@ -1,9 +1,10 @@
-
 import os
 import time
 import logging
 import re
 import requests
+import ssl
+import urllib3
 from datetime import datetime, timedelta
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -12,6 +13,9 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, WebDriverException
 from urllib.parse import urljoin, urlparse, parse_qs
+
+# SSL 경고 비활성화
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # 프로젝트 구조 기반 다운로드 경로 정의
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))          # 현재 파이썬 파일 위치
 PARENT_DIR = os.path.dirname(BASE_DIR)                         # 상위 (즉, project/)
@@ -64,6 +68,19 @@ def setup_driver(download_dir):
     chrome_options.add_argument("--disable-extensions")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36")
+    
+    # SSL/네트워크 견고성 옵션 추가
+    chrome_options.add_argument("--ignore-certificate-errors")
+    chrome_options.add_argument("--ignore-ssl-errors")
+    chrome_options.add_argument("--allow-running-insecure-content")
+    chrome_options.add_argument("--disable-web-security")
+    chrome_options.add_argument("--ignore-certificate-errors-spki-list")
+    chrome_options.add_argument("--ignore-ssl-errors-on-localhost")
+    chrome_options.add_argument("--disable-features=VizDisplayCompositor")
+    chrome_options.add_argument("--disable-backgrounding-occluded-windows")
+    chrome_options.add_argument("--disable-renderer-backgrounding")
+    chrome_options.add_argument("--disable-background-timer-throttling")
+    chrome_options.add_argument("--disable-ipc-flooding-protection")
     
     # PDF 다운로드 설정
     prefs = {
@@ -167,7 +184,7 @@ def try_api_approach(driver, date_range, base_dir):
             'X-Requested-With': 'XMLHttpRequest'
         }
         
-        session = requests.Session()
+        session = create_secure_session()
         for name, value in cookie_dict.items():
             session.cookies.set(name, value)
         
@@ -350,18 +367,9 @@ def try_html_approach(driver, date_range, base_dir):
     logger.info("HTML 구조 분석 접근 방법 시도")
     success = False
     processed_count = 0
+    downloaded_files = set()  # 이미 다운로드한 파일 추적
     
     try:
-        # 다양한 가능한 보고서 제목 선택자 시도
-        selectors = [
-            "h2, h3", 
-            "li .title",
-            ".report-title",
-            ".list-item h2",
-            ".report-list-item",
-            ".board-list .title"
-        ]
-        
         # 모든 텍스트 요소 추출 및 분석
         all_elements = driver.find_elements(By.XPATH, "//*[text()]")
         report_elements = []
@@ -378,11 +386,24 @@ def try_html_approach(driver, date_range, base_dir):
         
         logger.info(f"{len(report_elements)}개의 잠재적 보고서 요소 발견")
         
+        # 중복 제거를 위한 처리된 보고서 추적
+        processed_reports = set()
+        
         for element in report_elements:
             try:
-                # 요소 주변 텍스트 수집 (부모 요소)
-                parent = element.find_element(By.XPATH, "./..")
-                parent_text = parent.text
+                # 요소 주변 텍스트 수집 (부모 요소) - 예외 처리 강화
+                parent = None
+                parent_text = ""
+                
+                try:
+                    # 부모 요소 찾기 시도
+                    parent = element.find_element(By.XPATH, "./..")
+                    parent_text = parent.text
+                except Exception as parent_error:
+                    # 부모 요소 접근 실패 시 현재 요소 사용
+                    logger.warning(f"부모 요소 접근 실패: {str(parent_error)}")
+                    parent = element
+                    parent_text = element.text
                 
                 # 날짜 추출
                 date_match = re.search(r'(\d{4}\.\d{2}\.\d{2})', parent_text)
@@ -396,32 +417,42 @@ def try_html_approach(driver, date_range, base_dir):
                         company_match = re.search(r'\[(.*?)\]', title_text)
                         company_name = company_match.group(1) if company_match else title_text.split()[0]
                         
-                        # 다운로드 링크 찾기 (부모 요소 내)
+                        # 중복 방지: 같은 회사, 같은 날짜 조합 체크
+                        report_key = f"{company_name}_{report_date}"
+                        if report_key in processed_reports:
+                            logger.info(f"이미 처리된 보고서 건너뜀: {report_key}")
+                            continue
+                        
+                        processed_reports.add(report_key)
+                        
+                        # 다운로드 링크 찾기 (부모 요소 내) - 예외 처리 강화
                         download_links = []
                         try:
                             # 텍스트로 찾기
                             download_links = parent.find_elements(By.XPATH, ".//a[contains(text(), '파일') or contains(text(), '다운로드')]")
-                        except:
-                            pass
+                        except Exception as link_error:
+                            logger.warning(f"다운로드 링크 텍스트 검색 실패: {str(link_error)}")
                         
                         if not download_links:
                             try:
                                 # href 속성으로 찾기
                                 download_links = parent.find_elements(By.XPATH, ".//a[contains(@href, 'download')]")
-                            except:
-                                pass
+                            except Exception as href_error:
+                                logger.warning(f"다운로드 링크 href 검색 실패: {str(href_error)}")
                         
                         if download_links:
                             for link in download_links:
                                 try:
                                     download_url = link.get_attribute('href')
-                                    if download_url:
+                                    if download_url and download_url not in downloaded_files:
                                         logger.info(f"다운로드 URL: {download_url}")
+                                        downloaded_files.add(download_url)
                                         
                                         # 다운로드 실행
-                                        success = download_with_requests(driver, download_url, company_name, report_date.replace('.', ''), base_dir)
-                                        if success:
+                                        download_success = download_with_requests(driver, download_url, company_name, report_date.replace('.', ''), base_dir)
+                                        if download_success:
                                             processed_count += 1
+                                            success = True
                                             break
                                 except Exception as e:
                                     logger.error(f"다운로드 링크 처리 중 오류: {str(e)}")
@@ -601,91 +632,224 @@ def process_explicit_patterns(page_source, date_range, base_dir, driver):
 
 # 다운로드 처리 (requests 사용)
 def download_with_requests(driver, download_url, company_name, date_str, base_dir):
+    """SSL 오류 해결을 위한 개선된 다운로드 함수"""
     try:
         # 날짜별 폴더 생성
         date_dir = create_date_directory(base_dir, date_str)
         
-        # 파일명 설정
-        file_name = f"{company_name}_{date_str}.pdf"
-        file_path = os.path.join(date_dir, file_name)
-        
-        # 이미 존재하는 파일인지 확인
-        if os.path.exists(file_path):
-            logger.info(f"파일이 이미 존재합니다: {file_path}")
-            return True
-        
-        # requests 세션 생성
-        session = requests.Session()
+        # 안전한 세션 생성
+        session = create_secure_session()
         
         # 쿠키 복사 (Selenium -> requests)
         selenium_cookies = driver.get_cookies()
         for cookie in selenium_cookies:
             session.cookies.set(cookie['name'], cookie['value'])
         
-        # User-Agent 설정
-        headers = {
-            'User-Agent': driver.execute_script("return navigator.userAgent"),
+        # 헤더 업데이트
+        session.headers.update({
             'Referer': driver.current_url,
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-            'Accept-Encoding': 'gzip, deflate, br'
-        }
+            'User-Agent': driver.execute_script("return navigator.userAgent")
+        })
         
-        # 파일 다운로드
-        logger.info(f"다운로드 시도: {download_url}")
+        logger.info(f"SSL 호환 다운로드 시작: {download_url}")
         
-        try:
-            response = session.get(download_url, headers=headers, stream=True, timeout=30)
-            logger.info(f"응답 상태 코드: {response.status_code}")
-            logger.info(f"응답 헤더: {response.headers}")
-            
-            if response.status_code == 200:
-                # Content-Type 확인
-                content_type = response.headers.get('Content-Type', '')
-                logger.info(f"Content-Type: {content_type}")
+        # 다중 시도 방식으로 다운로드
+        for attempt in range(3):
+            try:
+                # 첫 번째 시도: 표준 방식
+                if attempt == 0:
+                    response = session.get(download_url, timeout=30, stream=True)
                 
-                # PDF 또는 일반 파일인 경우
-                if 'application/pdf' in content_type or 'application/octet-stream' in content_type:
-                    with open(file_path, 'wb') as f:
-                        for chunk in response.iter_content(chunk_size=8192):
-                            if chunk:
-                                f.write(chunk)
-                    logger.info(f"파일 다운로드 완료: {file_path}")
+                # 두 번째 시도: SSL 컨텍스트 직접 설정
+                elif attempt == 1:
+                    logger.info("SSL 컨텍스트 직접 설정으로 재시도")
+                    import ssl
+                    context = ssl.create_default_context()
+                    context.check_hostname = False
+                    context.verify_mode = ssl.CERT_NONE
                     
-                    # PDF 유효성 확인
-                    if os.path.getsize(file_path) < 1000:  # 매우 작은 파일은 실패했을 가능성이 높음
-                        with open(file_path, 'rb') as f:
-                            content = f.read(4)
-                            if content != b'%PDF':
-                                logger.warning(f"다운로드된 파일이 유효한 PDF가 아닙니다: {file_path}")
-                                os.remove(file_path)  # 유효하지 않은 파일 삭제
-                                return False
+                    # SSL 컨텍스트를 사용한 어댑터 생성
+                    from requests.adapters import HTTPAdapter
+                    from urllib3.poolmanager import PoolManager
                     
-                    return True
+                    class SSLAdapter(HTTPAdapter):
+                        def init_poolmanager(self, *args, **kwargs):
+                            kwargs['ssl_context'] = context
+                            return super().init_poolmanager(*args, **kwargs)
+                    
+                    session.mount('https://', SSLAdapter())
+                    response = session.get(download_url, timeout=30, stream=True)
+                
+                # 세 번째 시도: TLS 버전 명시
                 else:
-                    # HTML 응답인 경우 (로그인 페이지나 에러 페이지일 수 있음)
-                    logger.warning(f"PDF가 아닌 Content-Type 받음: {content_type}")
+                    logger.info("TLS 버전 명시로 재시도")
+                    import ssl
+                    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+                    context.check_hostname = False
+                    context.verify_mode = ssl.CERT_NONE
+                    context.set_ciphers('DEFAULT@SECLEVEL=1')
                     
-                    # 응답 내용 확인
-                    error_file = os.path.join(base_dir, f'error_response_{int(time.time())}.html')
-                    with open(error_file, 'wb') as f:
-                        f.write(response.content)
-                    logger.info(f"에러 응답 저장: {error_file}")
+                    from requests.adapters import HTTPAdapter
+                    from urllib3.poolmanager import PoolManager
                     
+                    class TLSAdapter(HTTPAdapter):
+                        def init_poolmanager(self, *args, **kwargs):
+                            kwargs['ssl_context'] = context
+                            return super().init_poolmanager(*args, **kwargs)
+                    
+                    session.mount('https://', TLSAdapter())
+                    response = session.get(download_url, timeout=30, stream=True)
+                
+                logger.info(f"응답 상태 코드: {response.status_code}")
+                
+                # 성공적으로 응답 받음
+                if response.status_code == 200:
+                    break
+                else:
+                    logger.warning(f"시도 {attempt + 1} 실패 (상태 코드: {response.status_code})")
+                    if attempt == 2:
+                        logger.error(f"모든 시도 실패 (상태 코드: {response.status_code}): {download_url}")
+                        return False
+                    
+            except requests.exceptions.SSLError as ssl_error:
+                logger.error(f"SSL 오류 - 시도 {attempt + 1}: {str(ssl_error)}")
+                if attempt == 2:
+                    logger.error(f"모든 SSL 시도 실패: {download_url}")
                     return False
-            else:
-                logger.error(f"다운로드 실패 (상태 코드: {response.status_code}): {download_url}")
-                return False
+                continue
+                
+            except requests.exceptions.RequestException as req_error:
+                logger.error(f"요청 오류 - 시도 {attempt + 1}: {str(req_error)}")
+                if attempt == 2:
+                    logger.error(f"모든 요청 시도 실패: {download_url}")
+                    return False
+                continue
         
-        except requests.exceptions.Timeout:
-            logger.error(f"다운로드 시간 초과: {download_url}")
-            return False
-        except requests.exceptions.RequestException as e:
-            logger.error(f"요청 오류: {str(e)}")
+        # 응답 내용 확인
+        content_type = response.headers.get('Content-Type', '').lower()
+        logger.info(f"Content-Type: {content_type}")
+        
+        if response.status_code == 200:
+            # 응답 헤더에서 파일명 추출
+            file_name = None
+            content_disposition = response.headers.get('Content-Disposition', '')
+            if content_disposition:
+                # Content-Disposition 헤더에서 파일명 추출
+                import re
+                filename_match = re.search(r'filename[*]?=([^;]+)', content_disposition)
+                if filename_match:
+                    file_name = filename_match.group(1).strip('"\'')
+                    # URL 디코딩
+                    from urllib.parse import unquote
+                    file_name = unquote(file_name)
+                    logger.info(f"헤더에서 추출한 파일명: {file_name}")
+            
+            # 파일명이 없으면 URL에서 추출 시도
+            if not file_name:
+                from urllib.parse import urlparse
+                parsed_url = urlparse(download_url)
+                path_parts = parsed_url.path.split('/')
+                for part in reversed(path_parts):
+                    if part.endswith('.pdf'):
+                        file_name = part
+                        logger.info(f"URL에서 추출한 파일명: {file_name}")
+                        break
+            
+            # 여전히 파일명이 없으면 기본 형식 사용
+            if not file_name:
+                file_name = f"{company_name}_{date_str}.pdf"
+                logger.info(f"기본 파일명 사용: {file_name}")
+            
+            # 파일명에서 특수문자 제거 (Windows 파일시스템 호환성)
+            import re
+            file_name = re.sub(r'[<>:"/\\|?*]', '_', file_name)
+            
+            file_path = os.path.join(date_dir, file_name)
+            
+            # 이미 존재하는 파일인지 확인
+            if os.path.exists(file_path):
+                logger.info(f"파일이 이미 존재합니다: {file_path}")
+                return True
+            
+            # PDF 또는 일반 파일인 경우
+            if 'application/pdf' in content_type or 'application/octet-stream' in content_type:
+                with open(file_path, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
+                logger.info(f"SSL 호환 다운로드 완료: {file_path}")
+                
+                # PDF 유효성 확인
+                if os.path.getsize(file_path) < 1000:  # 매우 작은 파일은 실패했을 가능성이 높음
+                    with open(file_path, 'rb') as f:
+                        content = f.read(4)
+                        if content != b'%PDF':
+                            logger.warning(f"다운로드된 파일이 유효한 PDF가 아닙니다: {file_path}")
+                            os.remove(file_path)  # 유효하지 않은 파일 삭제
+                            return False
+                
+                return True
+            else:
+                # HTML 응답인 경우 (로그인 페이지나 에러 페이지일 수 있음)
+                logger.warning(f"PDF가 아닌 Content-Type 받음: {content_type}")
+                
+                # 응답 내용 확인
+                error_file = os.path.join(base_dir, f'error_response_{int(time.time())}.html')
+                with open(error_file, 'wb') as f:
+                    f.write(response.content)
+                logger.info(f"에러 응답 저장: {error_file}")
+                
+                return False
+        else:
+            logger.error(f"다운로드 실패 (상태 코드: {response.status_code}): {download_url}")
             return False
     
     except Exception as e:
-        logger.error(f"다운로드 처리 중 오류: {str(e)}")
+        logger.error(f"SSL 호환 다운로드 처리 중 오류: {str(e)}")
         return False
+    finally:
+        # 세션 정리
+        if 'session' in locals():
+            session.close()
+
+# SSL 오류 해결을 위한 requests 세션 설정
+def create_secure_session():
+    """SSL/TLS 호환성을 위한 requests 세션 생성"""
+    session = requests.Session()
+    
+    # SSL 설정
+    session.verify = False  # SSL 인증서 검증 비활성화
+    
+    # 타임아웃 설정
+    session.timeout = 30
+    
+    # 헤더 설정
+    session.headers.update({
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'ko-KR,ko;q=0.9,en;q=0.8',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1'
+    })
+    
+    # SSL 어댑터 설정
+    from requests.adapters import HTTPAdapter
+    from urllib3.util.retry import Retry
+    
+    retry_strategy = Retry(
+        total=3,
+        backoff_factor=1,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["HEAD", "GET", "OPTIONS"]
+    )
+    
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+    
+    logger.info("SSL 호환성 requests 세션 생성 완료")
+    return session
 
 # # 다운로드된 파일 정리 및 이동
 # def cleanup_downloaded_files(base_dir, date_range_short):
