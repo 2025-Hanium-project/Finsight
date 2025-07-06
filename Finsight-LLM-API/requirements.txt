@@ -1,16 +1,45 @@
-fastapi==0.109.0
-uvicorn==0.25.0
-pydantic==2.5.3
+# 코어 웹 프레임워크
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# 데이터 검증 및 직렬화  
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# HTTP 클라이언트
+httpx==0.25.2
+
+# 환경 변수 관리
 python-dotenv==1.0.0
-httpx==0.26.0
-pytest==7.4.2
+
+# TODO: LangGraph 워크플로우 엔진 추가 필요시 복원
+
+# 비동기 처리
+asyncio-throttle==1.0.2
+
+# 데이터 처리
+python-multipart==0.0.6
+
+# 유틸리티
+typing-extensions==4.8.0
+
+# 날짜/시간 처리
+python-dateutil==2.8.2
+
+# 테스트 프레임워크
+pytest==7.4.3
 pytest-asyncio==0.21.1
 
-# 향후 개발 단계에서 추가될 의존성
-# langchain==0.1.0
-# langchain-community==0.0.16
-# langgraph==0.0.20
-# sentence-transformers==2.2.2
-# faiss-cpu==1.7.4
-# numpy==1.26.3
-# pandas==2.1.4
+# 개발 도구
+black==23.11.0
+flake8==6.1.0
+mypy==1.7.1
+
+# 보안
+cryptography==42.0.8
+
+# 성능 최적화
+orjson==3.9.10
+
+# 검증
+validators==0.22.0

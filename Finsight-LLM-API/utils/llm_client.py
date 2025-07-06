@@ -1,80 +1,487 @@
+"""
+간소화된 LLM 클라이언트
+"""
 import httpx
-import logging
 import json
-from config import OLLAMA_API_GENERATE_URL, DEFAULT_MODEL, LOGS_PATH, AGENT_MODELS
-from pathlib import Path
-import os
+import asyncio
+import re
 from datetime import datetime
+from typing import Optional, Dict, Any, Type, TypeVar
+import logging
+from pydantic import BaseModel, ValidationError
+
+from config import (
+    OLLAMA_API_GENERATE_URL, DEFAULT_MODEL, AGENT_MODELS,
+    LLM_TIMEOUT, DEFAULT_TEMPERATURE, MAX_TOKENS, MAX_RETRY_ATTEMPTS, RETRY_DELAY
+)
+from error_handlers import LLMError, TimeoutError as CustomTimeoutError, ParsingError, get_security_manager
+
+T = TypeVar('T', bound=BaseModel)
 
 logger = logging.getLogger(__name__)
+security_manager = get_security_manager()
 
-# 로그 저장 디렉토리 생성
-os.makedirs(LOGS_PATH, exist_ok=True)
 
-async def generate_response(prompt: str, agent_type: str = None, temperature: float = 0.7) -> str:
-    """Ollama API를 사용하여 LLM 응답 생성
+class LLMClient:
+    """간소화된 LLM 클라이언트"""
+    
+    def __init__(self):
+        self.logger = logging.getLogger(__name__)
+        self.client = None
+    
+    async def _get_client(self) -> httpx.AsyncClient:
+        """HTTP 클라이언트 인스턴스 생성/반환"""
+        if self.client is None:
+            self.client = httpx.AsyncClient(timeout=LLM_TIMEOUT)
+        return self.client
+    
+    async def generate_response(
+        self, 
+        prompt: str, 
+        agent_type: Optional[str] = None, 
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        model: Optional[str] = None
+    ) -> str:
+        """LLM 응답 생성"""
+        
+        # 입력 검증 및 sanitization
+        if not prompt or not prompt.strip():
+            raise LLMError("프롬프트가 비어있습니다", llm_model=model)
+        
+        # LLM 프롬프트는 내부적으로 생성되는 안전한 텍스트이므로 sanitization 건너뛰기
+        safe_prompt = prompt.strip()
+        
+        # 파라미터 설정
+        temperature = temperature or DEFAULT_TEMPERATURE
+        max_tokens = max_tokens or MAX_TOKENS
+        model = model or self._get_model_for_agent(agent_type)
+        
+        # 요청 로깅
+        self.logger.info(f"LLM 요청 시작: {agent_type or 'unknown'} - {model}")
+        start_time = datetime.now()
+        
+        for attempt in range(MAX_RETRY_ATTEMPTS):
+            try:
+                response = await self._make_request(
+                    safe_prompt, model, temperature, max_tokens
+                )
+                
+                processing_time = (datetime.now() - start_time).total_seconds()
+                self.logger.info(f"LLM 응답 완료: {processing_time:.3f}s")
+                
+                return response
+                
+            except httpx.TimeoutException as e:
+                if attempt == MAX_RETRY_ATTEMPTS - 1:
+                    raise CustomTimeoutError(
+                        message=f"LLM API 타임아웃 ({LLM_TIMEOUT}초)",
+                        timeout_seconds=LLM_TIMEOUT,
+                        operation="LLM 요청"
+                    )
+                
+                self.logger.warning(f"재시도 중 ({attempt + 1}/{MAX_RETRY_ATTEMPTS})")
+                await asyncio.sleep(RETRY_DELAY * (attempt + 1))
+                
+            except httpx.ConnectError as e:
+                if attempt == MAX_RETRY_ATTEMPTS - 1:
+                    raise LLMError(
+                        message="LLM API 연결 실패",
+                        llm_model=model,
+                        details={"error": "Ollama 서버 확인 필요"}
+                    )
+                
+                self.logger.warning(f"연결 재시도 중 ({attempt + 1}/{MAX_RETRY_ATTEMPTS})")
+                await asyncio.sleep(RETRY_DELAY * (attempt + 1))
+                
+            except Exception as e:
+                if attempt == MAX_RETRY_ATTEMPTS - 1:
+                    raise LLMError(
+                        message=f"LLM 요청 실패: {str(e)}",
+                        llm_model=model
+                    )
+                
+                await asyncio.sleep(RETRY_DELAY * (attempt + 1))
+        
+        raise LLMError("모든 재시도 실패", llm_model=model)
+    
+    async def _make_request(
+        self, 
+        prompt: str, 
+        model: str, 
+        temperature: float, 
+        max_tokens: int
+    ) -> str:
+        """LLM API 요청 수행"""
+        
+        client = await self._get_client()
+        
+        # JSON 형식 강제 프롬프트
+        enhanced_prompt = f"""
+{prompt}
 
-    Args:
-        prompt: 프롬프트 문자열
-        agent_type: 에이전트 유형 (summary_agent, analysis_agent, sentiment_agent)
-        temperature: 온도 파라미터
+**중요 지시사항:**
+1. 오직 JSON 형식으로만 응답
+2. 모든 텍스트는 한국어로 작성
+3. 설명이나 부가 텍스트 없이 JSON만 반환
 
-    Returns:
-        LLM 응답 텍스트
-    """
-
-    # 에이전트 유형에 맞는 모델 선택
-    if agent_type and agent_type in AGENT_MODELS:
-        model = AGENT_MODELS[agent_type]
-    else:
-        model = DEFAULT_MODEL
-
-    try:
-        logger.info(f"LLM API 요청 생성 (에이전트: {agent_type}, 모델: {model}, 온도: {temperature})")
-
-        # 요청 로그 저장
-        request_log_path = Path(LOGS_PATH) / f"request_{agent_type}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-        with open(request_log_path, 'w', encoding='utf-8') as f:
-            f.write(f"에이전트: {agent_type}\\n")
-            f.write(f"모델: {model}\\n")
-            f.write(f"온도: {temperature}\\n")
-            f.write(f"프롬프트:\\n\\n{prompt}")
-
-        # API 호출
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                OLLAMA_API_GENERATE_URL,
-                json={
-                    "model": model,
-                    "prompt": prompt,
-                    "temperature": temperature,
-                    "stream": False
-                },
-                timeout=300.0
+응답 형식:
+{{
+  "필드명": "한국어 값",
+  "리스트": ["한국어", "항목들"]
+}}
+"""
+        
+        payload = {
+            "model": model,
+            "prompt": enhanced_prompt,
+            "temperature": temperature,
+            "stream": False,
+            "options": {
+                "num_predict": max_tokens,
+                "top_p": 0.9,
+                "top_k": 40
+            }
+        }
+        
+        response = await client.post(OLLAMA_API_GENERATE_URL, json=payload)
+        
+        if response.status_code != 200:
+            raise LLMError(
+                message=f"LLM API 오류: {response.status_code}",
+                llm_model=model,
+                status_code=response.status_code
             )
+        
+        result = response.json()
+        llm_response = result.get("response", "")
+        
+        if not llm_response:
+            raise LLMError("LLM 응답이 비어있습니다", llm_model=model)
+        
+        return llm_response.strip()
+    
+    async def generate_structured_response(
+        self,
+        prompt: str,
+        response_schema: Type[T],
+        agent_type: Optional[str] = None,
+        temperature: Optional[float] = 0.1,
+        max_tokens: Optional[int] = 4096
+    ) -> T:
+        """구조화된 JSON 응답 생성"""
+        
+        model = self._get_model_for_agent(agent_type)
+        
+        self.logger.info(f"구조화된 응답 생성 시작: {agent_type or 'unknown'} - {response_schema.__name__}")
+        start_time = datetime.now()
+        
+        # 스키마 예시 생성
+        schema_example = self._create_schema_example(response_schema)
+        
+        # JSON 형식 강제 프롬프트
+        enhanced_prompt = f"""
+{prompt}
 
-            if response.status_code == 200:
-                result = response.json()
-                logger.info("LLM API 응답 수신 완료")
+**응답 규칙 (절대 준수):**
+1. 오직 JSON 형식만 응답 (설명, 주석, 마크다운 금지)
+2. 아래 정확한 구조 사용:
+{schema_example}
 
-                # 응답 로그 저장
-                response_log_path = Path(LOGS_PATH) / f"response_{agent_type}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-                with open(response_log_path, 'w', encoding='utf-8') as f:
-                    f.write(json.dumps(result, ensure_ascii=False, indent=2))
+**중요사항:**
+- 모든 텍스트는 한국어로 작성
+- 분석 불가 시 "분석 불가" 또는 빈 배열 [] 사용
+- JSON 외 어떤 텍스트도 포함하지 말 것
+- 큰따옴표 사용 필수
 
-                return result.get("response", "")
-            else:
-                logger.error(f"LLM API 오류: {response.status_code} - {response.text}")
-                raise Exception(f"LLM API 오류: {response.status_code} - {response.text}")
+응답:
+"""
+        
+        for attempt in range(MAX_RETRY_ATTEMPTS):
+            try:
+                # LLM 응답 생성
+                response = await self.generate_response(
+                    enhanced_prompt, agent_type, temperature, max_tokens, model
+                )
+                
+                # JSON 파싱 및 스키마 검증
+                structured_response = self._parse_and_validate(response, response_schema)
+                
+                processing_time = (datetime.now() - start_time).total_seconds()
+                self.logger.info(f"구조화된 응답 생성 완료: {processing_time:.3f}s")
+                
+                return structured_response
+                
+            except Exception as e:
+                if attempt == MAX_RETRY_ATTEMPTS - 1:
+                    self.logger.error(f"구조화된 응답 생성 실패: {str(e)}")
+                    raise
+                
+                self.logger.warning(f"재시도 중 ({attempt + 1}/{MAX_RETRY_ATTEMPTS}): {str(e)}")
+                await asyncio.sleep(RETRY_DELAY * (attempt + 1))
+        
+        raise LLMError(
+            message="모든 재시도 실패",
+            llm_model=model,
+            details={"max_attempts": MAX_RETRY_ATTEMPTS}
+        )
+    
+    def _parse_and_validate(self, response: str, schema_class: Type[T]) -> T:
+        """JSON 파싱 및 스키마 검증"""
+        
+        # 1단계: 응답 정리
+        cleaned_response = self._clean_response(response)
+        
+        # 2단계: 직접 JSON 파싱 시도
+        try:
+            parsed_data = json.loads(cleaned_response)
+            return schema_class(**parsed_data)
+        except (json.JSONDecodeError, ValidationError):
+            pass
+        
+        # 3단계: JSON 추출 시도
+        json_content = self._extract_json(response)
+        if json_content:
+            try:
+                parsed_data = json.loads(json_content)
+                return schema_class(**parsed_data)
+            except (json.JSONDecodeError, ValidationError):
+                pass
+        
+        # 4단계: 필드별 추출
+        try:
+            extracted_data = self._extract_fields(response, schema_class)
+            return schema_class(**extracted_data)
+        except Exception as e:
+            raise ParsingError(
+                message=f"JSON 파싱 실패: {str(e)}",
+                raw_response=response[:500],
+                expected_schema=schema_class.__name__
+            )
+    
+    def _clean_response(self, response: str) -> str:
+        """응답 정리"""
+        cleaned = response.strip()
+        
+        # 마크다운 코드 블록 정리
+        cleaned = re.sub(r'```(?:json)?\s*', '', cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r'```\s*$', '', cleaned)
+        
+        # JSON 형태로 텍스트 정리
+        cleaned = re.sub(r'^[^{]*', '', cleaned)
+        cleaned = re.sub(r'[^}]*$', '', cleaned)
+        
+        return cleaned
+    
+    def _extract_json(self, text: str) -> Optional[str]:
+        """JSON 패턴 추출"""
+        patterns = [
+            r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}',  # 중첩 JSON
+            r'```(?:json)?\s*(\{.*?\})\s*```',    # 마크다운 블록
+            r'(\{(?:[^{}]|{[^{}]*})*\})',        # 일반 JSON
+        ]
+        
+        for pattern in patterns:
+            matches = re.findall(pattern, text, re.DOTALL | re.IGNORECASE)
+            for match in matches:
+                try:
+                    json.loads(match)
+                    return match
+                except json.JSONDecodeError:
+                    continue
+        
+        return None
+    
+    def _extract_fields(self, text: str, schema_class: Type[T]) -> Dict[str, Any]:
+        """필드별 추출"""
+        
+        # 필드명 가져오기
+        if hasattr(schema_class, 'model_fields'):
+            field_names = list(schema_class.model_fields.keys())
+        else:
+            field_names = list(schema_class.__fields__.keys())
+        
+        extracted = {}
+        
+        for field_name in field_names:
+            value = self._extract_field(text, field_name)
+            if value is not None:
+                extracted[field_name] = value
+        
+        # 기본값 설정
+        self._set_defaults(extracted, field_names)
+        
+        return extracted
+    
+    def _extract_field(self, text: str, field_name: str) -> Any:
+        """단일 필드 추출"""
+        
+        patterns = [
+            rf'"{field_name}":\s*"([^"]*)"',      # 문자열
+            rf'"{field_name}":\s*(\d+(?:\.\d+)?)',  # 숫자
+            rf'"{field_name}":\s*(\[.*?\])',       # 배열
+            rf'"{field_name}":\s*(\{{.*?\}})',     # 객체
+        ]
+        
+        for pattern in patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE | re.DOTALL)
+            if matches:
+                value = matches[0].strip()
+                return self._parse_value(value)
+        
+        return None
+    
+    def _parse_value(self, value: str) -> Any:
+        """값 파싱"""
+        
+        # 배열 처리
+        if value.startswith('[') and value.endswith(']'):
+            try:
+                return json.loads(value)
+            except json.JSONDecodeError:
+                inner = value[1:-1].strip()
+                if not inner:
+                    return []
+                items = [item.strip(' "\'') for item in inner.split(',')]
+                return [item for item in items if item]
+        
+        # 객체 처리
+        if value.startswith('{') and value.endswith('}'):
+            try:
+                return json.loads(value)
+            except json.JSONDecodeError:
+                return {"value": value}
+        
+        # 숫자 처리
+        if re.match(r'^\d+(\.\d+)?$', value):
+            try:
+                return float(value) if '.' in value else int(value)
+            except ValueError:
+                return value
+        
+        return value
+    
+    def _set_defaults(self, extracted: Dict[str, Any], field_names: list) -> None:
+        """기본값 설정"""
+        
+        defaults = {
+            'target_type': 'company',
+            'target_name': '분석 대상',
+            'summary': '요약 정보가 없습니다',
+            'sentiment_score': 0.0,
+            'risk_score': 50,
+            'growth_score': 50,
+            'generated_at': datetime.now().isoformat()
+        }
+        
+        for field_name in field_names:
+            if field_name not in extracted:
+                if field_name in defaults:
+                    extracted[field_name] = defaults[field_name]
+                elif 'score' in field_name:
+                    extracted[field_name] = 0
+                elif field_name.endswith('_factors') or field_name.endswith('_points'):
+                    extracted[field_name] = []
+                else:
+                    extracted[field_name] = "정보 없음"
+    
+    def _create_schema_example(self, schema_class: Type[T]) -> str:
+        """스키마 예시 JSON 생성"""
+        
+        if hasattr(schema_class, 'model_fields'):
+            fields = schema_class.model_fields
+        else:
+            fields = schema_class.__fields__
+        
+        example = {}
+        for field_name, field_info in fields.items():
+            example[field_name] = self._get_example_value(field_name)
+        
+        return json.dumps(example, ensure_ascii=False, indent=2)
+    
+    def _get_example_value(self, field_name: str) -> Any:
+        """필드별 예시값"""
+        
+        examples = {
+            'summary': '종합 분석 요약',
+            'key_points': ['핵심 포인트 1', '핵심 포인트 2'],
+            'sentiment_score': 0.7,
+            'positive_factors': ['긍정 요인 1', '긍정 요인 2'],
+            'negative_factors': ['부정 요인 1', '부정 요인 2'],
+            'risk_factors': ['위험 요인 1', '위험 요인 2'],
+            'risk_score': 30,
+            'growth_drivers': ['성장 동력 1', '성장 동력 2'],
+            'growth_score': 75,
+            'target_type': 'company',
+            'target_name': '분석 대상 회사'
+        }
+        
+        return examples.get(field_name, "분석 결과")
+    
+    def _get_model_for_agent(self, agent_type: Optional[str]) -> str:
+        """에이전트별 모델 선택"""
+        if agent_type and agent_type in AGENT_MODELS:
+            return AGENT_MODELS[agent_type]
+        return DEFAULT_MODEL
+    
+    async def close(self):
+        """클라이언트 정리"""
+        if self.client:
+            await self.client.aclose()
+            self.client = None
 
-    except httpx.TimeoutException as e:
-        logger.error(f"LLM API 호출 타임아웃: {str(e)}")
-        raise Exception(f"LLM API 호출 타임아웃 (300초 경과): 모델이 응답하지 않습니다. Ollama 서버 상태를 확인하세요.")
-    except httpx.ConnectError as e:
-        logger.error(f"LLM API 연결 오류: {str(e)}")
-        raise Exception(f"LLM API 연결 실패: Ollama 서버가 실행 중인지 확인하세요. ({str(e)})")
-    except Exception as e:
-        logger.error(f"LLM API 호출 중 오류 발생: {str(e)}", exc_info=True)  # 상세 오류 로깅
-        raise Exception(f"LLM API 호출 실패: {str(e)}")
 
-# TO DO: Streaming 응답 처리 함수 구현
+# 글로벌 인스턴스
+_llm_client = None
+
+
+async def get_llm_client() -> LLMClient:
+    """LLM 클라이언트 인스턴스 반환"""
+    global _llm_client
+    if _llm_client is None:
+        _llm_client = LLMClient()
+    return _llm_client
+
+
+async def generate_response(
+    prompt: str, 
+    agent_type: Optional[str] = None, 
+    temperature: Optional[float] = None,
+    max_tokens: Optional[int] = None,
+    model: Optional[str] = None
+) -> str:
+    """LLM 응답 생성 (편의 함수)"""
+    client = await get_llm_client()
+    return await client.generate_response(
+        prompt=prompt,
+        agent_type=agent_type,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        model=model
+    )
+
+
+async def generate_structured_response(
+    prompt: str,
+    response_schema: Type[T],
+    agent_type: Optional[str] = None,
+    temperature: Optional[float] = 0.1,
+    max_tokens: Optional[int] = 4096
+) -> T:
+    """구조화된 JSON 응답 생성 (편의 함수)"""
+    client = await get_llm_client()
+    return await client.generate_structured_response(
+        prompt=prompt,
+        response_schema=response_schema,
+        agent_type=agent_type,
+        temperature=temperature,
+        max_tokens=max_tokens
+    )
+
+
+async def cleanup_llm_client():
+    """LLM 클라이언트 정리"""
+    global _llm_client
+    if _llm_client:
+        await _llm_client.close()
+        _llm_client = None

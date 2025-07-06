@@ -1,37 +1,37 @@
 """
-감성 분석 에이전트
+성장성 분석 에이전트
 """
 from typing import Dict, Any, List, Union
 from datetime import datetime
 
-from models.schemas import SentimentResponse
+from models.schemas import GrowthResponse
 from utils.llm_client import generate_structured_response
-from error_handlers import AgentError, handle_agent_error, ValidationError
+from error_handlers import AgentError
 from utils.agent_base import ReportAnalysisAgent
-from utils.logging_config import get_agent_logger
-from config import MAX_REPORT_SIZE, MAX_REPORTS_PER_REQUEST
 
 
-class SentimentAgent(ReportAnalysisAgent):
-    """감성 분석 에이전트 클래스"""
+class GrowthAgent(ReportAnalysisAgent):
+    """성장성 분석 에이전트 클래스"""
     
     def __init__(self):
-        super().__init__("sentiment_agent")
+        super().__init__("growth_agent")
     
     async def process(self, report_contents: List[Any], target_type: str, target_name: str) -> Dict[str, Any]:
-        """감성 분석 처리 메인 함수"""
-        return await analyze_sentiment(report_contents, target_type, target_name)
+        """성장성 분석 처리 메인 함수"""
+        return await analyze_growth(report_contents, target_type, target_name)
 
 
-async def analyze_sentiment(report_contents: List[Any], target_type: str, target_name: str) -> Dict[str, Any]:
+async def analyze_growth(report_contents: List[Any], target_type: str, target_name: str) -> Dict[str, Any]:
     """
-    리포트의 감성을 분석하는 에이전트
+    리포트의 성장성을 분석하는 에이전트
     """
-    logger = get_agent_logger("sentiment_agent")
+    from utils.logging_config import get_agent_logger
+    
+    logger = get_agent_logger("growth_agent")
     start_time = datetime.now()
     
     try:
-        logger.log_start("감성 분석", extra={
+        logger.log_start("성장성 분석", extra={
             'target_type': target_type,
             'target_name': target_name,
             'reports_count': len(report_contents) if report_contents else 0
@@ -41,13 +41,13 @@ async def analyze_sentiment(report_contents: List[Any], target_type: str, target
         validated_contents = _validate_and_prepare_inputs(report_contents, target_type, target_name)
         
         # 프롬프트 생성
-        prompt = _create_sentiment_prompt(validated_contents, target_type, target_name)
+        prompt = _create_growth_prompt(validated_contents, target_type, target_name)
         
         # Function Calling으로 구조화된 응답 생성
         structured_result = await generate_structured_response(
             prompt, 
-            SentimentResponse,
-            agent_type="sentiment_agent",
+            GrowthResponse,
+            agent_type="growth_agent",
             temperature=0.1
         )
         result = structured_result.dict()
@@ -56,11 +56,10 @@ async def analyze_sentiment(report_contents: List[Any], target_type: str, target
         result["generated_at"] = datetime.now().isoformat()
         
         processing_time = (datetime.now() - start_time).total_seconds()
-        logger.log_completion("감성 분석", processing_time, extra={
-            'sentiment_score': result.get('sentiment_score', 0),
-            'overall_sentiment': result.get('overall_sentiment', 'unknown'),
-            'positive_factors_count': len(result.get('positive_factors', [])),
-            'negative_factors_count': len(result.get('negative_factors', []))
+        logger.log_completion("성장성 분석", processing_time, extra={
+            'growth_score': result.get('growth_score', 0),
+            'growth_potential': result.get('growth_potential', 'unknown'),
+            'growth_drivers_count': len(result.get('growth_drivers', []))
         })
         
         return result
@@ -70,16 +69,15 @@ async def analyze_sentiment(report_contents: List[Any], target_type: str, target
         raise
     except Exception as e:
         processing_time = (datetime.now() - start_time).total_seconds()
-        logger.log_error("감성 분석", e, extra={
+        logger.log_error("성장성 분석", e, extra={
             'processing_time': processing_time,
             'target_type': target_type,
             'target_name': target_name
         })
         
-        # 에러 처리 및 기본값 반환
         raise AgentError(
-            agent_name="sentiment_agent",
-            message=f"감성 분석 중 오류 발생: {str(e)}",
+            agent_name="growth_agent",
+            message=f"성장성 분석 중 오류 발생: {str(e)}",
             details={"target_type": target_type, "target_name": target_name}
         )
 
@@ -90,6 +88,8 @@ def _validate_and_prepare_inputs(
     target_name: str
 ) -> List[str]:
     """입력 데이터 검증 및 준비"""
+    from config import MAX_REPORT_SIZE, MAX_REPORTS_PER_REQUEST
+    from error_handlers import ValidationError
     
     # 필수 매개변수 검증
     if not target_name or not target_name.strip():
@@ -110,14 +110,14 @@ def _validate_and_prepare_inputs(
     # 리포트 내용 검증 및 변환
     if not report_contents:
         raise AgentError(
-            agent_name="sentiment_agent",
+            agent_name="growth_agent",
             message="분석할 리포트 내용이 없습니다",
             details={"target_type": target_type, "target_name": target_name}
         )
     
     if len(report_contents) > MAX_REPORTS_PER_REQUEST:
         raise AgentError(
-            agent_name="sentiment_agent",
+            agent_name="growth_agent",
             message=f"리포트 개수가 제한을 초과했습니다 ({len(report_contents)} > {MAX_REPORTS_PER_REQUEST})",
             details={"provided_count": len(report_contents), "max_allowed": MAX_REPORTS_PER_REQUEST}
         )
@@ -141,7 +141,7 @@ def _validate_and_prepare_inputs(
     
     if not validated_contents:
         raise AgentError(
-            agent_name="sentiment_agent",
+            agent_name="growth_agent",
             message="유효한 리포트 내용이 없습니다",
             details={"original_count": len(report_contents)}
         )
@@ -149,24 +149,26 @@ def _validate_and_prepare_inputs(
     return validated_contents
 
 
-def _create_sentiment_prompt(report_contents: List[str], target_type: str, target_name: str) -> str:
-    """감성 분석 프롬프트 생성"""
+def _create_growth_prompt(report_contents: List[Any], target_type: str, target_name: str) -> str:
+    """성장성 분석 프롬프트 생성"""
     
     # 리포트 내용 문자열 생성
     reports_str = ""
     for i, report in enumerate(report_contents, 1):
-        content_preview = report[:1500] + "..." if len(report) > 1500 else report
+        content = str(report)
+        if isinstance(report, dict):
+            content = report.get('content', str(report))
+        content_preview = content[:1500] + "..." if len(content) > 1500 else content
         reports_str += f"### 리포트 {i}\n{content_preview}\n\n"
     
-    # 대상 타입 한국어 변환
     target_description = {
         "company": "기업",
-        "industry": "산업", 
+        "industry": "산업",
         "sector": "섹터"
     }.get(target_type.lower(), "대상")
     
     return f"""
-너는 금융 텍스트 감성 분석 전문가이며, 반드시 아래 예시와 동일한 JSON만 반환하는 API 역할을 한다.
+너는 성장성 분석 전문가이며, 반드시 아래 예시와 동일한 JSON만 반환하는 API 역할을 한다.
 
 **중요: 모든 응답은 반드시 한국어로 작성해야 한다. 영어 사용 절대 금지.**
 
@@ -174,11 +176,12 @@ def _create_sentiment_prompt(report_contents: List[str], target_type: str, targe
 분석할 리포트 내용:
 {reports_str}
 
-위 리포트들을 종합적으로 분석하여 {target_name}에 대한 감성을 분석하라:
-- 전체적인 감성 상태 (긍정적/중립적/부정적) - 한국어 필수
-- 감성 점수 (-1.0 ~ 1.0, -1.0=매우 부정적, 0=중립, 1.0=매우 긍정적)
-- 긍정 요인과 부정 요인 각각 2-4개 추출 - 한국어 필수
-- 트렌드 분석 (상승/하락/횡보, 모멘텀 강도, 전환점 여부) - 한국어 필수
+위 리포트들을 종합적으로 분석하여 {target_name}의 성장 잠재력을 분석하라:
+- 성장 동력 요인들과 각각의 영향도, 지속가능성 - 한국어 필수
+- 전체 성장 점수 (0-100)
+- 성장 레벨 (high/medium/low)
+- 성장 트렌드 (accelerating/stable/slowing)
+- 핵심 성공 요인들 - 한국어 필수
 
 반드시 아래 예시와 동일한 구조의 JSON만 반환하라. (설명, 인사말, 기타 텍스트 절대 금지)
 JSON 이외의 텍스트가 포함되면 시스템 오류가 발생한다.
@@ -187,21 +190,19 @@ JSON 형식:
 {{
   "target_type": "{target_type}",
   "target_name": "{target_name}",
-  "overall_sentiment": "분석 결과",
-  "sentiment_score": 분석_점수,
-  "positive_factors": ["분석된 긍정 요인들"],
-  "negative_factors": ["분석된 부정 요인들"],
-  "trend_analysis": {{
-    "trend": "분석된 트렌드",
-    "momentum": "분석된 모멘텀",
-    "turning_point": 분석_결과
-  }}
+  "growth_drivers": [
+    {{
+      "driver": "분석된 성장 동력",
+      "description": "성장 동력 설명",
+      "impact": "영향도",
+      "sustainability": "지속가능성"
+    }}
+  ],
+  "growth_score": 분석_점수,
+  "growth_potential": "성장_잠재력",
+  "growth_timeline": "성장_타임라인",
+  "investment_opportunities": ["투자 기회들"]
 }}
 
 **다시 한 번 강조: 모든 텍스트는 한국어로 작성해야 합니다.**
-"""
-
-
-
-
-
+""" 

@@ -1,120 +1,288 @@
-
-import json
-import re
-import logging
+"""
+종합 분석 에이전트
+"""
 from typing import Dict, Any, List
+from datetime import datetime
+import json
 
+from models.schemas import AnalysisResponse
 from utils.llm_client import generate_response
+from error_handlers import AgentError
+from utils.agent_base import BaseAgent
 
-logger = logging.getLogger(__name__)
 
-async def analyze_reports(summaries: List[Dict[str, Any]], target_type: str, target_name: str) -> Dict[str, Any]:
-    """요약된 리포트들을 통합 분석하는 에이전트
+class AnalysisAgent(BaseAgent):
+    """종합 분석 에이전트 클래스"""
+    
+    def __init__(self):
+        super().__init__("analysis_agent")
+    
+    async def create_d_day_report(self, summaries: List[Dict[str, Any]], sentiment: Dict[str, Any], 
+                                  risk: Dict[str, Any], growth: Dict[str, Any], 
+                                  target_type: str, target_name: str) -> Dict[str, Any]:
+        """D-day 보고서 생성 메인 함수"""
+        return await create_d_day_report(summaries, sentiment, risk, growth, target_type, target_name)
+    
+    async def create_d_plus1_report(self, d_day_report: Dict[str, Any], market_result: Any) -> Dict[str, Any]:
+        """D+1 보고서 생성 메인 함수"""
+        return await create_d_plus1_report(d_day_report, market_result)
 
-    Args:
-        summaries: 요약된 리포트 목록
-        target_type: 분석 유형 (기업 또는 산업)
-        target_name: 분석 대상 (기업명 또는 산업명)
 
-    Returns:
-        통합 분석 결과
+async def create_d_day_report(summaries: List[Dict[str, Any]], sentiment: Dict[str, Any], 
+                              risk: Dict[str, Any], growth: Dict[str, Any], 
+                              target_type: str, target_name: str) -> Dict[str, Any]:
     """
-
-    prompt = _create_analysis_prompt(summaries, target_type, target_name)
-    llm_response = await generate_response(prompt, agent_type="analysis_agent")
-
-    # JSON 파싱
+    D-day 보고서: 컨센서스 데이터 기반 투자 의견 종합
+    """
+    from utils.logging_config import get_agent_logger
+    
+    logger = get_agent_logger("analysis_agent")
+    start_time = datetime.now()
+    
     try:
-        parsed_data = _parse_json_response(llm_response)
-
-        return {
-            "target_type": target_type,
-            "target_name": target_name,
-            "analysis_summary": parsed_data.get("analysis_summary", ""),
-            "investment_points": parsed_data.get("investment_points", []),
-            "risk_factors": parsed_data.get("risk_factors", []),
-            "consensus": parsed_data.get("consensus")
-        }
-
+        logger.log_start("D-day 보고서 생성", extra={
+            'target_type': target_type,
+            'target_name': target_name,
+            'summaries_count': len(summaries) if summaries else 0
+        })
+        
+        # 입력 검증
+        _validate_d_day_inputs(summaries, sentiment, risk, growth, target_type, target_name)
+        
+        # 프롬프트 생성
+        prompt = _create_d_day_prompt(summaries, sentiment, risk, growth, target_type, target_name)
+        llm_response = await generate_response(prompt, agent_type="analysis_agent")
+        
+        # JSON 파싱
+        parsed_data = json.loads(llm_response)
+        
+        # 메타데이터 추가
+        parsed_data["generated_at"] = datetime.now().isoformat()
+        
+        processing_time = (datetime.now() - start_time).total_seconds()
+        logger.log_completion("D-day 보고서 생성", processing_time, extra={
+            'investment_opinion': parsed_data.get('consensus', {}).get('opinion', 'unknown'),
+            'confidence': parsed_data.get('consensus', {}).get('confidence', 'unknown')
+        })
+        
+        return parsed_data
+        
+    except json.JSONDecodeError as e:
+        processing_time = (datetime.now() - start_time).total_seconds()
+        logger.log_error("D-day 보고서 생성", e, extra={
+            'processing_time': processing_time,
+            'target_type': target_type,
+            'target_name': target_name,
+            'error_type': 'json_decode_error'
+        })
+        
+        raise AgentError(
+            agent_name="analysis_agent",
+            message=f"D-day 보고서 응답 파싱 실패: {str(e)}",
+            details={"target_type": target_type, "target_name": target_name}
+        )
+    except AgentError:
+        # 이미 처리된 에러는 그대로 전파
+        raise
     except Exception as e:
-        logger.error(f"리포트 통합 분석 중 오류 발생: {str(e)}")
-        raise Exception(f"리포트 통합 분석 실패: {str(e)}")
+        processing_time = (datetime.now() - start_time).total_seconds()
+        logger.log_error("D-day 보고서 생성", e, extra={
+            'processing_time': processing_time,
+            'target_type': target_type,
+            'target_name': target_name
+        })
+        
+        raise AgentError(
+            agent_name="analysis_agent",
+            message=f"D-day 보고서 생성 실패: {str(e)}",
+            details={"target_type": target_type, "target_name": target_name}
+        )
 
-def _create_analysis_prompt(summaries: List[Dict[str, Any]], target_type: str, target_name: str) -> str:
-    """분석 프롬프트 생성"""
 
-    # 요약된 리포트 내용 포맷팅
-    summaries_str = ""
-    for i, summary in enumerate(summaries):
-        report_info = summary.get("report_info", {})
-        summaries_str += f"### 리포트 {i+1}\\n"
-        summaries_str += f"- 제목: {report_info.get('title', 'N/A')}\\n"
-        summaries_str += f"- 날짜: {report_info.get('date', 'N/A')}\\n"
-        summaries_str += f"- 증권사: {report_info.get('company', 'N/A')}\\n"
-        summaries_str += f"- 요약: {summary.get('summary', 'N/A')}\\n"
-        summaries_str += "- 핵심 포인트:\\n"
-        for point in summary.get("key_points", []):
-            summaries_str += f"  * {point}\\n"
-        summaries_str += "\\n"
+async def create_d_plus1_report(d_day_report: Dict[str, Any], market_result: Any) -> Dict[str, Any]:
+    """
+    D+1 보고서: D-day 보고서와 전날 장 결과 기반 해석
+    """
+    from utils.logging_config import get_agent_logger
+    
+    logger = get_agent_logger("analysis_agent")
+    start_time = datetime.now()
+    
+    try:
+        logger.log_start("D+1 보고서 생성", extra={
+            'target_type': d_day_report.get('target_type', ''),
+            'target_name': d_day_report.get('target_name', '')
+        })
+        
+        # 입력 검증
+        _validate_d_plus1_inputs(d_day_report, market_result)
+        
+        # 프롬프트 생성
+        prompt = _create_d_plus1_prompt(d_day_report, market_result)
+        llm_response = await generate_response(prompt, agent_type="analysis_agent")
+        
+        # JSON 파싱
+        parsed_data = json.loads(llm_response)
+        
+        # 메타데이터 추가
+        parsed_data["generated_at"] = datetime.now().isoformat()
+        
+        processing_time = (datetime.now() - start_time).total_seconds()
+        logger.log_completion("D+1 보고서 생성", processing_time, extra={
+            'investment_opinion': parsed_data.get('consensus', {}).get('opinion', 'unknown'),
+            'confidence': parsed_data.get('consensus', {}).get('confidence', 'unknown')
+        })
+        
+        return parsed_data
+        
+    except json.JSONDecodeError as e:
+        processing_time = (datetime.now() - start_time).total_seconds()
+        logger.log_error("D+1 보고서 생성", e, extra={
+            'processing_time': processing_time,
+            'target_type': d_day_report.get('target_type', ''),
+            'target_name': d_day_report.get('target_name', ''),
+            'error_type': 'json_decode_error'
+        })
+        
+        raise AgentError(
+            agent_name="analysis_agent",
+            message=f"D+1 보고서 응답 파싱 실패: {str(e)}",
+            details={
+                "target_type": d_day_report.get('target_type', ''),
+                "target_name": d_day_report.get('target_name', '')
+            }
+        )
+    except AgentError:
+        # 이미 처리된 에러는 그대로 전파
+        raise
+    except Exception as e:
+        processing_time = (datetime.now() - start_time).total_seconds()
+        logger.log_error("D+1 보고서 생성", e, extra={
+            'processing_time': processing_time,
+            'target_type': d_day_report.get('target_type', ''),
+            'target_name': d_day_report.get('target_name', '')
+        })
+        
+        raise AgentError(
+            agent_name="analysis_agent",
+            message=f"D+1 보고서 생성 실패: {str(e)}",
+            details={
+                "target_type": d_day_report.get('target_type', ''),
+                "target_name": d_day_report.get('target_name', '')
+            }
+        )
 
-    # 분석 대상에 따라 프롬프트 조정
-    target_description = "기업" if target_type.lower() == "company" else "산업"
 
-    return f"""당신은 숙련된 증권 애널리스트입니다. 아래 제공된 여러 리포트 요약을 분석하여 {target_name}({target_description})에 대한 통합 분석 보고서를 작성해주세요.
+def _validate_d_day_inputs(summaries: List[Dict[str, Any]], sentiment: Dict[str, Any], 
+                           risk: Dict[str, Any], growth: Dict[str, Any], 
+                           target_type: str, target_name: str) -> None:
+    """D-day 보고서 입력 데이터 검증"""
+    from error_handlers import ValidationError
+    
+    if not target_name or not target_name.strip():
+        raise ValidationError(
+            message="분석 대상명이 지정되지 않았습니다",
+            field_name="target_name",
+            invalid_value=target_name
+        )
+    
+    if not target_type or target_type.lower() not in ['company', 'industry', 'sector']:
+        raise ValidationError(
+            message="올바르지 않은 분석 대상 타입입니다",
+            field_name="target_type",
+            invalid_value=target_type,
+            details={"valid_types": ['company', 'industry', 'sector']}
+        )
+    
+    if not summaries:
+        raise AgentError(
+            agent_name="analysis_agent",
+            message="요약 데이터가 없습니다",
+            details={"target_type": target_type, "target_name": target_name}
+        )
+    
+    if not sentiment or not risk or not growth:
+        raise AgentError(
+            agent_name="analysis_agent",
+            message="필수 분석 데이터가 없습니다",
+            details={
+                "target_type": target_type,
+                "target_name": target_name,
+                "missing_data": {
+                    "sentiment": not sentiment,
+                    "risk": not risk,
+                    "growth": not growth
+                }
+            }
+        )
 
-## 분석 대상
-- 유형: {target_description}
-- 이름: {target_name}
 
-## 요약된 리포트 목록
-{summaries_str}
+def _validate_d_plus1_inputs(d_day_report: Dict[str, Any], market_result: Any) -> None:
+    """D+1 보고서 입력 데이터 검증"""
+    if not d_day_report:
+        raise AgentError(
+            agent_name="analysis_agent",
+            message="D-day 보고서 데이터가 없습니다",
+            details={}
+        )
+    
+    if not market_result:
+        raise AgentError(
+            agent_name="analysis_agent",
+            message="시장 결과 데이터가 없습니다",
+            details={
+                "target_type": d_day_report.get('target_type', ''),
+                "target_name": d_day_report.get('target_name', '')
+            }
+        )
 
-아래 JSON 형식으로 통합 분석 결과를 작성해주세요:
 
-```json
+def _create_d_day_prompt(summaries, sentiment, risk, growth, target_type, target_name):
+    """D-day 보고서 프롬프트 생성"""
+    return f"""
+너는 숙련된 증권 투자 전략가이며, 아래의 요약/감성/리스크/성장성 분석 결과를 종합해 투자 의견을 제시하는 D-day 보고서를 작성한다.
+
+- 대상: {target_name} ({target_type})
+- 요약: {summaries}
+- 감성분석: {sentiment}
+- 리스크분석: {risk}
+- 성장성분석: {growth}
+
+반드시 아래 구조의 JSON만 반환하라. (설명, 인사말, 기타 텍스트 절대 금지)
+JSON 이외의 텍스트가 포함되면 시스템 오류가 발생한다.
+모든 텍스트는 반드시 한국어로 작성하라.
+
+JSON 형식:
 {{
-  "analysis_summary": "{target_name}에 대한 종합적인 분석 (300자 이내)",
-  "investment_points": [
-    "투자 포인트 1",
-    "투자 포인트 2",
-    "투자 포인트 3"
-  ],
-  "risk_factors": [
-    "리스크 요인 1",
-    "리스크 요인 2",
-    "리스크 요인 3"
-  ],
-  "consensus": {{
-    "opinion": "종합 투자의견 (매수/중립/매도)",
-    "target_price": "목표가 범위 또는 평균",
-    "confidence": "컨센서스 확신도 (높음/중간/낮음)"
-  }}
+  "target_type": "{target_type}",
+  "target_name": "{target_name}",
+  "analysis_summary": "종합적인 분석 요약",
+  "investment_points": ["투자 포인트들"],
+  "risk_factors": ["리스크 요인들"],
+  "consensus": {{"opinion": "투자의견", "target_price": "목표가", "confidence": "신뢰도"}}
 }}
-```
-
-중요: 응답은 반드시 한국어로 작성하고, 위에 제시된 JSON 형식을 정확히 따라주세요. 
-투자 포인트와 리스크 요인은 반드시 3개 이상 제공해주세요. 
-컨센서스 정보는 필수로 포함해야 합니다. 
-여러 리포트의 내용을 종합적으로 비교 분석하여 객관적인 통합 견해를 제시해주세요. 
 """
 
-def _parse_json_response(response: str) -> Dict[str, Any]:
-    """LLM 응답에서 JSON 형식 추출 및 파싱"""
-    
-    # JSON 코드 블록 추출
-    json_match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', response)
-    if json_match:
-        json_str = json_match.group(1)
-    else:
-        # JSON 블록이 없으면 전체 응답에서 JSON 형식 찾기
-        json_match = re.search(r'{[\s\S]*}', response)
-        if json_match:
-            json_str = json_match.group(0)
-        else:
-            raise Exception("응답에서 JSON 형식을 찾을 수 없습니다.")
-    
-    # JSON 파싱
-    return json.loads(json_str)
 
-# TO DO: Function Calling 구현으로 포맷 처리 개선
-# TO DO: RAG 구현으로 추가 정보 검색 기능 추가
+def _create_d_plus1_prompt(d_day_report, market_result):
+    """D+1 보고서 프롬프트 생성"""
+    return f"""
+너는 숙련된 증권 투자 전략가이며, 아래의 D-day 보고서와 전날 장 결과를 바탕으로 D+1 해석 보고서를 작성한다.
+
+- D-day 보고서: {d_day_report}
+- 전날 장 결과: {market_result}
+
+반드시 아래 구조의 JSON만 반환하라. (설명, 인사말, 기타 텍스트 절대 금지)
+JSON 이외의 텍스트가 포함되면 시스템 오류가 발생한다.
+모든 텍스트는 반드시 한국어로 작성하라.
+
+JSON 형식:
+{{
+  "target_type": "{d_day_report.get('target_type', '')}",
+  "target_name": "{d_day_report.get('target_name', '')}",
+  "analysis_summary": "전날 예측과 실제 결과를 종합한 해석",
+  "investment_points": ["D+1 투자 포인트들"],
+  "risk_factors": ["D+1 리스크 요인들"],
+  "consensus": {{"opinion": "투자의견", "target_price": "목표가", "confidence": "신뢰도"}}
+}}
+"""

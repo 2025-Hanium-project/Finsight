@@ -1,134 +1,269 @@
-# AI 기반 증시 투자 분석 시스템 - 아키텍처 문서
+# Finsight LLM API 아키텍처
 
-## 1. 개요
+## 1. 시스템 개요
 
-이 문서는 증권사 리포트를 분석하고 투자 인사이트를 제공하는 AI 기반 증시 분석 시스템의 아키텍처를 설명합니다.
-현재 구현은 MVP(최소 기능 제품) 단계로, 세 가지 핵심 에이전트(요약, 분석, 감성)만 구현된 상태입니다.
+AI 기반 증시 투자 분석 시스템으로, 증권사 리포트를 자동 분석하여 투자 인사이트를 제공하는 REST API입니다.
 
-## 2. 주요 컴포넌트
+### 1.1 핵심 원칙
+- **단순성**: 복잡한 워크플로우 없이 직접적인 agent 호출
+- **안정성**: 각 agent 독립 동작으로 장애 격리
+- **확장성**: 새로운 agent 쉽게 추가 가능
+- **성능**: 비동기 처리로 높은 동시성
 
-### 2.1 Agent 시스템
+## 2. 시스템 구조
 
-#### Summary Agent
-- 증권사 리포트를 요약하는 역할
-- 핵심 정보 추출 및 구조화
-- 텍스트 압축 및 중요 포인트 식별
-- Ollama LLM API와 통합
-
-#### Analysis Agent
-- 여러 리포트 요약을 통합하는 역할
-- 기업별, 산업별 종합적인 분석 제공
-- 투자 포인트 및 리스크 요인 추출
-- 투자 의견 컨센서스 도출
-
-#### Sentiment Agent
-- 리포트의 감성 분석 수행
-- 긍정/부정 요인 식별
-- 감성 점수 및 트렌드 산출
-- 텍스트 감성 분석 전문화
-
-### 2.2 API 인터페이스
-
-- RESTful API 기반 인터페이스
-- FastAPI 프레임워크 활용
-- 세 가지 핵심 엔드포인트 제공:
-  - 리포트 요약
-  - 통합 분석
-  - 감성 분석
-- JSON 기반 요청/응답 구조
-
-### 2.3 LLM 클라이언트
-
-- Ollama API와 통합
-- 비동기 처리를 통한 성능 최적화
-- 에이전트별 특화 모델 활용
-- 로깅 및 오류 처리 기능
-
-## 3. 시스템 아키텍처
-
+### 2.1 레이어 구조
 ```
-┌─────────────────┐      ┌─────────────────┐      ┌─────────────────┐
-│                 │      │                 │      │                 │
-│   API Layer     │◄────►│   Agent Layer   │◄────►│  Ollama LLM API │
-│   (FastAPI)     │      │                 │      │                 │
-│                 │      │                 │      │                 │
-└─────────────────┘      └─────────────────┘      └─────────────────┘
-         ▲                        ▲
-         │                        │
-         ▼                        ▼
-┌─────────────────┐      ┌─────────────────┐
-│                 │      │                 │
-│  Data Models    │      │  Prompt Engine  │
-│  (Pydantic)     │      │                 │
-│                 │      │                 │
-└─────────────────┘      └─────────────────┘
+┌─────────────────────────────────────┐
+│           API Layer                 │  ← FastAPI 라우터
+├─────────────────────────────────────┤
+│          Agent Layer                │  ← AI 분석 에이전트들
+├─────────────────────────────────────┤
+│         Service Layer               │  ← LLM 통신, 유틸리티
+├─────────────────────────────────────┤
+│        Security Layer               │  ← 보안, 인증, 로깅
+└─────────────────────────────────────┘
 ```
 
-## 4. 정보 흐름
-
-1. 클라이언트가 API 엔드포인트로 요청 전송
-2. API 라우터가 요청을 검증하고 해당 에이전트로 전달
-3. 에이전트가 입력 데이터를 가공하여 프롬프트 생성
-4. LLM 클라이언트를 통해 Ollama API에 요청 전송
-5. LLM 응답을 JSON으로 파싱하여 구조화
-6. 구조화된 응답을 클라이언트에게 반환
-
-## 5. Agent 워크플로우
-
-### Summary Agent 워크플로우
-
+### 2.2 컴포넌트 구조
 ```
-리포트 원문 → 중요 정보 식별 → 텍스트 요약 → 핵심 포인트 추출 → 구조화된 요약
-```
-
-### Analysis Agent 워크플로우
-
-```
-여러 요약 수집 → 통합 분석 → 투자 포인트 식별 → 리스크 파악 → 컨센서스 도출 → 종합 분석 결과
+app.py
+├── routers/report_router.py
+│   ├── /summary        → summary_agent
+│   ├── /sentiment      → sentiment_agent
+│   ├── /risk          → risk_agent
+│   ├── /growth        → growth_agent
+│   ├── /analysis/*    → analysis_agent
+│   └── /supervisor/*  → supervisor_agent
+├── agents/
+│   ├── BaseAgent (공통 기능)
+│   ├── ReportAnalysisAgent (리포트 분석 공통)
+│   └── 각 전문 에이전트들
+├── utils/
+│   ├── llm_client (LLM 통신)
+│   ├── data_models (데이터 구조)
+│   └── logging_config (로깅)
+└── error_handlers (에러 처리)
 ```
 
-### Sentiment Agent 워크플로우
-
+### 2.3 데이터 흐름
 ```
-리포트 내용 수집 → 감성 표현 분석 → 긍/부정 요인 식별 → 감성 점수 산출 → 트렌드 분석 → 감성 결과
+Client Request
+    ↓
+FastAPI Router
+    ↓
+Security Middleware
+    ↓
+Input Validation
+    ↓
+Agent Processing
+    ↓
+LLM Communication
+    ↓
+Response Processing
+    ↓
+Error Handling
+    ↓
+JSON Response
 ```
 
-## 6. 주요 기술 스택
+### 2.4 API 라우터
+# TODO: 워크플로우 엔드포인트 구현 필요시 추가
+- `/report/summary`, `/report/sentiment`, `/report/risk`, `/report/growth`, `/report/analysis/d-day`, `/report/analysis/d-plus1`: 개별 agent 및 analysis 테스트용 엔드포인트
 
-- **언어**: Python 3.10+
-- **프레임워크**: FastAPI
-- **LLM API**: Ollama (llama3 기본 모델)
-- **데이터 모델링**: Pydantic
-- **비동기 처리**: httpx, asyncio
-- **웹 서버**: Uvicorn
+## 3. 에이전트 시스템
 
-## 7. 향후 개발 계획
+### 3.1 에이전트 계층 구조
+```
+BaseAgent
+├── ReportAnalysisAgent
+│   ├── SentimentAgent
+│   ├── RiskAgent
+│   ├── GrowthAgent
+│   └── AnalysisAgent
+├── SummaryAgent
+└── SupervisorAgent
+```
 
-### 7.1 Supervisor Agent
-- 사용자 요청을 분석하여 작업 분해
-- 적합한 Agent 선택 및 조율
-- 여러 Agent의 결과 통합 및 조정
-- 품질 관리 및 일관성 확보
+### 3.2 에이전트 역할
+- **SentimentAgent**: 감성 분석 (긍정/부정 요인, 점수)
+- **RiskAgent**: 리스크 요인 분석 (심각도, 확률)
+- **GrowthAgent**: 성장성 분석 (동력, 기회)
+- **SummaryAgent**: 리포트 요약 (핵심 포인트)
+- **AnalysisAgent**: 종합 분석 (D-day, D+1)
+- **SupervisorAgent**: 품질 검토 (결과 평가)
 
-### 7.2 RAG (Retrieval Augmented Generation) 시스템
-- 증권사 리포트를 벡터 DB에 저장
-- 의미 기반 검색 및 관련 정보 검색
-- 사용자 질의에 맞는 정보 검색
-- 검색 결과와 LLM 응답 통합
+### 3.3 에이전트 표준 인터페이스
+```python
+class BaseAgent:
+    async def process(self, input_data: StandardInput) -> StandardOutput
+    def _validate_input(self, input_data: Any) -> bool
+    def _create_prompt(self, input_data: Any) -> str
+```
 
-### 7.3 ReRanker 시스템
-- 검색 결과의 관련성 평가
-- 질의에 가장 적합한 정보 선별
-- 정보 품질 및 최신성 고려
-- 응답 품질 향상
+## 4. LLM 통신
 
-### 7.4 Function Calling 기능
-- 하드코딩된 JSON 파싱 대체
-- 구조화된 출력 자동화
-- 응답 포맷 표준화
-- Agent 간 통신 개선
+### 4.1 LLM 클라이언트 구조
+```
+LLMClient
+├── generate_response()           # 일반 텍스트 응답
+├── generate_structured_response() # 구조화된 JSON 응답
+├── _parse_and_validate()        # JSON 파싱 및 검증
+└── _retry_mechanism()           # 재시도 로직
+```
 
-## 8. 결론
+### 4.2 응답 처리 파이프라인
+```
+LLM Raw Response
+    ↓
+Response Cleaning
+    ↓
+JSON Extraction
+    ↓
+Schema Validation
+    ↓
+Fallback Processing
+    ↓
+Structured Output
+```
 
-현재 MVP 구현은 세 가지 핵심 Agent를 통해 증권사 리포트를 효과적으로 분석하는 기본 기능을 제공합니다.
-향후 개발 계획에 따라 시스템을 확장하여 더 정교한 분석과 개인화된 투자 인사이트를 제공할 예정입니다.
+## 5. 보안 시스템
+
+### 5.1 보안 레이어
+- **Input Sanitization**: XSS, SQL Injection 방지
+- **Rate Limiting**: 요청 빈도 제한
+- **IP Blocking**: 악성 IP 차단
+- **Error Sanitization**: 민감 정보 마스킹
+
+### 5.2 보안 미들웨어 흐름
+```
+Request
+    ↓
+IP Check
+    ↓
+Rate Limit Check
+    ↓
+Content-Type Validation
+    ↓
+Input Sanitization
+    ↓
+Processing
+    ↓
+Response Headers
+    ↓
+Response
+```
+
+## 6. 에러 처리
+
+### 6.1 에러 계층
+```
+BaseAnalysisError
+├── AgentError
+├── LLMError
+├── ValidationError
+├── TimeoutError
+└── ParsingError
+```
+
+### 6.2 에러 처리 흐름
+```
+Exception Occurs
+    ↓
+Error Classification
+    ↓
+Security Sanitization
+    ↓
+Logging
+    ↓
+User Response
+```
+
+## 7. 로깅 시스템
+
+### 7.1 로깅 구조
+- **요청 로깅**: 모든 API 요청/응답
+- **성능 로깅**: 처리 시간, 메트릭
+- **에러 로깅**: 상세 에러 정보
+- **보안 로깅**: 보안 이벤트
+
+### 7.2 로그 레벨
+- **DEBUG**: 개발 디버깅 정보
+- **INFO**: 일반 동작 정보
+- **WARNING**: 주의 필요 상황
+- **ERROR**: 에러 상황
+- **CRITICAL**: 심각한 시스템 오류
+
+## 8. 성능 최적화
+
+### 8.1 비동기 처리
+- FastAPI 비동기 처리
+- HTTP 클라이언트 연결 풀링
+- 동시 요청 처리
+
+### 8.2 캐싱 전략 (TODO)
+- [ ] LLM 응답 캐싱
+- [ ] 자주 사용되는 분석 결과 캐싱
+- [ ] Redis 기반 분산 캐싱
+
+## 9. 모니터링
+
+### 9.1 메트릭 수집
+- API 응답 시간
+- 에러율
+- LLM API 사용량
+- 시스템 리소스
+
+### 9.2 알림 시스템 (TODO)
+- [ ] 에러율 임계치 알림
+- [ ] 응답 시간 지연 알림
+- [ ] 시스템 리소스 알림
+
+## 10. 배포 및 운영
+
+### 10.1 환경 구성
+```
+Development
+├── Local Ollama
+├── Debug Logging
+└── Development DB
+
+Production
+├── Remote LLM API
+├── Production Logging
+└── Production DB
+```
+
+### 10.2 확장성 계획
+- **수평 확장**: 멀티 인스턴스 배포
+- **부하 분산**: 로드 밸런서 적용
+- **데이터베이스**: 읽기 전용 복제본
+
+## 11. 보안 고려사항
+
+### 11.1 데이터 보호
+- 입력 데이터 암호화
+- 로그 데이터 마스킹
+- API 키 보안 관리
+
+### 11.2 접근 제어 (TODO)
+- [ ] JWT 기반 인증
+- [ ] Role-based 접근 제어
+- [ ] API 키 관리
+
+## 12. TODO 항목
+
+### 12.1 단기 계획
+- [ ] 단위 테스트 추가
+- [ ] CI/CD 파이프라인
+- [ ] 성능 테스트
+
+### 12.2 중기 계획
+- [ ] 데이터베이스 연동
+- [ ] 캐싱 시스템
+- [ ] 모니터링 대시보드
+
+### 12.3 장기 계획
+- [ ] 마이크로서비스 분할
+- [ ] 쿠버네티스 배포
+- [ ] 멀티 리전 지원
