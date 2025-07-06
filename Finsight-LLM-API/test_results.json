@@ -1,0 +1,312 @@
+{
+  "timestamp": "2025-07-06T11:18:33.589273",
+  "total_tests": 8,
+  "passed_tests": 8,
+  "failed_tests": 0,
+  "results": {
+    "health_check": {
+      "status": "success",
+      "data": {
+        "status": "online",
+        "service": "AI 기반 증시 투자 분석 시스템 API",
+        "version": "2.0.0",
+        "timestamp": "2025-07-06T11:18:33.860024",
+        "features": [
+          "리포트 요약",
+          "감성 분석",
+          "리스크 분석",
+          "성장성 분석",
+          "종합 분석",
+          "품질 검토"
+        ],
+        "endpoints": {
+          "report": "/v1/report"
+        }
+      }
+    },
+    "security_status": {
+      "status": "success",
+      "data": {
+        "status": "active",
+        "features": [
+          "입력 sanitization",
+          "Rate limiting",
+          "IP blocking",
+          "Content-Type validation",
+          "Error message sanitization"
+        ],
+        "timestamp": "2025-07-06T11:18:33.864536"
+      }
+    },
+    "report_summary": {
+      "status": "success",
+      "data": {
+        "agent_type": "summary",
+        "target_type": "company",
+        "target_name": "삼성전자",
+        "symbol": "005930",
+        "status": "completed",
+        "success": true,
+        "result": {
+          "summary": "삼성전자는 2024년 4분기 실적 발표에서 메모리 사업 회복과 AI 칩 수요 증가로 매출이 증가할 것으로 전망됩니다.",
+          "key_points": [
+            "HBM 메모리 매출이 크게 증가",
+            "반도체 사업 부문의 수익성 개선 예상",
+            "투자의견은 매수를 유지하며 목표주가는 90,000원으로 상향 조정"
+          ],
+          "report_info": {
+            "company": "삼성전자",
+            "title": "2024년 4분기 실적 전망",
+            "date": "2024-01-15",
+            "analyst": "홍길동",
+            "firm": "테스트증권"
+          }
+        },
+        "request_id": null,
+        "processing_time": null,
+        "generated_at": "2025-07-06T11:19:43.697210",
+        "error": null,
+        "warnings": [],
+        "confidence_score": null,
+        "quality_metrics": {}
+      }
+    },
+    "sentiment_analysis": {
+      "status": "success",
+      "data": {
+        "agent_type": "sentiment",
+        "target_type": "company",
+        "target_name": "삼성전자",
+        "symbol": "005930",
+        "status": "completed",
+        "success": true,
+        "result": {
+          "overall_sentiment": "긍정적",
+          "sentiment_score": 0.6,
+          "positive_factors": [
+            "삼성전자의 AI 칩 사업이 크게 성장하고 있으며, 매출 증가가 예상됩니다.",
+            "메모리 시장 회복과 함께 수익성 개선이 기대됩니다."
+          ],
+          "negative_factors": [
+            "다만 중국 시장의 불확실성과 경쟁 심화는 리스크 요인입니다."
+          ],
+          "trend_analysis": {
+            "trend": "상승",
+            "momentum": "중간",
+            "turning_point": "없음"
+          }
+        },
+        "request_id": null,
+        "processing_time": null,
+        "generated_at": "2025-07-06T11:21:12.252548",
+        "error": null,
+        "warnings": [],
+        "confidence_score": null,
+        "quality_metrics": {}
+      }
+    },
+    "risk_analysis": {
+      "status": "success",
+      "data": {
+        "agent_type": "risk",
+        "target_type": "company",
+        "target_name": "삼성전자",
+        "symbol": "005930",
+        "status": "completed",
+        "success": true,
+        "result": {
+          "risk_factors": [
+            {
+              "factor": "중국 시장 의존도 리스크",
+              "description": "반도체 업계는 중국 시장 의존도가 높아 지정학적 리스크가 존재합니다.",
+              "severity": "높음",
+              "probability": "90%"
+            },
+            {
+              "factor": "메모리 가격 변동성과 경쟁사 대비 기술 격차",
+              "description": "메모리 가격 변동성과 경쟁사 대비 기술 격차 확대 위험이 있습니다.",
+              "severity": "중간",
+              "probability": "70%"
+            },
+            {
+              "factor": "환율 변동과 원자재 가격 상승도",
+              "description": "환율 변동과 원자재 가격 상승도 주요 리스크 요인입니다.",
+              "severity": "높음",
+              "probability": "80%"
+            }
+          ],
+          "risk_score": 60,
+          "risk_trend": "increasing",
+          "risk_level": "medium",
+          "mitigation_strategies": [
+            "환율 리스크 관리",
+            "원자재 가격 관리"
+          ]
+        },
+        "request_id": null,
+        "processing_time": null,
+        "generated_at": "2025-07-06T11:22:54.307138",
+        "error": null,
+        "warnings": [],
+        "confidence_score": null,
+        "quality_metrics": {}
+      }
+    },
+    "growth_analysis": {
+      "status": "success",
+      "data": {
+        "agent_type": "growth",
+        "target_type": "company",
+        "target_name": "삼성전자",
+        "symbol": "005930",
+        "status": "completed",
+        "success": true,
+        "result": {
+          "growth_drivers": [
+            {
+              "driver": "AI 칩 시장 성장과 HBM 메모리 수요 증가",
+              "description": "AI 칩 시장 성장이 HBM 메모리 수요를 증가시킬 것 같다.",
+              "impact": "중요",
+              "sustainability": "장기적"
+            },
+            {
+              "driver": "파운드리 사업 확대와 시스템 반도체 부문 성장",
+              "description": "삼성전자의 파운드리 사업 확대는 시스템 반도체 부문의 성장을 이끌어 낼 것이다.",
+              "impact": "중요",
+              "sustainability": "장기적"
+            },
+            {
+              "driver": "차세대 메모리 기술 개발로 경쟁우위 확보",
+              "description": "삼성전자는 차세대 메모리 기술을 개발하여 경쟁우위를 확보할 것이다.",
+              "impact": "중요",
+              "sustainability": "장기적"
+            }
+          ],
+          "growth_score": 85,
+          "growth_potential": "높은 성장 잠재력",
+          "growth_timeline": "accelerating",
+          "investment_opportunities": [
+            "파운드리 사업 투자",
+            "AI 칩 시장 개발"
+          ]
+        },
+        "request_id": null,
+        "processing_time": null,
+        "generated_at": "2025-07-06T11:24:41.188284",
+        "error": null,
+        "warnings": [],
+        "confidence_score": null,
+        "quality_metrics": {}
+      }
+    },
+    "supervisor_review": {
+      "status": "success",
+      "data": {
+        "agent_type": "supervisor",
+        "target_type": "company",
+        "target_name": "삼성전자",
+        "symbol": "005930",
+        "status": "completed",
+        "success": true,
+        "result": {
+          "target_type": "company",
+          "target_name": "삼성전자",
+          "agent_results": {
+            "sentiment": {
+              "overall_sentiment": "긍정적",
+              "sentiment_score": 0.7,
+              "positive_factors": [
+                "AI 칩 성장",
+                "메모리 회복"
+              ],
+              "negative_factors": [
+                "중국 리스크"
+              ]
+            },
+            "risk": {
+              "risk_score": 35,
+              "risk_level": "medium",
+              "risk_factors": [
+                "지정학적 리스크",
+                "가격 변동성"
+              ]
+            },
+            "growth": {
+              "growth_score": 75,
+              "growth_potential": "high",
+              "growth_drivers": [
+                "AI 칩",
+                "HBM 메모리"
+              ]
+            }
+          },
+          "quality_scores": {
+            "sentiment": 0.35,
+            "risk": 0.35,
+            "growth": 0.35
+          },
+          "needs_regeneration": {
+            "sentiment": {
+              "quality_score": 0.35,
+              "reason": "대상 타입 누락; 대상명 누락; 생성 시간 누락"
+            },
+            "risk": {
+              "quality_score": 0.35,
+              "reason": "대상 타입 누락; 대상명 누락; 생성 시간 누락"
+            },
+            "growth": {
+              "quality_score": 0.35,
+              "reason": "대상 타입 누락; 대상명 누락; 생성 시간 누락"
+            }
+          },
+          "overall_quality": 0.3499999999999999,
+          "review_status": "needs_regeneration",
+          "generated_at": "2025-07-06T11:24:41.194801"
+        },
+        "request_id": null,
+        "processing_time": null,
+        "generated_at": "2025-07-06T11:24:41.195802",
+        "error": null,
+        "warnings": [],
+        "confidence_score": null,
+        "quality_metrics": {}
+      }
+    },
+    "d_day_analysis": {
+      "status": "success",
+      "data": {
+        "agent_type": "analysis",
+        "target_type": "company",
+        "target_name": "삼성전자",
+        "symbol": "005930",
+        "status": "completed",
+        "success": true,
+        "result": {
+          "target_type": "company",
+          "target_name": "삼성전자",
+          "analysis_summary": "종합적인 분석 결과는 삼성전자가 실적 전망 긍정적이며, 메모리 회복과 AI 칩 수요 증가 등 긍정적인 요인들이 적극적으로 작용하고 있다.",
+          "investment_points": [
+            "메모리 회복",
+            "AI 칩 수요 증가"
+          ],
+          "risk_factors": [
+            "리스크는 35로 중간 수준으로 조심스러운 투자 고려가 필요하다."
+          ],
+          "consensus": {
+            "opinion": "보장적",
+            "target_price": "미래의 가치 평가",
+            "confidence": "75% 신뢰도"
+          },
+          "generated_at": "2025-07-06T11:25:37.350137"
+        },
+        "request_id": null,
+        "processing_time": null,
+        "generated_at": "2025-07-06T11:25:37.351690",
+        "error": null,
+        "warnings": [],
+        "confidence_score": null,
+        "quality_metrics": {}
+      }
+    }
+  }
+}
