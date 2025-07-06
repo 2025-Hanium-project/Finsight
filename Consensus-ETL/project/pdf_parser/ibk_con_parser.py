@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
+# ibk 는 json 이랑 csv로 둘다 저장해서 이 부분 알아둘 것
 import os
 import re
 import uuid
