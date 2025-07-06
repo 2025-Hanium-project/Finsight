@@ -1,0 +1,4 @@
+﻿report_id,file_name,securities_company,stock_name,stock_code,report_title,report_date,rating,opinion_change,target_price,current_price,analysts,parsing_date
+f7ad429d-8656-47c0-9260-363505893baa,두산로보틱스_기업리포트_250520.pdf,DS투자증권,두산로보틱스,454910,기업리포트,2025.05.20,매수,유지,58000,48650,김수현,2025-07-06 11:13:03
+031fae1b-7c7e-41e6-a46e-5ea8e344e887,모나용평_기업리포트_250520.pdf,DS투자증권,,,기업리포트,2025.05.20,매수,유지,5200,4265,"맞물린, 김수현",2025-07-06 11:13:03
+ccd97f12-dd07-44ee-9f7b-5dd7e223c0b3,진성티이씨_기업리포트_250520.pdf,DS투자증권,,,기업리포트,2025.05.20,매수,유지,17500,9490,김수현,2025-07-06 11:13:04
