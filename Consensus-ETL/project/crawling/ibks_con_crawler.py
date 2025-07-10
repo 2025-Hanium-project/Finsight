@@ -11,8 +11,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoSuchElementException, WebDriverException
-from urllib.parse import urljoin, urlparse, parse_qs
+from urllib.parse import urljoin, urlparse
 
 # SSL 경고 비활성화
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -68,7 +67,6 @@ def setup_driver(download_dir):
     chrome_options.add_argument("--disable-extensions")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36")
-    
     # SSL/네트워크 견고성 옵션 추가
     chrome_options.add_argument("--ignore-certificate-errors")
     chrome_options.add_argument("--ignore-ssl-errors")
@@ -104,11 +102,9 @@ def setup_driver(download_dir):
 def crawl_ibks_company_analysis(start_date=None, days=7):
     base_url = "https://m.ibks.com/iko/IKO010201.do"
     base_dir = create_download_directory()
-    
     # 시작일 설정 (기본값: 오늘)
     if start_date is None:
         start_date = datetime.now()
-    
     # 일주일간의 날짜 생성
     date_range = [(start_date - timedelta(days=i)).strftime("%Y.%m.%d") for i in range(days)]
     date_range_short = [(start_date - timedelta(days=i)).strftime("%Y%m%d") for i in range(days)]
@@ -126,12 +122,8 @@ def crawl_ibks_company_analysis(start_date=None, days=7):
         WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.TAG_NAME, "body"))
         )
-        
         # 페이지 로딩 시간 부여 (더 길게 설정)
         time.sleep(5)
-        
-
-        # 실패 방지를 위한 하이브리드 접근법 시도
         # 1. 직접 API 호출 시도
         api_success = try_api_approach(driver, date_range, base_dir)
         
@@ -145,7 +137,6 @@ def crawl_ibks_company_analysis(start_date=None, days=7):
                 
                 if not pattern_success:
                     logger.warning("모든 접근 방법 실패. 직접 코드 수정이 필요할 수 있습니다.")
-        
         
     except Exception as e:
         logger.error(f"크롤링 중 오류 발생: {str(e)}")
@@ -850,63 +841,6 @@ def create_secure_session():
     
     logger.info("SSL 호환성 requests 세션 생성 완료")
     return session
-
-# # 다운로드된 파일 정리 및 이동
-# def cleanup_downloaded_files(base_dir, date_range_short):
-#     logger.info("다운로드 파일 정리 시작")
-    
-#     # 기본 다운로드 폴더에 있는 모든 파일 확인
-#     files = [f for f in os.listdir(base_dir) if os.path.isfile(os.path.join(base_dir, f))]
-#     pdf_files = [f for f in files if f.endswith('.pdf')]
-    
-#     logger.info(f"다운로드 폴더에서 {len(pdf_files)}개 PDF 파일 발견")
-    
-#     for pdf_file in pdf_files:
-#         try:
-#             # 파일명에서 날짜 추출 시도
-#             date_pattern = re.compile(r'(\d{8}|\d{6})')
-#             date_match = date_pattern.search(pdf_file)
-            
-#             if date_match:
-#                 file_date = date_match.group(1)
-#                 # 6자리 날짜(YYMMDD)를 8자리(YYYYMMDD)로 변환
-#                 if len(file_date) == 6:
-#                     file_date = '20' + file_date
-                
-#                 if file_date in date_range_short:
-#                     # 날짜별 폴더로 이동
-#                     date_dir = create_date_directory(base_dir, file_date)
-#                     src_path = os.path.join(base_dir, pdf_file)
-#                     dst_path = os.path.join(date_dir, pdf_file)
-                    
-#                     if os.path.exists(dst_path):
-#                         logger.info(f"파일이 이미 존재합니다: {dst_path}")
-#                         os.remove(src_path)  # 중복 파일 제거
-#                     else:
-#                         os.rename(src_path, dst_path)
-#                         logger.info(f"파일 이동: {pdf_file} -> {date_dir}/")
-#             else:
-#                 logger.warning(f"파일명에서 날짜를 찾을 수 없음: {pdf_file}")
-#                 # 파일 수정 시간 기준으로 처리
-#                 file_path = os.path.join(base_dir, pdf_file)
-#                 file_mtime = os.path.getmtime(file_path)
-#                 file_date = datetime.fromtimestamp(file_mtime).strftime("%Y%m%d")
-                
-#                 if file_date in date_range_short:
-#                     date_dir = create_date_directory(base_dir, file_date)
-#                     dst_path = os.path.join(date_dir, pdf_file)
-                    
-#                     if os.path.exists(dst_path):
-#                         logger.info(f"파일이 이미 존재합니다: {dst_path}")
-#                         os.remove(file_path)  # 중복 파일 제거
-#                     else:
-#                         os.rename(file_path, dst_path)
-#                         logger.info(f"파일 이동(수정시간 기준): {pdf_file} -> {date_dir}/")
-        
-#         except Exception as e:
-#             logger.error(f"파일 {pdf_file} 처리 중 오류: {str(e)}")
-    
-#     logger.info("다운로드 파일 정리 완료")
 
 # 메인 함수
 if __name__ == "__main__":

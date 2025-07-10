@@ -1,0 +1,33 @@
+@startuml
+|Airflow|
+start
+:타겟 사이트에서 PDF 링크 수집;
+if (신규 PDF 링크가 있나요?) then (Yes)
+  :PDF 다운로드;
+  if (다운로드 성공?) then (Yes)
+    :pdfplumber로 텍스트 변환;
+    if (변환 성공?) then (Yes)
+      :정규식/위치 기반 텍스트 파싱;
+      if (필수 정보 모두 추출됐나요?) then (Yes)
+        :데이터 검증 및 정규화;
+        if (유효성 통과?) then (Yes)
+          :JSON/DTO 레코드 생성;
+          :DB에 INSERT/UPSERT;
+        else (No)
+          :검증 실패 로깅 → 수동 검토;
+        endif
+      else (No)
+        :파싱 오류 로깅 → 다음 문서로;
+      endif
+    else (No)
+      :OCR로 대체 변환 (EasyOCR/Tesseract);
+      -> pdfplumber로 텍스트 변환
+    endif
+  else (No)
+    :다운로드 실패 로깅 → 다음 링크로;
+  endif
+  --> 다시 PDF 링크 수집
+else (No)
+  stop
+endif
+@enduml

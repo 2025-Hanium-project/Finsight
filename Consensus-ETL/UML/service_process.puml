@@ -1,0 +1,40 @@
+@startuml
+actor User
+participant Frontend
+participant APIGateway
+participant AuthService
+participant PreprocessingService
+participant AggregationService
+participant DataService
+participant LLMService
+participant Database
+
+== 사용자 요청 및 인증 ==
+User -> Frontend : 종목별 투자 정보 조회 요청(symbol)
+Frontend -> APIGateway : GET /api/investment?symbol={symbol}
+APIGateway -> AuthService : JWT 토큰 검증
+AuthService --> APIGateway : 인증 성공
+
+== 데이터 전처리 ==
+APIGateway -> PreprocessingService : 요청(symbol)
+PreprocessingService -> DataService : 원천 리포트·수치 데이터 조회(symbol)
+DataService --> PreprocessingService : 원천 데이터
+PreprocessingService --> APIGateway : 전처리된 JSON (결측 보완·정규화·매핑 완료)
+
+== 빅데이터 집계 ==
+APIGateway -> AggregationService : 컨센서스·신뢰도 집계 요청(symbol)
+AggregationService -> Database : 과거 집계 결과 조회(symbol)
+Database --> AggregationService : 집계 통계(목표가 평균·중앙값 등)
+AggregationService --> APIGateway : 집계 결과
+
+== LLM 기반 요약 생성 ==
+APIGateway -> LLMService : 요약 생성 요청(전처리데이터 + 집계결과)
+LLMService -> LLMService : 프롬프트 조합
+LLMService -> OpenAI_API : LLM 호출
+OpenAI_API --> LLMService : 생성된 텍스트
+LLMService --> APIGateway : 투자 의견·요약 리포트
+
+== 응답 반환 ==
+APIGateway --> Frontend : {preprocessedData, aggregation, llmSummary}
+Frontend --> User : 화면에 렌더링
+@enduml
