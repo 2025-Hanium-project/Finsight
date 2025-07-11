@@ -35,8 +35,10 @@ class YuantaResearchCrawler:
         self.file_base_url = "https://file.myasset.com/sitemanager/upload/"
         
         # 저장 디렉토리 설정 (project/consensus 폴더 기준)
-        project_root = os.path.join(os.path.dirname(__file__), "..", "..")  # project 폴더로 이동
-        self.base_dir = os.path.join(project_root, "consensus", "yuanta")
+        # 현재 파일 위치: Consensus-ETL/project/crawling/yuanta_con_crawler.py
+        CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))  # crawling 폴더
+        PROJECT_DIR = os.path.dirname(CURRENT_DIR)  # project 폴더
+        self.base_dir = os.path.join(PROJECT_DIR, "consensus", "yuanta")
         self.pdf_dir = self.base_dir  # PDF 파일을 project/consensus/yuanta에 직접 저장
         self.data_dir = self.base_dir  # 메타데이터도 같은 폴더에 저장
         
@@ -590,8 +592,8 @@ def main():
         reports = crawler.crawl_reports(max_pages=1)  # 테스트를 위해 1페이지만 처리
         
         # PDF 내용 파싱 (크롤링된 파일이 있는 경우)
-        if reports and len(reports) > 0:
-            crawler.parse_pdf_content()
+        # if reports and len(reports) > 0:
+        #     crawler.parse_pdf_content()
         
         logger.info("프로그램 정상 종료")
     

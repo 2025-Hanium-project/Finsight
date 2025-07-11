@@ -21,8 +21,11 @@ end_year = today.strftime("%Y")
 end_month = today.strftime("%m")
 end_day = today.strftime("%d")
 
-# 저장 폴더
-download_dir = "miraeasset_consensus"
+
+# 저장 폴더: project/consensus/miraeasset
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))  # crawling 폴더
+PROJECT_DIR = os.path.dirname(CURRENT_DIR)  # project 폴더
+download_dir = os.path.join(PROJECT_DIR, "consensus", "miraeasset")
 os.makedirs(download_dir, exist_ok=True)
 
 # 기본 설정

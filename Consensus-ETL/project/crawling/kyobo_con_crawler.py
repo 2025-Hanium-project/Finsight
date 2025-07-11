@@ -31,8 +31,9 @@ class KyoboSecuritiesReportCrawler:
         
         # 저장 디렉토리 구조 생성 (project/consensus/kyobo)
         if save_dir is None:
-            BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # crawling/kyobo 폴더
-            PROJECT_DIR = os.path.dirname(os.path.dirname(BASE_DIR))  # project 폴더
+            # 현재 파일 위치: Consensus-ETL/project/crawling/kyobo_con_crawler.py
+            CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))  # crawling 폴더
+            PROJECT_DIR = os.path.dirname(CURRENT_DIR)  # project 폴더
             self.save_dir = os.path.join(PROJECT_DIR, "consensus", "kyobo")
         else:
             self.save_dir = save_dir

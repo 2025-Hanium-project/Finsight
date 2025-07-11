@@ -10,7 +10,7 @@ url = "https://m.eugenefn.com/ii30r.do"
 
 # 저장할 디렉토리 생성 (project/consensus/yj)
 project_root = os.path.join(os.path.dirname(__file__), "..", "..")  # project 폴더로 이동
-save_dir = os.path.join(project_root, "consensus", "yj")
+save_dir = os.path.join(project_root, "project", "consensus", "yj")
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 

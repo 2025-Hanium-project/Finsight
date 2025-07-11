@@ -1,3 +1,5 @@
+# Ignore all files in project/consensus/
+project/consensus/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

@@ -33,7 +33,7 @@ pandas>=1.5.0
 python-dotenv>=1.0.0
 
 # Logging & monitoring
-logging>=0.4.9.6
+# logging - built-in module, no need to install
 
 # Date/time handling
 python-dateutil>=2.8.0

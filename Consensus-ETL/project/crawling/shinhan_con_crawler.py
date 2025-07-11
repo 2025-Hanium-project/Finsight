@@ -19,7 +19,7 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 BASE_URL = "https://m.shinhansec.com/mweb/invt/shrh/ishrh1001?tabIdx=1"
 # 저장 디렉토리 설정 (project/consensus/shinhan)
 project_root = os.path.join(os.path.dirname(__file__), "..", "..")  # project 폴더로 이동
-DOWNLOAD_DIR = os.path.join(project_root, "consensus", "shinhan")
+DOWNLOAD_DIR = os.path.join(project_root, "project", "consensus", "shinhan")
 LOG_FILE = "crawling_log.txt"
 
 def log_message(message):
