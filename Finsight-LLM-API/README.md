@@ -66,10 +66,33 @@ pip install -r requirements.txt
 
 ### 2. 환경 설정
 `.env` 파일을 생성하고 다음 설정을 추가:
+
+#### Ollama 사용 시:
 ```env
+# LLM 제공자 설정
+LLM_PROVIDER=ollama
+
 # Ollama API 설정
 OLLAMA_API_BASE_URL=http://localhost:11434
 DEFAULT_MODEL=llama3.2:latest
+
+# API 서버 설정
+API_HOST=0.0.0.0
+API_PORT=8000
+LOG_LEVEL=INFO
+
+# 보안 설정
+SECRET_KEY=your_secret_key_here
+```
+
+#### Gemini API 사용 시:
+```env
+# LLM 제공자 설정
+LLM_PROVIDER=gemini
+
+# Gemini API 설정
+GEMINI_API_KEY=your_gemini_api_key_here
+DEFAULT_GEMINI_MODEL=gemini-1.5-pro
 
 # API 서버 설정
 API_HOST=0.0.0.0
@@ -95,6 +118,19 @@ uvicorn app:app --host 0.0.0.0 --port 8000 --reload
 - Swagger UI: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
 
+### 5. LLM 제공자 설정
+
+#### Ollama 사용
+- 로컬에서 Ollama 서버가 실행 중이어야 합니다
+- `LLM_PROVIDER=ollama`로 설정
+- 다양한 오픈소스 모델 사용 가능 (llama3, llama3.2, codellama 등)
+
+#### Gemini API 사용
+- Google AI Studio에서 API 키를 발급받아야 합니다
+- `LLM_PROVIDER=gemini`로 설정
+- `GEMINI_API_KEY` 환경변수에 API 키 설정
+- 지원 모델: gemini-1.5-pro, gemini-1.5-flash 등
+
 ---
 
 ## 테스트
@@ -105,6 +141,13 @@ python test.py
 ```
 
 테스트 결과는 `test_results.json` 파일에 저장됩니다.
+
+#### Gemini API 연결 테스트
+```bash
+python test_gemini.py
+```
+
+이 테스트는 Gemini API 키가 올바르게 설정되어 있는지 확인합니다.
 
 ### 수동 테스트 예시
 
@@ -177,7 +220,7 @@ MIT License
 ## 기술 스택
 
 - **웹 프레임워크**: FastAPI
-- **AI/LLM**: Ollama (로컬), OpenAI API (옵션)
+- **AI/LLM**: Ollama (로컬), Google Gemini API
 - **데이터 검증**: Pydantic
 - **HTTP 클라이언트**: httpx
 - **로깅**: Python logging

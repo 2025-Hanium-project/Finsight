@@ -1,5 +1,6 @@
 {
-  "timestamp": "2025-07-06T11:18:33.589273",
+  "timestamp": "2025-07-15T02:01:32.678938",
+  "llm_provider": "ollama",
   "total_tests": 8,
   "passed_tests": 8,
   "failed_tests": 0,
@@ -10,7 +11,7 @@
         "status": "online",
         "service": "AI 기반 증시 투자 분석 시스템 API",
         "version": "2.0.0",
-        "timestamp": "2025-07-06T11:18:33.860024",
+        "timestamp": "2025-07-15T02:01:32.948615",
         "features": [
           "리포트 요약",
           "감성 분석",
@@ -35,7 +36,7 @@
           "Content-Type validation",
           "Error message sanitization"
         ],
-        "timestamp": "2025-07-06T11:18:33.864536"
+        "timestamp": "2025-07-15T02:01:32.952634"
       }
     },
     "report_summary": {
@@ -48,11 +49,13 @@
         "status": "completed",
         "success": true,
         "result": {
-          "summary": "삼성전자는 2024년 4분기 실적 발표에서 메모리 사업 회복과 AI 칩 수요 증가로 매출이 증가할 것으로 전망됩니다.",
+          "summary": "삼성전자의 2024년 4분기 실적은 메모리 사업 회복과 AI 칩 수요 증가에 힘입어 매출 증가가 예상됩니다. 특히 HBM 메모리 매출의 큰 폭 증가가 반도체 사업 부문의 수익성 개선을 견인할 것으로 전망됩니다. 이에 따라 투자의견은 매수를 유지하며, 목표주가는 90,000원으로 상향 조정되었습니다.",
           "key_points": [
-            "HBM 메모리 매출이 크게 증가",
-            "반도체 사업 부문의 수익성 개선 예상",
-            "투자의견은 매수를 유지하며 목표주가는 90,000원으로 상향 조정"
+            "메모리 사업 회복 및 AI 칩 수요 증가",
+            "HBM 메모리 매출의 큰 폭 증가 예상",
+            "반도체 사업 부문 수익성 개선 전망",
+            "투자의견 매수 유지",
+            "목표주가 90,000원으로 상향 조정"
           ],
           "report_info": {
             "company": "삼성전자",
@@ -64,7 +67,7 @@
         },
         "request_id": null,
         "processing_time": null,
-        "generated_at": "2025-07-06T11:19:43.697210",
+        "generated_at": "2025-07-15T02:01:35.572763",
         "error": null,
         "warnings": [],
         "confidence_score": null,
@@ -82,23 +85,24 @@
         "success": true,
         "result": {
           "overall_sentiment": "긍정적",
-          "sentiment_score": 0.6,
+          "sentiment_score": 0.7,
           "positive_factors": [
-            "삼성전자의 AI 칩 사업이 크게 성장하고 있으며, 매출 증가가 예상됩니다.",
-            "메모리 시장 회복과 함께 수익성 개선이 기대됩니다."
+            "AI 칩 사업 성장 및 매출 증가 예상",
+            "메모리 시장 회복에 따른 수익성 개선 기대"
           ],
           "negative_factors": [
-            "다만 중국 시장의 불확실성과 경쟁 심화는 리스크 요인입니다."
+            "중국 시장의 불확실성",
+            "경쟁 심화"
           ],
           "trend_analysis": {
             "trend": "상승",
-            "momentum": "중간",
-            "turning_point": "없음"
+            "momentum": "강함",
+            "turning_point": "예상"
           }
         },
         "request_id": null,
         "processing_time": null,
-        "generated_at": "2025-07-06T11:21:12.252548",
+        "generated_at": "2025-07-15T02:01:37.221942",
         "error": null,
         "warnings": [],
         "confidence_score": null,
@@ -117,35 +121,50 @@
         "result": {
           "risk_factors": [
             {
-              "factor": "중국 시장 의존도 리스크",
-              "description": "반도체 업계는 중국 시장 의존도가 높아 지정학적 리스크가 존재합니다.",
+              "factor": "지정학적 리스크",
+              "description": "중국 시장 의존도 심화로 인한 미중 무역 분쟁 및 기타 지정학적 갈등 발생 가능성",
               "severity": "높음",
-              "probability": "90%"
+              "probability": "중간"
             },
             {
-              "factor": "메모리 가격 변동성과 경쟁사 대비 기술 격차",
-              "description": "메모리 가격 변동성과 경쟁사 대비 기술 격차 확대 위험이 있습니다.",
+              "factor": "메모리 가격 변동성",
+              "description": "수요/공급 불균형으로 인한 메모리 가격 급등락 가능성",
+              "severity": "높음",
+              "probability": "높음"
+            },
+            {
+              "factor": "기술 경쟁 심화",
+              "description": "경쟁사 대비 기술 격차 확대 및 기술 혁신 지연 가능성",
               "severity": "중간",
-              "probability": "70%"
+              "probability": "중간"
             },
             {
-              "factor": "환율 변동과 원자재 가격 상승도",
-              "description": "환율 변동과 원자재 가격 상승도 주요 리스크 요인입니다.",
-              "severity": "높음",
-              "probability": "80%"
+              "factor": "환율 변동",
+              "description": "환율 변동으로 인한 수익성 악화 가능성",
+              "severity": "중간",
+              "probability": "높음"
+            },
+            {
+              "factor": "원자재 가격 상승",
+              "description": "원자재 가격 상승으로 인한 생산 비용 증가 가능성",
+              "severity": "중간",
+              "probability": "중간"
             }
           ],
-          "risk_score": 60,
-          "risk_trend": "increasing",
+          "risk_score": 65,
+          "risk_trend": "stable",
           "risk_level": "medium",
           "mitigation_strategies": [
-            "환율 리스크 관리",
-            "원자재 가격 관리"
+            "시장 다변화 전략 추진 (중국 외 시장 확대)",
+            "기술 경쟁력 강화를 위한 R&D 투자 확대",
+            "환율 변동 보험 가입 및 환리스크 관리 강화",
+            "원자재 공급망 다변화 및 재고 관리 효율화",
+            "지정학적 리스크에 대한 시나리오 플래닝 및 위기 대응 체계 구축"
           ]
         },
         "request_id": null,
         "processing_time": null,
-        "generated_at": "2025-07-06T11:22:54.307138",
+        "generated_at": "2025-07-15T02:01:41.473123",
         "error": null,
         "warnings": [],
         "confidence_score": null,
@@ -164,35 +183,36 @@
         "result": {
           "growth_drivers": [
             {
-              "driver": "AI 칩 시장 성장과 HBM 메모리 수요 증가",
-              "description": "AI 칩 시장 성장이 HBM 메모리 수요를 증가시킬 것 같다.",
-              "impact": "중요",
-              "sustainability": "장기적"
+              "driver": "HBM 메모리 수요 증가",
+              "description": "AI 칩 시장 성장에 따른 HBM 메모리 수요 급증으로 삼성전자 메모리 사업부의 수익성 개선 기대",
+              "impact": "높음",
+              "sustainability": "높음"
             },
             {
-              "driver": "파운드리 사업 확대와 시스템 반도체 부문 성장",
-              "description": "삼성전자의 파운드리 사업 확대는 시스템 반도체 부문의 성장을 이끌어 낼 것이다.",
-              "impact": "중요",
-              "sustainability": "장기적"
+              "driver": "파운드리 사업 확대 및 시스템 반도체 성장",
+              "description": "파운드리 공정 기술 경쟁력 강화 및 시스템 반도체 부문 투자 확대로 인한 성장 잠재력 확보",
+              "impact": "높음",
+              "sustainability": "보통"
             },
             {
-              "driver": "차세대 메모리 기술 개발로 경쟁우위 확보",
-              "description": "삼성전자는 차세대 메모리 기술을 개발하여 경쟁우위를 확보할 것이다.",
-              "impact": "중요",
-              "sustainability": "장기적"
+              "driver": "차세대 메모리 기술 개발",
+              "description": "차세대 메모리 기술 개발을 통해 경쟁사 대비 기술 우위 확보 및 시장 선점 가능성 증대",
+              "impact": "높음",
+              "sustainability": "높음"
             }
           ],
           "growth_score": 85,
-          "growth_potential": "높은 성장 잠재력",
-          "growth_timeline": "accelerating",
+          "growth_potential": "높음",
+          "growth_timeline": "가속화",
           "investment_opportunities": [
-            "파운드리 사업 투자",
-            "AI 칩 시장 개발"
+            "HBM 관련 기술 투자",
+            "차세대 메모리 기술 개발 투자",
+            "파운드리 사업 확장 투자"
           ]
         },
         "request_id": null,
         "processing_time": null,
-        "generated_at": "2025-07-06T11:24:41.188284",
+        "generated_at": "2025-07-15T02:01:44.395665",
         "error": null,
         "warnings": [],
         "confidence_score": null,
@@ -261,11 +281,11 @@
           },
           "overall_quality": 0.3499999999999999,
           "review_status": "needs_regeneration",
-          "generated_at": "2025-07-06T11:24:41.194801"
+          "generated_at": "2025-07-15T02:01:44.401667"
         },
         "request_id": null,
         "processing_time": null,
-        "generated_at": "2025-07-06T11:24:41.195802",
+        "generated_at": "2025-07-15T02:01:44.403102",
         "error": null,
         "warnings": [],
         "confidence_score": null,
@@ -284,24 +304,27 @@
         "result": {
           "target_type": "company",
           "target_name": "삼성전자",
-          "analysis_summary": "종합적인 분석 결과는 삼성전자가 실적 전망 긍정적이며, 메모리 회복과 AI 칩 수요 증가 등 긍정적인 요인들이 적극적으로 작용하고 있다.",
+          "analysis_summary": "삼성전자는 메모리 회복과 AI 칩 수요 증가에 힘입어 긍정적인 실적 전망을 보이고 있습니다. 감성 분석 결과 긍정적인 분위기가 감지되며, 높은 성장 잠재력을 보유하고 있습니다. 다만, 리스크 수준은 중간 정도로 평가됩니다.",
           "investment_points": [
-            "메모리 회복",
-            "AI 칩 수요 증가"
+            "메모리 시장 회복에 따른 실적 개선 기대",
+            "AI 칩 시장 성장으로 인한 수혜 예상",
+            "높은 성장 잠재력 보유"
           ],
           "risk_factors": [
-            "리스크는 35로 중간 수준으로 조심스러운 투자 고려가 필요하다."
+            "반도체 경기 변동성",
+            "글로벌 경제 불확실성",
+            "경쟁 심화"
           ],
           "consensus": {
-            "opinion": "보장적",
-            "target_price": "미래의 가치 평가",
-            "confidence": "75% 신뢰도"
+            "opinion": "매수",
+            "target_price": "95000원",
+            "confidence": "높음"
           },
-          "generated_at": "2025-07-06T11:25:37.350137"
+          "generated_at": "2025-07-15T02:01:46.620322"
         },
         "request_id": null,
         "processing_time": null,
-        "generated_at": "2025-07-06T11:25:37.351690",
+        "generated_at": "2025-07-15T02:01:46.621828",
         "error": null,
         "warnings": [],
         "confidence_score": null,

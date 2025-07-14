@@ -12,6 +12,9 @@ httpx==0.25.2
 # 환경 변수 관리
 python-dotenv==1.0.0
 
+# Google Generative AI (Gemini API)
+google-generativeai==0.3.2
+
 # TODO: LangGraph 워크플로우 엔진 추가 필요시 복원
 
 # 비동기 처리

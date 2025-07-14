@@ -6,7 +6,7 @@ from datetime import datetime
 import json
 
 from models.schemas import AnalysisResponse
-from utils.llm_client import generate_response
+from utils.llm_client import generate_response, generate_structured_response
 from error_handlers import AgentError
 from utils.agent_base import BaseAgent
 
@@ -51,10 +51,14 @@ async def create_d_day_report(summaries: List[Dict[str, Any]], sentiment: Dict[s
         
         # 프롬프트 생성
         prompt = _create_d_day_prompt(summaries, sentiment, risk, growth, target_type, target_name)
-        llm_response = await generate_response(prompt, agent_type="analysis_agent")
         
-        # JSON 파싱
-        parsed_data = json.loads(llm_response)
+        # 구조화된 응답 생성 (Ollama/Gemini 모두 대응)
+        structured_result = await generate_structured_response(
+            prompt,
+            AnalysisResponse,
+            agent_type="analysis_agent"
+        )
+        parsed_data = structured_result.dict()
         
         # 메타데이터 추가
         parsed_data["generated_at"] = datetime.now().isoformat()
@@ -67,23 +71,6 @@ async def create_d_day_report(summaries: List[Dict[str, Any]], sentiment: Dict[s
         
         return parsed_data
         
-    except json.JSONDecodeError as e:
-        processing_time = (datetime.now() - start_time).total_seconds()
-        logger.log_error("D-day 보고서 생성", e, extra={
-            'processing_time': processing_time,
-            'target_type': target_type,
-            'target_name': target_name,
-            'error_type': 'json_decode_error'
-        })
-        
-        raise AgentError(
-            agent_name="analysis_agent",
-            message=f"D-day 보고서 응답 파싱 실패: {str(e)}",
-            details={"target_type": target_type, "target_name": target_name}
-        )
-    except AgentError:
-        # 이미 처리된 에러는 그대로 전파
-        raise
     except Exception as e:
         processing_time = (datetime.now() - start_time).total_seconds()
         logger.log_error("D-day 보고서 생성", e, extra={
@@ -92,6 +79,7 @@ async def create_d_day_report(summaries: List[Dict[str, Any]], sentiment: Dict[s
             'target_name': target_name
         })
         
+        from error_handlers import AgentError
         raise AgentError(
             agent_name="analysis_agent",
             message=f"D-day 보고서 생성 실패: {str(e)}",

@@ -9,10 +9,12 @@ from datetime import datetime
 from typing import Optional, Dict, Any, Type, TypeVar
 import logging
 from pydantic import BaseModel, ValidationError
+import google.generativeai as genai
 
 from config import (
-    OLLAMA_API_GENERATE_URL, DEFAULT_MODEL, AGENT_MODELS,
-    LLM_TIMEOUT, DEFAULT_TEMPERATURE, MAX_TOKENS, MAX_RETRY_ATTEMPTS, RETRY_DELAY
+    OLLAMA_API_GENERATE_URL, DEFAULT_MODEL, AGENT_MODELS, GEMINI_AGENT_MODELS,
+    LLM_TIMEOUT, DEFAULT_TEMPERATURE, MAX_TOKENS, MAX_RETRY_ATTEMPTS, RETRY_DELAY,
+    LLM_PROVIDER, GEMINI_API_KEY, DEFAULT_GEMINI_MODEL
 )
 from error_handlers import LLMError, TimeoutError as CustomTimeoutError, ParsingError, get_security_manager
 
@@ -28,6 +30,12 @@ class LLMClient:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.client = None
+        self.gemini_client = None
+        
+        # Gemini API 초기화
+        if LLM_PROVIDER == 'gemini' and GEMINI_API_KEY:
+            genai.configure(api_key=GEMINI_API_KEY)
+            self.gemini_client = genai
     
     async def _get_client(self) -> httpx.AsyncClient:
         """HTTP 클라이언트 인스턴스 생성/반환"""
@@ -58,14 +66,19 @@ class LLMClient:
         model = model or self._get_model_for_agent(agent_type)
         
         # 요청 로깅
-        self.logger.info(f"LLM 요청 시작: {agent_type or 'unknown'} - {model}")
+        self.logger.info(f"LLM 요청 시작: {agent_type or 'unknown'} - {model} (Provider: {LLM_PROVIDER})")
         start_time = datetime.now()
         
         for attempt in range(MAX_RETRY_ATTEMPTS):
             try:
-                response = await self._make_request(
-                    safe_prompt, model, temperature, max_tokens
-                )
+                if LLM_PROVIDER == 'gemini':
+                    response = await self._make_gemini_request(
+                        safe_prompt, model, temperature, max_tokens
+                    )
+                else:
+                    response = await self._make_ollama_request(
+                        safe_prompt, model, temperature, max_tokens
+                    )
                 
                 processing_time = (datetime.now() - start_time).total_seconds()
                 self.logger.info(f"LLM 응답 완료: {processing_time:.3f}s")
@@ -88,7 +101,7 @@ class LLMClient:
                     raise LLMError(
                         message="LLM API 연결 실패",
                         llm_model=model,
-                        details={"error": "Ollama 서버 확인 필요"}
+                        details={"error": f"{LLM_PROVIDER} 서버 확인 필요"}
                     )
                 
                 self.logger.warning(f"연결 재시도 중 ({attempt + 1}/{MAX_RETRY_ATTEMPTS})")
@@ -105,14 +118,14 @@ class LLMClient:
         
         raise LLMError("모든 재시도 실패", llm_model=model)
     
-    async def _make_request(
+    async def _make_ollama_request(
         self, 
         prompt: str, 
         model: str, 
         temperature: float, 
         max_tokens: int
     ) -> str:
-        """LLM API 요청 수행"""
+        """Ollama API 요청 수행"""
         
         client = await self._get_client()
         
@@ -148,7 +161,7 @@ class LLMClient:
         
         if response.status_code != 200:
             raise LLMError(
-                message=f"LLM API 오류: {response.status_code}",
+                message=f"Ollama API 오류: {response.status_code}",
                 llm_model=model,
                 status_code=response.status_code
             )
@@ -157,9 +170,67 @@ class LLMClient:
         llm_response = result.get("response", "")
         
         if not llm_response:
-            raise LLMError("LLM 응답이 비어있습니다", llm_model=model)
+            raise LLMError("Ollama 응답이 비어있습니다", llm_model=model)
         
         return llm_response.strip()
+    
+    async def _make_gemini_request(
+        self, 
+        prompt: str, 
+        model: str, 
+        temperature: float, 
+        max_tokens: int
+    ) -> str:
+        """Gemini API 요청 수행"""
+        
+        if not self.gemini_client:
+            raise LLMError("Gemini 클라이언트가 초기화되지 않았습니다", llm_model=model)
+        
+        # JSON 형식 강제 프롬프트
+        enhanced_prompt = f"""
+{prompt}
+
+**중요 지시사항:**
+1. 오직 JSON 형식으로만 응답
+2. 모든 텍스트는 한국어로 작성
+3. 설명이나 부가 텍스트 없이 JSON만 반환
+
+응답 형식:
+{{
+  "필드명": "한국어 값",
+  "리스트": ["한국어", "항목들"]
+}}
+"""
+        
+        try:
+            # Gemini 모델 생성
+            gemini_model = self.gemini_client.GenerativeModel(
+                model_name=model,
+                generation_config={
+                    'temperature': temperature,
+                    'max_output_tokens': max_tokens,
+                    'top_p': 0.9,
+                    'top_k': 40
+                }
+            )
+            
+            # 응답 생성
+            response = await asyncio.to_thread(
+                gemini_model.generate_content,
+                enhanced_prompt
+            )
+            
+            if not response or not response.text:
+                raise LLMError("Gemini 응답이 비어있습니다", llm_model=model)
+            
+            return response.text.strip()
+            
+        except Exception as e:
+            raise LLMError(
+                message=f"Gemini API 오류: {str(e)}",
+                llm_model=model,
+                details={"error": str(e)}
+            )
     
     async def generate_structured_response(
         self,
@@ -273,131 +344,84 @@ class LLMClient:
         
         return cleaned
     
-    def _extract_json(self, text: str) -> Optional[str]:
-        """JSON 패턴 추출"""
-        patterns = [
-            r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}',  # 중첩 JSON
-            r'```(?:json)?\s*(\{.*?\})\s*```',    # 마크다운 블록
-            r'(\{(?:[^{}]|{[^{}]*})*\})',        # 일반 JSON
-        ]
+    def _extract_json(self, response: str) -> Optional[str]:
+        """JSON 블록 추출"""
+        # JSON 블록 패턴 찾기
+        json_pattern = r'```(?:json)?\s*(\{.*?\})\s*```'
+        match = re.search(json_pattern, response, re.DOTALL | re.IGNORECASE)
         
-        for pattern in patterns:
-            matches = re.findall(pattern, text, re.DOTALL | re.IGNORECASE)
-            for match in matches:
-                try:
-                    json.loads(match)
-                    return match
-                except json.JSONDecodeError:
-                    continue
+        if match:
+            return match.group(1)
+        
+        # 중괄호로 둘러싸인 JSON 찾기
+        brace_pattern = r'(\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})'
+        match = re.search(brace_pattern, response, re.DOTALL)
+        
+        if match:
+            return match.group(1)
         
         return None
     
-    def _extract_fields(self, text: str, schema_class: Type[T]) -> Dict[str, Any]:
+    def _extract_fields(self, response: str, schema_class: Type[T]) -> Dict[str, Any]:
         """필드별 추출"""
+        extracted_data = {}
         
-        # 필드명 가져오기
-        if hasattr(schema_class, 'model_fields'):
-            field_names = list(schema_class.model_fields.keys())
-        else:
-            field_names = list(schema_class.__fields__.keys())
+        # 스키마 필드 정보 가져오기
+        schema_fields = schema_class.__fields__
         
-        extracted = {}
-        
-        for field_name in field_names:
-            value = self._extract_field(text, field_name)
-            if value is not None:
-                extracted[field_name] = value
-        
-        # 기본값 설정
-        self._set_defaults(extracted, field_names)
-        
-        return extracted
-    
-    def _extract_field(self, text: str, field_name: str) -> Any:
-        """단일 필드 추출"""
-        
-        patterns = [
-            rf'"{field_name}":\s*"([^"]*)"',      # 문자열
-            rf'"{field_name}":\s*(\d+(?:\.\d+)?)',  # 숫자
-            rf'"{field_name}":\s*(\[.*?\])',       # 배열
-            rf'"{field_name}":\s*(\{{.*?\}})',     # 객체
-        ]
-        
-        for pattern in patterns:
-            matches = re.findall(pattern, text, re.IGNORECASE | re.DOTALL)
-            if matches:
-                value = matches[0].strip()
-                return self._parse_value(value)
-        
-        return None
-    
-    def _parse_value(self, value: str) -> Any:
-        """값 파싱"""
-        
-        # 배열 처리
-        if value.startswith('[') and value.endswith(']'):
-            try:
-                return json.loads(value)
-            except json.JSONDecodeError:
-                inner = value[1:-1].strip()
-                if not inner:
-                    return []
-                items = [item.strip(' "\'') for item in inner.split(',')]
-                return [item for item in items if item]
-        
-        # 객체 처리
-        if value.startswith('{') and value.endswith('}'):
-            try:
-                return json.loads(value)
-            except json.JSONDecodeError:
-                return {"value": value}
-        
-        # 숫자 처리
-        if re.match(r'^\d+(\.\d+)?$', value):
-            try:
-                return float(value) if '.' in value else int(value)
-            except ValueError:
-                return value
-        
-        return value
-    
-    def _set_defaults(self, extracted: Dict[str, Any], field_names: list) -> None:
-        """기본값 설정"""
-        
-        defaults = {
-            'target_type': 'company',
-            'target_name': '분석 대상',
-            'summary': '요약 정보가 없습니다',
-            'sentiment_score': 0.0,
-            'risk_score': 50,
-            'growth_score': 50,
-            'generated_at': datetime.now().isoformat()
-        }
-        
-        for field_name in field_names:
-            if field_name not in extracted:
-                if field_name in defaults:
-                    extracted[field_name] = defaults[field_name]
-                elif 'score' in field_name:
-                    extracted[field_name] = 0
-                elif field_name.endswith('_factors') or field_name.endswith('_points'):
-                    extracted[field_name] = []
+        for field_name, field_info in schema_fields.items():
+            # 필드 타입에 따른 추출 패턴
+            field_type = field_info.type_
+            
+            if hasattr(field_type, '__origin__') and field_type.__origin__ == list:
+                # 리스트 필드
+                pattern = rf'"{field_name}"\s*:\s*\[(.*?)\]'
+                match = re.search(pattern, response, re.IGNORECASE | re.DOTALL)
+                if match:
+                    try:
+                        # 간단한 리스트 파싱
+                        list_content = match.group(1)
+                        items = re.findall(r'"([^"]*)"', list_content)
+                        extracted_data[field_name] = items
+                    except:
+                        extracted_data[field_name] = []
                 else:
-                    extracted[field_name] = "정보 없음"
+                    extracted_data[field_name] = []
+            
+            elif field_type == str:
+                # 문자열 필드
+                pattern = rf'"{field_name}"\s*:\s*"([^"]*)"'
+                match = re.search(pattern, response, re.IGNORECASE)
+                if match:
+                    extracted_data[field_name] = match.group(1)
+                else:
+                    extracted_data[field_name] = self._get_example_value(field_name)
+            
+            elif field_type in (int, float):
+                # 숫자 필드
+                pattern = rf'"{field_name}"\s*:\s*([0-9]+(?:\.[0-9]+)?)'
+                match = re.search(pattern, response, re.IGNORECASE)
+                if match:
+                    try:
+                        value = float(match.group(1))
+                        if field_type == int:
+                            value = int(value)
+                        extracted_data[field_name] = value
+                    except:
+                        extracted_data[field_name] = 0
+                else:
+                    extracted_data[field_name] = 0
+        
+        return extracted_data
     
     def _create_schema_example(self, schema_class: Type[T]) -> str:
-        """스키마 예시 JSON 생성"""
+        """스키마 예시 생성"""
+        example_data = {}
         
-        if hasattr(schema_class, 'model_fields'):
-            fields = schema_class.model_fields
-        else:
-            fields = schema_class.__fields__
+        for field_name, field_info in schema_class.__fields__.items():
+            example_data[field_name] = self._get_example_value(field_name)
         
-        example = {}
-        for field_name, field_info in fields.items():
-            example[field_name] = self._get_example_value(field_name)
-        
-        return json.dumps(example, ensure_ascii=False, indent=2)
+        return json.dumps(example_data, ensure_ascii=False, indent=2)
     
     def _get_example_value(self, field_name: str) -> Any:
         """필드별 예시값"""
@@ -420,9 +444,14 @@ class LLMClient:
     
     def _get_model_for_agent(self, agent_type: Optional[str]) -> str:
         """에이전트별 모델 선택"""
-        if agent_type and agent_type in AGENT_MODELS:
-            return AGENT_MODELS[agent_type]
-        return DEFAULT_MODEL
+        if LLM_PROVIDER == 'gemini':
+            if agent_type and agent_type in GEMINI_AGENT_MODELS:
+                return GEMINI_AGENT_MODELS[agent_type]
+            return DEFAULT_GEMINI_MODEL
+        else:
+            if agent_type and agent_type in AGENT_MODELS:
+                return AGENT_MODELS[agent_type]
+            return DEFAULT_MODEL
     
     async def close(self):
         """클라이언트 정리"""
@@ -477,11 +506,3 @@ async def generate_structured_response(
         temperature=temperature,
         max_tokens=max_tokens
     )
-
-
-async def cleanup_llm_client():
-    """LLM 클라이언트 정리"""
-    global _llm_client
-    if _llm_client:
-        await _llm_client.close()
-        _llm_client = None

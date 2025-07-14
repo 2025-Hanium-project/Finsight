@@ -13,6 +13,14 @@ API_VERSION = os.getenv('API_VERSION', 'v1')
 OLLAMA_API_BASE_URL = os.getenv('OLLAMA_API_URL', 'http://localhost:11434')
 OLLAMA_API_GENERATE_URL = f"{OLLAMA_API_BASE_URL}/api/generate"
 
+# Gemini API 설정
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
+GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-2.0-flash')
+GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
+
+# LLM 제공자 설정
+LLM_PROVIDER = os.getenv('LLM_PROVIDER', 'ollama').lower()  # 'ollama' 또는 'gemini'
+
 # 로그 설정
 LOGS_PATH = os.getenv('LOGS_PATH', './logs')
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
@@ -31,7 +39,19 @@ AGENT_MODELS = {
     'supervisor_validator': os.getenv('SUPERVISOR_VALIDATOR_MODEL', 'llama3'),
 }
 
+# Gemini용 Agent별 모델 설정
+GEMINI_AGENT_MODELS = {
+    'summary_agent': os.getenv('GEMINI_SUMMARY_MODEL', 'gemini-2.0-flash'),
+    'analysis_agent': os.getenv('GEMINI_ANALYSIS_MODEL', 'gemini-2.0-flash'),
+    'sentiment_agent': os.getenv('GEMINI_SENTIMENT_MODEL', 'gemini-2.0-flash'),
+    'risk_agent': os.getenv('GEMINI_RISK_MODEL', 'gemini-2.0-flash'),
+    'growth_agent': os.getenv('GEMINI_GROWTH_MODEL', 'gemini-2.0-flash'),
+    'supervisor_agent': os.getenv('GEMINI_SUPERVISOR_MODEL', 'gemini-2.0-flash'),
+    'supervisor_validator': os.getenv('GEMINI_SUPERVISOR_VALIDATOR_MODEL', 'gemini-2.0-flash'),
+}
+
 DEFAULT_MODEL = os.getenv('DEFAULT_MODEL', 'llama3')
+DEFAULT_GEMINI_MODEL = os.getenv('DEFAULT_GEMINI_MODEL', 'gemini-2.0-flash')
 
 # 워크플로우 설정
 # TODO: 워크플로우 타임아웃 설정 구현 필요시 추가

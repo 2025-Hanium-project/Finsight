@@ -5,6 +5,7 @@ import asyncio
 import json
 import logging
 import sys
+import os
 from datetime import datetime
 from typing import Dict, Any, List
 import httpx
@@ -16,6 +17,10 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# LLM 제공자 확인
+LLM_PROVIDER = os.getenv('LLM_PROVIDER', 'ollama').lower()
+logger.info(f"현재 LLM 제공자: {LLM_PROVIDER}")
 
 class APITester:
     """API 테스트 클래스"""
@@ -340,6 +345,7 @@ class APITester:
         
         test_results = {
             "timestamp": datetime.now().isoformat(),
+            "llm_provider": LLM_PROVIDER,
             "total_tests": 0,
             "passed_tests": 0,
             "failed_tests": 0,
@@ -379,7 +385,7 @@ class APITester:
         
         # 결과 요약
         success_rate = (test_results["passed_tests"] / test_results["total_tests"]) * 100
-        logger.info(f"\n📊 테스트 결과 요약:")
+        logger.info(f"\n📊 테스트 결과 요약 (LLM 제공자: {LLM_PROVIDER}):")
         logger.info(f"   총 테스트: {test_results['total_tests']}")
         logger.info(f"   성공: {test_results['passed_tests']}")
         logger.info(f"   실패: {test_results['failed_tests']}")
