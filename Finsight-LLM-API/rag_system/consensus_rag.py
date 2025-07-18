@@ -1,8 +1,8 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import List
-from .db import get_conn
-from .embedding import get_embedding
+from db import get_conn
+from embedding import get_embedding
 
 router = APIRouter()
 
