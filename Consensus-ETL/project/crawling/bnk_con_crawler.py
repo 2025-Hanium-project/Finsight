@@ -14,6 +14,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
+import sys
 
 # 로깅 설정
 log_dir = 'logs'
@@ -433,6 +434,13 @@ class BNKReportCrawler:
     def _check_download_completed(self, report):
         time.sleep(5)
 
+        new_filename = self._generate_filename(report['title'], report['date'])
+        new_path = os.path.join(self.download_dir, new_filename)
+        # 파일이 이미 존재하면 다운로드하지 않음
+        if os.path.exists(new_path):
+            logging.info(f"이미 파일이 존재하여 다운로드를 건너뜀: {new_filename}")
+            return True
+
         downloaded_files = os.listdir(self.download_dir)
         pdf_files = [f for f in downloaded_files if f.endswith('.pdf')]
 
@@ -447,10 +455,6 @@ class BNKReportCrawler:
         file_size = os.path.getsize(old_path)
         if file_size < 1000:
             return False
-
-        # 새로운 이름 생성
-        new_filename = self._generate_filename(report['title'], report['date'])
-        new_path = os.path.join(self.download_dir, new_filename)
 
         try:
             os.rename(old_path, new_path)
@@ -468,7 +472,6 @@ class BNKReportCrawler:
             logging.error(f"파일 이름 변경 실패: {e}")
             return False
 
-        
     def _download_pdf_from_url(self, pdf_url, report):
         """
         PDF URL에서 직접 다운로드
@@ -484,10 +487,13 @@ class BNKReportCrawler:
             # 파일명 구성
             safe_title = re.sub(r'[\\/*?:"<>|]', '_', report['title'])
             file_name = self._generate_filename(report['title'], report['date'])
-            
-            # 저장 경로
             file_path = os.path.join(self.download_dir, file_name)
-            
+
+            # 파일이 이미 존재하면 다운로드하지 않음
+            if os.path.exists(file_path):
+                logging.info(f"이미 파일이 존재하여 다운로드를 건너뜀: {file_name}")
+                return True
+
             # PDF 파일 다운로드
             response = requests.get(pdf_url, headers=self.headers, stream=True, timeout=10)
             
@@ -716,3 +722,4 @@ if __name__ == "__main__":
     )
     
     crawler.run()
+    sys.exit(0)  # 정상 종료

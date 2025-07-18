@@ -16,6 +16,7 @@ import pdfplumber
 import logging
 import urllib.parse
 from bs4 import BeautifulSoup
+import sys
 
 # 로깅 설정
 logging.basicConfig(
@@ -603,3 +604,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    sys.exit(0)

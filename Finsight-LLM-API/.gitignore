@@ -93,3 +93,5 @@ __results__/
 *.iml
 *.sublime-workspace
 *.sublime-project
+
+project/consensus/
