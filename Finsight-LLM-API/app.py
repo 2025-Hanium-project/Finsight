@@ -1,19 +1,54 @@
+"""
+새로운 Multi-Agent 설계에 따른 FastAPI 애플리케이션
+
+기능:
+- Multi-Agent 시스템 API
+- 협업 시스템 API
+- 워크플로우 API
+- 대시보드 API
+- 실시간 모니터링
+"""
+
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 import uvicorn
 import logging
 from contextlib import asynccontextmanager
-from datetime import datetime
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+import asyncio
+import time
 
 # 내부 모듈 임포트
-from config import API_VERSION, API_HOST, API_PORT, LOG_LEVEL
+from config import (
+    API_VERSION, API_HOST, API_PORT, LOG_LEVEL,
+    LLM_PROVIDER, GEMINI_API_KEY
+)
 from routers.report_router import router as report_router
-# TODO: 워크플로우 라우터 구현 필요시 추가
+
+# 에러 처리 및 보안
 from error_handlers import setup_exception_handlers
 from error_handlers import get_security_manager, get_input_validator
+
+# 협업 시스템
+from utils.collaboration import SimpleCollaborationManager
+from utils.collaboration.performance import get_optimized_collaboration_manager
+from utils.collaboration.dashboard import get_collaboration_dashboard
+
+# 고급 협업 매니저는 별도로 구현 필요
+def get_advanced_collaboration_manager():
+    """고급 협업 매니저 반환 (임시 구현)"""
+    from utils.collaboration import CollaborationManager
+    return CollaborationManager()
+
+# 에이전트 시스템
+from agents import (
+    ALL_AGENT_CLASSES,
+    DATA_AGENTS,
+    ANALYSIS_AGENTS,
+    REPORT_AGENTS,
+    SUPPORT_AGENTS
+)
 
 # 로깅 설정
 logging.basicConfig(
@@ -30,176 +65,311 @@ logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 security_manager = get_security_manager()
 input_validator = get_input_validator()
 
-# 애플리케이션 생명주기 관리
+# 협업 매니저 초기화
+collaboration_manager = SimpleCollaborationManager()
+advanced_manager = get_advanced_collaboration_manager()
+optimized_manager = get_optimized_collaboration_manager()
+
+# 시스템 시작 시간
+startup_time = None
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """애플리케이션 생명주기 관리"""
+    global startup_time
+    
     # 시작 시 실행
-    logger.info("AI 기반 증시 투자 분석 시스템 API 시작")
+    startup_time = datetime.now()
+    logger.info("🚀 FinsightAI 시스템 시작")
+    logger.info(f"📊 등록된 에이전트 수: {len(ALL_AGENT_CLASSES)}")
+    logger.info(f"🔧 LLM 제공자: {LLM_PROVIDER}")
+    logger.info(f"🌐 API 서버: {API_HOST}:{API_PORT}")
+    
+    # 협업 시스템 초기화
+    try:
+        # 기본 협업 매니저 초기화
+        logger.info("🤝 협업 시스템 초기화 중...")
+        
+        # 고급 협업 매니저 초기화
+        logger.info("⚡ 고급 협업 시스템 초기화 중...")
+        
+        # 최적화된 협업 매니저 초기화
+        logger.info("🚀 최적화된 협업 시스템 초기화 중...")
+        
+        # 대시보드 초기화
+        logger.info("📊 대시보드 시스템 초기화 중...")
+        
+        logger.info("✅ 모든 시스템 초기화 완료")
+        
+    except Exception as e:
+        logger.error(f"❌ 시스템 초기화 오류: {str(e)}")
+        raise
+    
     yield
-    # 종료 시 실행 (필요한 경우)
-    logger.info("AI 기반 증시 투자 분석 시스템 API 종료")
+    
+    # 종료 시 실행
+    logger.info("🛑 FinsightAI 시스템 종료")
+    
+    # 협업 시스템 정리
+    try:
+        collaboration_manager.cleanup()
+        advanced_manager.cleanup()
+        optimized_manager.cleanup()
+        logger.info("🧹 협업 시스템 정리 완료")
+    except Exception as e:
+        logger.error(f"❌ 시스템 정리 오류: {str(e)}")
 
 # FastAPI 애플리케이션 생성
 app = FastAPI(
-    title="AI 기반 증시 투자 분석 시스템 API",
-    description="증권사 리포트 분석 및 투자 인사이트 제공 API",
+    title="FinsightAI Multi-Agent System",
+    description="AI 기반 금융 분석 시스템",
     version="2.0.0",
-    lifespan=lifespan,
-    # 보안 헤더 추가
-    docs_url="/docs" if LOG_LEVEL == "DEBUG" else None,  # 프로덕션에서는 docs 비활성화
-    redoc_url="/redoc" if LOG_LEVEL == "DEBUG" else None
+    docs_url="/docs",
+    redoc_url="/redoc",
+    lifespan=lifespan
+)
+
+# CORS 미들웨어 설정
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 프로덕션에서는 특정 도메인으로 제한
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# 라우터 등록
+app.include_router(
+    report_router,
+    prefix=f"/api/{API_VERSION}",
+    tags=["Multi-Agent Analysis"]
 )
 
 # 예외 핸들러 설정
 setup_exception_handlers(app)
 
-# 보안 미들웨어
-@app.middleware("http")
-async def security_middleware(request: Request, call_next):
-    """보안 미들웨어"""
-    start_time = datetime.now()
-    
-    # 클라이언트 IP 추출
-    client_ip = request.client.host
-    
-    try:
-        # IP 차단 확인
-        if security_manager.is_ip_blocked(client_ip):
-            logger.warning(f"차단된 IP에서 요청: {client_ip}")
-            return JSONResponse(
-                status_code=403,
-                content={"error": "접근이 차단된 IP입니다"}
-            )
-        
-        # Rate limiting 확인
-        endpoint = request.url.path
-        if not security_manager.check_rate_limit(client_ip, endpoint):
-            security_manager.log_security_event("rate_limit_exceeded", {
-                "client_ip": client_ip,
-                "endpoint": endpoint
-            })
-            return JSONResponse(
-                status_code=429,
-                content={"error": "요청 빈도가 너무 높습니다. 잠시 후 다시 시도하세요"}
-            )
-        
-        # Content-Type 검증
-        if request.method == "POST":
-            content_type = request.headers.get("content-type", "")
-            if not security_manager.validate_content_type(content_type):
-                security_manager.log_security_event("invalid_content_type", {
-                    "client_ip": client_ip,
-                    "content_type": content_type
-                })
-                return JSONResponse(
-                    status_code=400,
-                    content={"error": "지원하지 않는 Content-Type입니다"}
-                )
-        
-        # 요청 처리
-        response = await call_next(request)
-        
-        # 보안 헤더 추가
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
-        response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-        
-        return response
-        
-    except Exception as e:
-        logger.error(f"보안 미들웨어 오류: {str(e)}")
-        security_manager.log_security_event("middleware_error", {
-            "client_ip": client_ip,
-            "error": str(e)
-        })
-        raise
+# ============================================================================
+# 루트 엔드포인트
+# ============================================================================
 
-# API 라우터 등록
-app.include_router(report_router, prefix=f"/{API_VERSION}/report", tags=["리포트 분석"])
-# TODO: 워크플로우 라우터 등록 구현 필요시 추가
-
-# 기본 상태 확인 엔드포인트
 @app.get("/")
 async def root():
+    """루트 엔드포인트"""
     return {
-        "status": "online",
-        "service": "AI 기반 증시 투자 분석 시스템 API",
+        "message": "FinsightAI Multi-Agent System",
         "version": "2.0.0",
+        "status": "running",
         "timestamp": datetime.now().isoformat(),
-        "features": [
-            "리포트 요약",
-            "감성 분석", 
-            "리스크 분석",
-            "성장성 분석",
-            "종합 분석",
-            "품질 검토"
-        ],
+        "uptime": str(datetime.now() - startup_time) if startup_time else "N/A"
+    }
+
+@app.get("/api")
+async def api_info():
+    """API 정보 엔드포인트"""
+    return {
+        "name": "FinsightAI Multi-Agent System",
+        "version": "2.0.0",
+        "description": "AI 기반 금융 분석 시스템",
         "endpoints": {
-            "report": f"/{API_VERSION}/report"
+            "agents": f"/api/{API_VERSION}/agents/",
+            "collaboration": f"/api/{API_VERSION}/collaboration/",
+            "workflow": f"/api/{API_VERSION}/workflow/",
+            "dashboard": f"/api/{API_VERSION}/dashboard/",
+            "health": f"/api/{API_VERSION}/health"
+        },
+        "agent_categories": {
+            "data_agents": len(DATA_AGENTS),
+            "analysis_agents": len(ANALYSIS_AGENTS),
+            "report_agents": len(REPORT_AGENTS),
+            "support_agents": len(SUPPORT_AGENTS),
+            "total_agents": len(ALL_AGENT_CLASSES)
+        },
+        "system_info": {
+            "llm_provider": LLM_PROVIDER,
+            "api_host": API_HOST,
+            "api_port": API_PORT,
+            "log_level": LOG_LEVEL
         }
     }
 
-# 보안 상태 확인 엔드포인트
-@app.get("/security/status")
-async def security_status():
-    """보안 상태 확인"""
-    return {
-        "status": "active",
-        "features": [
-            "입력 sanitization",
-            "Rate limiting",
-            "IP blocking",
-            "Content-Type validation",
-            "Error message sanitization"
-        ],
-        "timestamp": datetime.now().isoformat()
-    }
+# ============================================================================
+# 시스템 상태 엔드포인트
+# ============================================================================
 
-# API 미들웨어 - 요청/응답 로깅
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    start_time = datetime.now()
-    
-    # 요청 ID 생성
-    request_id = security_manager.generate_request_id()
-    
-    # 요청 처리
+@app.get("/api/system/status")
+async def system_status():
+    """시스템 상태 확인"""
     try:
-        response = await call_next(request)
-        process_time = (datetime.now() - start_time).total_seconds()
-
-        # 응답 시간 로깅
-        logger.info(
-            f"Method: {request.method}, Path: {request.url.path}, "
-            f"Status: {response.status_code}, Process Time: {process_time:.3f}s, "
-            f"Request ID: {request_id}"
-        )
-
-        return response
+        # 협업 시스템 상태
+        collaboration_status = collaboration_manager.get_collaboration_status()
+        advanced_status = advanced_manager.get_system_status()
+        optimized_status = optimized_manager.get_optimization_status()
+        
+        # 대시보드 정보
+        dashboard = get_collaboration_dashboard()
+        dashboard_summary = dashboard.get_summary()
+        
+        return {
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "uptime": str(datetime.now() - startup_time) if startup_time else "N/A",
+            "collaboration_systems": {
+                "basic": collaboration_status,
+                "advanced": advanced_status,
+                "optimized": optimized_status
+            },
+            "dashboard": dashboard_summary,
+            "agents": {
+                "total": len(ALL_AGENT_CLASSES),
+                "categories": {
+                    "data": len(DATA_AGENTS),
+                    "analysis": len(ANALYSIS_AGENTS),
+                    "report": len(REPORT_AGENTS),
+                    "support": len(SUPPORT_AGENTS)
+                }
+            },
+            "llm_provider": LLM_PROVIDER,
+            "api_version": API_VERSION
+        }
     except Exception as e:
-        process_time = (datetime.now() - start_time).total_seconds()
-        
-        # 에러 메시지 sanitization
-        safe_error_msg = security_manager.sanitize_error_message(str(e))
-        
-        logger.error(
-            f"Method: {request.method}, Path: {request.url.path}, "
-            f"Error: {safe_error_msg}, Process Time: {process_time:.3f}s, "
-            f"Request ID: {request_id}"
-        )
-        raise
+        logger.error(f"시스템 상태 확인 오류: {str(e)}")
+        return {
+            "status": "error",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
 
-# UTF-8 인코딩 설정
-@app.middleware("http")
-async def add_encoding_header(request: Request, call_next):
-    response = await call_next(request)
-    
-    # Swagger UI 관련 경로에는 헤더를 수정하지 않음
-    if not request.url.path.startswith("/docs") and not request.url.path.startswith("/openapi.json"):
-        response.headers["Content-Type"] = "application/json; charset=utf-8"
-    
-    return response
+@app.get("/api/system/agents")
+async def list_all_agents():
+    """등록된 모든 에이전트 목록"""
+    try:
+        return {
+            "data_agents": list(DATA_AGENTS.keys()),
+            "analysis_agents": list(ANALYSIS_AGENTS.keys()),
+            "report_agents": list(REPORT_AGENTS.keys()),
+            "support_agents": list(SUPPORT_AGENTS.keys()),
+            "all_agents": list(ALL_AGENT_CLASSES.keys()),
+            "total_count": len(ALL_AGENT_CLASSES)
+        }
+    except Exception as e:
+        logger.error(f"에이전트 목록 조회 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"에이전트 목록 조회 오류: {str(e)}")
+
+# ============================================================================
+# 협업 시스템 엔드포인트
+# ============================================================================
+
+@app.get("/api/collaboration/status")
+async def collaboration_status():
+    """협업 시스템 상태 확인"""
+    try:
+        return {
+            "basic_collaboration": collaboration_manager.get_collaboration_status(),
+            "advanced_collaboration": advanced_manager.get_system_status(),
+            "optimized_collaboration": optimized_manager.get_optimization_status(),
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"협업 시스템 상태 확인 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"협업 시스템 상태 확인 오류: {str(e)}")
+
+@app.get("/api/collaboration/dashboard")
+async def collaboration_dashboard():
+    """협업 대시보드 정보"""
+    try:
+        dashboard = get_collaboration_dashboard()
+        return {
+            "summary": dashboard.get_summary(),
+            "agent_activity": dashboard.get_agent_activity(),
+            "system_alerts": dashboard.get_system_alerts(),
+            "visualization_data": dashboard.get_visualization_data(),
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"협업 대시보드 조회 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"협업 대시보드 조회 오류: {str(e)}")
+
+# ============================================================================
+# 모니터링 엔드포인트
+# ============================================================================
+
+@app.get("/api/monitoring/metrics")
+async def get_system_metrics():
+    """시스템 메트릭 조회"""
+    try:
+        dashboard = get_collaboration_dashboard()
+        metrics = dashboard.get_summary()
+        
+        return {
+            "metrics": metrics,
+            "timestamp": datetime.now().isoformat(),
+            "uptime": str(datetime.now() - startup_time) if startup_time else "N/A"
+        }
+    except Exception as e:
+        logger.error(f"시스템 메트릭 조회 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"시스템 메트릭 조회 오류: {str(e)}")
+
+@app.get("/api/monitoring/alerts")
+async def get_system_alerts():
+    """시스템 알림 조회"""
+    try:
+        dashboard = get_collaboration_dashboard()
+        alerts = dashboard.get_system_alerts()
+        
+        return {
+            "alerts": alerts,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"시스템 알림 조회 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"시스템 알림 조회 오류: {str(e)}")
+
+# ============================================================================
+# 에러 핸들링
+# ============================================================================
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """전역 예외 핸들러"""
+    logger.error(f"전역 예외 발생: {str(exc)}")
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "Internal Server Error",
+            "message": str(exc),
+            "timestamp": datetime.now().isoformat()
+        }
+    )
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """HTTP 예외 핸들러"""
+    logger.error(f"HTTP 예외 발생: {exc.status_code} - {exc.detail}")
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": "HTTP Error",
+            "message": exc.detail,
+            "status_code": exc.status_code,
+            "timestamp": datetime.now().isoformat()
+        }
+    )
+
+# ============================================================================
+# 메인 실행
+# ============================================================================
 
 if __name__ == "__main__":
-    uvicorn.run("app:app", host=API_HOST, port=API_PORT, reload=True)
+    logger.info("🚀 FinsightAI Multi-Agent System 시작")
+    logger.info(f"📊 등록된 에이전트: {len(ALL_AGENT_CLASSES)}개")
+    logger.info(f"🔧 LLM 제공자: {LLM_PROVIDER}")
+    logger.info(f"🌐 서버 주소: http://{API_HOST}:{API_PORT}")
+    logger.info(f"📚 API 문서: http://{API_HOST}:{API_PORT}/docs")
+    
+    uvicorn.run(
+        "app:app",
+        host=API_HOST,
+        port=API_PORT,
+        reload=True,
+        log_level=LOG_LEVEL.lower()
+    )
