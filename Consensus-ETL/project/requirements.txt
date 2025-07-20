@@ -55,3 +55,7 @@ pathlib2>=2.3.7; python_version<"3.4"
 
 # System operations (built-in)
 # os, time, shutil - built-in modules
+
+boto3
+
+openpyxl
