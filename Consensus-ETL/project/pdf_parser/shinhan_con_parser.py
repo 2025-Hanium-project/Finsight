@@ -231,7 +231,6 @@ class ShinhanConsensusParser(BaseParser):
 
                 # 데이터 구성
                 data = {
-                    "report_id": str(uuid.uuid4()),
                     "file_name": filename,
                     "securities_company": "신한투자증권",
                     "stock_name": stock_name,
