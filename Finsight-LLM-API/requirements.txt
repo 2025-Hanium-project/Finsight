@@ -10,3 +10,6 @@ asyncio
 aiofiles
 python-multipart
 httpx
+# 이미지 처리 라이브러리
+Pillow==10.1.0
+numpy==1.24.3
