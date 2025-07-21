@@ -316,43 +316,48 @@ def get_agent_registry() -> AgentRegistry:
 
 
 # 유틸리티 함수들
-def create_standard_prompt_template(agent_type: AgentType) -> str:
+def create_standard_prompt_template(
+    agent_name: str = "",
+    task_description: str = "",
+    output_schema: Dict[str, str] = None,
+    collaboration_info: str = ""
+) -> str:
     """표준 프롬프트 템플릿 생성"""
-    templates = {
-        AgentType.FINANCIAL_STATEMENT: """당신은 재무제표 분석 전문가입니다.
-제공된 재무 데이터를 분석하여 다음 정보를 제공해주세요:
-- 주요 재무 지표 (ROE, ROA, 부채비율 등)
-- 수익성 분석
-- 성장성 분석
-- 안정성 분석
-- 현금흐름 분석
-
-분석 결과를 JSON 형식으로 제공해주세요.""",
-        
-        AgentType.NEWS_ANALYSIS: """당신은 뉴스 분석 전문가입니다.
-제공된 뉴스 데이터를 분석하여 다음 정보를 제공해주세요:
-- 뉴스 감정 분석
-- 주요 이슈 및 트렌드
-- 시장 영향도 평가
-- 투자자 심리 분석
-- 미디어 노출도
-
-분석 결과를 JSON 형식으로 제공해주세요.""",
-        
-        AgentType.RISK_ASSESSMENT: """당신은 리스크 평가 전문가입니다.
-제공된 리스크 데이터를 분석하여 다음 정보를 제공해주세요:
-- 시장 리스크
-- 재무 리스크
-- 운영 리스크
-- 규제 리스크
-- 신용 리스크
-- 유동성 리스크
-- 종합 리스크 레벨
-
-분석 결과를 JSON 형식으로 제공해주세요."""
-    }
     
-    return templates.get(agent_type, f"당신은 {agent_type.value} 전문가입니다. 제공된 데이터를 분석해주세요.")
+    # 기본 출력 스키마
+    if output_schema is None:
+        output_schema = {
+            "analysis_result": "분석 결과",
+            "confidence_score": "신뢰도 (0-100)"
+        }
+    
+    # 스키마를 JSON 형식으로 변환
+    schema_json = "{\n"
+    for key, description in output_schema.items():
+        schema_json += f'  "{key}": "{description}",\n'
+    schema_json = schema_json.rstrip(",\n") + "\n}"
+    
+    # 협업 정보 포맷팅
+    collaboration_section = ""
+    if collaboration_info:
+        collaboration_section = f"\n\n협업 데이터:\n{collaboration_info}"
+    
+    # 프롬프트 템플릿 생성
+    template = f"""당신은 {agent_name}입니다.
+
+{task_description}
+
+분석해야 할 데이터:
+{{input_data}}
+
+{collaboration_section}
+
+분석 결과를 다음 JSON 형식으로 제공해주세요:
+{schema_json}
+
+중요: 제공된 데이터를 기반으로 구체적이고 실용적인 분석을 제공하세요."""
+    
+    return template
 
 
 def get_agent_health_report() -> Dict[str, Any]:

@@ -12,6 +12,7 @@ import asyncio
 import json
 import logging
 import re
+import base64
 from typing import Dict, Any, Optional, List, Union
 from datetime import datetime
 
@@ -120,6 +121,121 @@ class LLMClient:
                     
             except Exception as e:
                 logger.warning(f"응답 생성 실패 (시도 {attempt + 1}/{retry_count}): {str(e)}")
+                if attempt == retry_count - 1:
+                    self.failed_requests += 1
+                    raise Exception(f"모든 재시도 실패: {str(e)}")
+                await asyncio.sleep(1)  # 재시도 전 대기
+    
+    async def generate_multimodal_response(
+        self,
+        prompt: str,
+        image_path: str = None,
+        image_data: str = None,
+        temperature: float = 0.7,
+        max_tokens: int = 4096,
+        retry_count: int = 3
+    ) -> str:
+        """
+        멀티모달 응답 생성 (이미지 + 텍스트)
+        
+        Args:
+            prompt: 프롬프트
+            image_path: 이미지 파일 경로
+            image_data: Base64 인코딩된 이미지 데이터
+            temperature: 온도 (0.0-1.0)
+            max_tokens: 최대 토큰 수
+            retry_count: 재시도 횟수
+            
+        Returns:
+            생성된 응답
+        """
+        start_time = datetime.now()
+        self.total_requests += 1
+        
+        for attempt in range(retry_count):
+            try:
+                # 안전 설정
+                safety_settings = {
+                    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                }
+                
+                # 생성 설정
+                generation_config = {
+                    "temperature": temperature,
+                    "max_output_tokens": max_tokens,
+                    "top_p": 0.8,
+                    "top_k": 40
+                }
+                
+                # 이미지 데이터 준비
+                try:
+                    if image_path:
+                        # 이미지 파일에서 직접 읽기
+                        with open(image_path, 'rb') as f:
+                            image_bytes = f.read()
+                        
+                        # MIME 타입 결정
+                        if image_path.lower().endswith('.jpg') or image_path.lower().endswith('.jpeg'):
+                            mime_type = "image/jpeg"
+                        elif image_path.lower().endswith('.png'):
+                            mime_type = "image/png"
+                        else:
+                            mime_type = "image/png"  # 기본값
+                        
+                        image_part = {
+                            "mime_type": mime_type,
+                            "data": image_bytes
+                        }
+                    elif image_data:
+                        # Base64 디코딩
+                        image_bytes = base64.b64decode(image_data)
+                        
+                        # 기본 dict 형태로 이미지 데이터 생성
+                        image_part = {
+                            "mime_type": "image/png",
+                            "data": image_bytes
+                        }
+                    else:
+                        raise Exception("이미지 경로 또는 이미지 데이터가 제공되지 않았습니다")
+                        
+                except Exception as e:
+                    raise Exception(f"이미지 데이터 처리 실패: {str(e)}")
+                
+                # 멀티모달 콘텐츠 생성
+                content = [
+                    prompt,
+                    image_part
+                ]
+                
+                # 응답 생성
+                response = await asyncio.to_thread(
+                    self.model.generate_content,
+                    content,
+                    generation_config=generation_config,
+                    safety_settings=safety_settings
+                )
+                
+                # 응답 텍스트 추출
+                if response.text:
+                    execution_time = (datetime.now() - start_time).total_seconds()
+                    self.successful_requests += 1
+                    
+                    if self.total_requests > 0:
+                        self.average_response_time = (
+                            (self.average_response_time * (self.total_requests - 1) + execution_time) 
+                            / self.total_requests
+                        )
+                    
+                    logger.info(f"멀티모달 응답 생성 성공 (시도 {attempt + 1}/{retry_count}): {execution_time:.2f}초")
+                    return response.text
+                else:
+                    raise Exception("빈 응답")
+                    
+            except Exception as e:
+                logger.warning(f"멀티모달 응답 생성 실패 (시도 {attempt + 1}/{retry_count}): {str(e)}")
                 if attempt == retry_count - 1:
                     self.failed_requests += 1
                     raise Exception(f"모든 재시도 실패: {str(e)}")
@@ -343,6 +459,41 @@ async def generate_response(
     client = get_llm_client(model)
     return await client.generate_response(
         prompt=prompt,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        retry_count=retry_count
+    )
+
+
+async def generate_multimodal_response(
+    prompt: str,
+    image_path: str = None,
+    image_data: str = None,
+    model: str = "gemini-2.5-flash",
+    temperature: float = 0.7,
+    max_tokens: int = 4096,
+    retry_count: int = 3
+) -> str:
+    """
+    멀티모달 응답 생성 (편의 함수)
+    
+    Args:
+        prompt: 프롬프트
+        image_path: 이미지 파일 경로
+        image_data: Base64 인코딩된 이미지 데이터
+        model: 모델 이름
+        temperature: 온도
+        max_tokens: 최대 토큰 수
+        retry_count: 재시도 횟수
+        
+    Returns:
+        생성된 응답
+    """
+    client = get_llm_client(model)
+    return await client.generate_multimodal_response(
+        prompt=prompt,
+        image_path=image_path,
+        image_data=image_data,
         temperature=temperature,
         max_tokens=max_tokens,
         retry_count=retry_count

@@ -38,7 +38,10 @@ from utils.performance.dashboard import PerformanceDashboard
 from utils.performance.optimizer import PerformanceOptimizer
 
 # LLM 모듈들
-from utils.llm.llm_client import generate_response, LLMClient
+from utils.llm.llm_client import generate_response, generate_multimodal_response, LLMClient
+
+# Image Processing 모듈들 (securities_report_agent에서 통합됨)
+# 순환 import 방지를 위해 lazy import 사용
 
 # Backward compatibility
 __all__ = [
@@ -61,7 +64,11 @@ __all__ = [
     'PerformanceDashboard', 'PerformanceOptimizer',
     
     # LLM
-    'generate_response', 'LLMClient'
+    'generate_response', 'generate_multimodal_response', 'LLMClient',
+    
+    # Image Processing (lazy import)
+    # 'ImageProcessor', 'SecuritiesReportOCR', 'BatchImageProcessor',
+    # 'ImageProcessingResult', 'OCRResult', 'ImageFormat', 'ImageQuality'
 ]
 
 # 버전 정보

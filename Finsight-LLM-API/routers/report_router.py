@@ -178,7 +178,7 @@ async def analyze_news(request: StandardInput):
 
 @router.post("/agents/securities-report", response_model=StandardOutput)
 async def analyze_securities_report(request: StandardInput):
-    """증권사 리포트 분석 API"""
+    """증권사 리포트 분석 API (텍스트)"""
     logger.info(f"증권사 리포트 분석 요청: {request.target_name}")
     
     try:
@@ -187,7 +187,8 @@ async def analyze_securities_report(request: StandardInput):
             "target_name": request.target_name,
             "symbol": request.symbol,
             "reports": request.reports,
-            "context": request.context
+            "context": request.context,
+            "data_type": "text"
         })
         
         return StandardOutput(
@@ -205,6 +206,105 @@ async def analyze_securities_report(request: StandardInput):
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         logger.error(f"증권사 리포트 분석 예외: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"서버 오류: {str(e)}")
+
+
+@router.post("/agents/securities-report/image", response_model=StandardOutput)
+async def analyze_securities_report_image(request: StandardInput):
+    """증권사 리포트 이미지 분석 API"""
+    logger.info(f"증권사 리포트 이미지 분석 요청: {request.target_name}")
+    
+    try:
+        # 이미지 경로 확인
+        image_path = request.context.get("image_path") if request.context else None
+        if not image_path:
+            raise HTTPException(status_code=400, detail="이미지 경로가 필요합니다")
+        
+        result = await securities_agent.analyze({
+            "target_type": request.target_type,
+            "target_name": request.target_name,
+            "symbol": request.symbol,
+            "image_path": image_path,
+            "data_type": "image"
+        })
+        
+        return StandardOutput(
+            agent_type=AgentType.SECURITIES_REPORT,
+            target_type=request.target_type,
+            target_name=request.target_name,
+            symbol=request.symbol,
+            status=ProcessingStatus.COMPLETED,
+            success=True,
+            result=result
+        )
+    
+    except BaseAnalysisError as e:
+        logger.error(f"증권사 리포트 이미지 분석 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        logger.error(f"증권사 리포트 이미지 분석 예외: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"서버 오류: {str(e)}")
+
+
+@router.post("/agents/securities-report/batch", response_model=StandardOutput)
+async def process_batch_securities_reports(request: StandardInput):
+    """배치 증권사 리포트 이미지 처리 API"""
+    logger.info(f"배치 증권사 리포트 이미지 처리 요청")
+    
+    try:
+        # 이미지 경로 목록 확인
+        image_paths = request.context.get("image_paths") if request.context else []
+        if not image_paths:
+            raise HTTPException(status_code=400, detail="이미지 경로 목록이 필요합니다")
+        
+        result = await securities_agent.process_batch_images(image_paths)
+        
+        return StandardOutput(
+            agent_type=AgentType.SECURITIES_REPORT,
+            target_type=request.target_type,
+            target_name=request.target_name,
+            symbol=request.symbol,
+            status=ProcessingStatus.COMPLETED,
+            success=True,
+            result=result
+        )
+    
+    except BaseAnalysisError as e:
+        logger.error(f"배치 증권사 리포트 처리 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        logger.error(f"배치 증권사 리포트 처리 예외: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"서버 오류: {str(e)}")
+
+
+@router.post("/agents/securities-report/validate-image", response_model=StandardOutput)
+async def validate_image_quality(request: StandardInput):
+    """이미지 품질 검증 API"""
+    logger.info(f"이미지 품질 검증 요청")
+    
+    try:
+        # 이미지 경로 확인
+        image_path = request.context.get("image_path") if request.context else None
+        if not image_path:
+            raise HTTPException(status_code=400, detail="이미지 경로가 필요합니다")
+        
+        result = await securities_agent.validate_image_quality(image_path)
+        
+        return StandardOutput(
+            agent_type=AgentType.SECURITIES_REPORT,
+            target_type=request.target_type,
+            target_name=request.target_name,
+            symbol=request.symbol,
+            status=ProcessingStatus.COMPLETED,
+            success=True,
+            result=result
+        )
+    
+    except BaseAnalysisError as e:
+        logger.error(f"이미지 품질 검증 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        logger.error(f"이미지 품질 검증 예외: {str(e)}")
         raise HTTPException(status_code=500, detail=f"서버 오류: {str(e)}")
 
 @router.post("/agents/market-data", response_model=StandardOutput)
