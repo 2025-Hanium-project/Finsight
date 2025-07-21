@@ -40,7 +40,7 @@ def insert_report(row, stock_id):
         row.get('report_type', '일반'),  # 기본값 예시
         row.get('analyst_name', None),
         row.get('company_name', None),
-        row.get('rating', None)[:10] if row.get('rating', None) else None,
+        row.get('rating', None),
         row.get('opinion_change', None),
         row.get('target_price', None),
         row.get('current_price', None),
