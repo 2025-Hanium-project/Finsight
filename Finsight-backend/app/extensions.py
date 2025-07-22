@@ -1,5 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
+from flasgger import Swagger
+
 db = SQLAlchemy()
 ma = Marshmallow()
-# 그 밖에 JWT, CORS 등…
+swagger = Swagger()
