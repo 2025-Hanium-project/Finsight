@@ -1,0 +1,21 @@
+.navbar {
+  width: 100%;
+  padding: 10px 20px;
+  display: flex;
+  justify-content: flex-end;  /* 오른쪽 정렬 */
+  align-items: center;
+  font-family: 'Noto Sans KR', sans-serif;
+}
+
+.navbar a {
+  color: #333;
+  text-decoration: none;
+  margin-left: 15px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.navbar a:hover {
+  color: #1e88e5;  /* hover 시 파란색 포인트 */
+}

@@ -1,0 +1,663 @@
+:root {
+    --primary: #1e40af;
+    --primary-light: #3b82f6;
+    --secondary: #0f172a;
+    --accent: #ef4444;
+    --bg-light: #f1f5f9;
+    --text-dark: #1e293b;
+    --text-light: #94a3b8;
+    --border: #e2e8f0;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+}
+
+body {
+    background-color: #f8fafc;
+    color: var(--text-dark);
+}
+
+.layout-container {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* 사이드바 스타일 */
+.main-sidebar {
+    width: 240px;
+    background-color: var(--secondary);
+    color: white;
+    padding: 20px 0;
+    transition: all 0.3s;
+}
+
+.sidebar-header {
+    padding: 0 20px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 20px;
+}
+
+.logo {
+    font-size: 20px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    color: white;
+}
+
+.logo-icon {
+    margin-right: 10px;
+    color: var(--primary-light);
+}
+
+/* 메인 콘텐츠 스타일 */
+.dplus-content {
+    flex: 1;
+    padding: 20px;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+.dplus-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border);
+    width: 100%;
+}
+
+.page-title {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.date-info {
+    font-size: 14px;
+    color: var(--text-light);
+    margin-top: 5px;
+}
+
+.export-pdf-button {
+    padding: 8px 16px;
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.export-pdf-button:hover {
+    background-color: var(--primary-light);
+}
+
+/* 대시보드 그리드 */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin-top: 30px;
+    margin-bottom: 30px;
+}
+
+/* 대시보드 아이템 */
+.report-card {
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    padding: 20px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.report-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.full-width {
+    grid-column: 1 / -1;
+}
+
+/* 헤더와 아이콘 스타일 */
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.card-title {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.card-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--bg-light);
+    color: var(--primary);
+    font-size: 18px;
+}
+
+/* 하이라이트 박스 */
+.summary-section {
+    background-color: rgba(59, 130, 246, 0.05);
+    border-left: 4px solid var(--primary);
+    padding: 15px;
+    margin: 20px 0;
+    border-radius: 0 5px 5px 0;
+}
+
+.summary-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: var(--primary);
+}
+
+.summary-text {
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+/* 시장 지수 스타일 */
+.market-index-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.index-label {
+    font-size: 14px;
+}
+
+.index-value {
+    font-weight: 600;
+}
+
+.up {
+    color: var(--danger);
+}
+
+.down {
+    color: var(--primary);
+}
+
+/* 분석 텍스트 */
+.summary-commentary {
+    margin-top: 15px;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.opinion-summary {
+    margin-top: 20px;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 15px;
+    background-color: var(--bg-light);
+    border-radius: 8px;
+}
+
+/* 테이블 스타일 */
+.table-box {
+    width: 100%;
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+th {
+    background-color: var(--bg-light);
+    text-align: left;
+    padding: 12px 15px;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+}
+
+td {
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--border);
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+.comparison-table td {
+    text-align: center;
+}
+
+.comparison-table .index-label {
+    text-align: left;
+}
+
+/* 뱃지 스타일 */
+.badge {
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.badge-positive {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+
+.badge-neutral {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+}
+
+.badge-danger {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+}
+
+/* 이유 분석 */
+.gap-reason-analysis {
+    margin-top: 15px;
+}
+
+.gap-reason-card {
+    margin-bottom: 15px;
+}
+
+.gap-reason-title {
+    font-weight: 600;
+    margin-bottom: 5px;
+    font-size: 14px;
+}
+
+.gap-reason-card p {
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* 감성 분석 */
+.sentiment-overview {
+    text-align: center;
+}
+
+.market-sentiment-score {
+    margin-bottom: 15px;
+}
+
+.sentiment-label {
+    font-size: 13px;
+    color: var(--text-light);
+}
+
+.sentiment-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--primary);
+    margin: 10px 0;
+}
+
+.sentiment-status {
+    font-size: 14px;
+}
+
+.sentiment-status.positive {
+    color: var(--success);
+}
+
+.sentiment-scale-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-light);
+    margin-bottom: 20px;
+}
+
+.sentiment-gauge {
+    width: 100%;
+    height: 8px;
+    background: linear-gradient(to right, var(--primary), #d1d5db, var(--danger));
+    border-radius: 4px;
+    margin: 15px 0;
+    position: relative;
+}
+
+.sentiment-indicator {
+    width: 10px;
+    height: 16px;
+    background-color: var(--secondary);
+    position: absolute;
+    top: -4px;
+    transform: translateX(-50%);
+    border-radius: 2px;
+}
+
+.sector-sentiment-list {
+    margin-top: 20px;
+}
+
+.sector-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+/* 목표 진행 */
+.sector-sentiment-bar {
+    display: flex;
+    align-items: center;
+    margin: 10px 0;
+}
+
+.goal-label {
+    width: 80px;
+    font-size: 14px;
+}
+
+.goal-bar {
+    flex: 1;
+    height: 10px;
+    background-color: var(--bg-light);
+    border-radius: 5px;
+    overflow: hidden;
+    margin: 0 10px;
+}
+
+.sentiment-fill {
+    height: 100%;
+    border-radius: 5px;
+}
+
+.progress-positive {
+    background-color: var(--success);
+}
+
+.progress-neutral {
+    background-color: var(--warning);
+}
+
+.goal-percent {
+    width: 40px;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: right;
+}
+
+/* 감성 분석 상세 */
+.sentiment-details {
+    text-align: left;
+}
+
+.data-source {
+    margin-bottom: 15px;
+}
+
+.source-title {
+    font-weight: 600;
+    margin-bottom: 5px;
+    font-size: 14px;
+}
+
+.data-source p {
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.sentiment-distribution {
+    margin: 20px 0 15px;
+}
+
+.distribution-title {
+    font-weight: 600;
+    margin-bottom: 15px;
+    font-size: 14px;
+}
+
+.distribution-stats {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 15px;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.stat-value.positive {
+    color: var(--success);
+}
+
+.stat-value.neutral {
+    color: var(--warning);
+}
+
+.stat-value.negative {
+    color: var(--danger);
+}
+
+.stat-label {
+    font-size: 14px;
+    color: var(--text-light);
+}
+
+.sentiment-keywords {
+    margin-top: 25px;
+}
+
+.keywords-title {
+    font-weight: 600;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.keywords-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tag {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 15px;
+    font-size: 12px;
+    margin-right: 6px;
+    margin-bottom: 6px;
+}
+
+.tag.positive {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+
+.tag.warning {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+}
+
+.tag.negative {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+}
+
+/* 통계 컨테이너 */
+.investment-stats-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.donut-chart-area {
+    margin-bottom: 20px;
+}
+
+.donut-chart {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background: conic-gradient(
+        var(--success) 0% 75%,
+        var(--warning) 75% 90%,
+        var(--danger) 90% 100%
+    );
+    margin: 0 auto 15px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.donut-chart::after {
+    content: "";
+    position: absolute;
+    width: 90px;
+    height: 90px;
+    background-color: white;
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.chart-center {
+    position: relative;
+    z-index: 1;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.legend-box {
+    margin-bottom: 20px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+    font-size: 13px;
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    margin-right: 8px;
+}
+
+.legend-color.success {
+    background-color: var(--success);
+}
+
+.legend-color.warning {
+    background-color: var(--warning);
+}
+
+.legend-color.danger {
+    background-color: var(--danger);
+}
+
+/* 통계 스타일 */
+.double-stat-columns {
+    display: flex;
+    width: 100%;
+}
+
+.stats-column {
+    flex: 1;
+}
+
+.stats-item {
+    margin-bottom: 15px;
+}
+
+.stats-label {
+    font-size: 13px;
+    color: var(--text-light);
+    margin-bottom: 5px;
+}
+
+.stats-value {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+/* 반응형 설정 */
+@media (max-width: 768px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .report-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .export-pdf-button {
+        align-self: flex-end;
+    }
+    
+    .main-sidebar {
+        width: 60px;
+    }
+    
+    .main-sidebar .logo span:last-child,
+    .sidebar-nav-item button {
+        display: none;
+    }
+    
+    .table-box {
+        font-size: 12px;
+    }
+    
+    th, td {
+        padding: 8px 10px;
+    }
+    
+    .distribution-stats {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .double-stat-columns {
+        flex-direction: column;
+    }
+    
+    .donut-chart {
+        width: 120px;
+        height: 120px;
+    }
+    
+    .donut-chart::after {
+        width: 70px;
+        height: 70px;
+    }
+    
+    .chart-center {
+        font-size: 16px;
+    }
+}
