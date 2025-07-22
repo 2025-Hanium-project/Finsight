@@ -176,3 +176,7 @@ cython_debug/
 .pypirc
 
 logs
+
+
+# Airflow configuration file
+airflow.db
