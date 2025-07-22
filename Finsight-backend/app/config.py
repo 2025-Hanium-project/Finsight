@@ -18,7 +18,7 @@ class DevelopmentConfig(BaseConfig):
         pw="aia123!",
         host="finsight.kro.kr",
         port=32503,
-        db="finsight-database"   # 실제 사용할 DB 이름으로 변경
+        db="finsight_database"   # 실제 사용할 DB 이름으로 변경
     )
 
 class TestingConfig(BaseConfig):

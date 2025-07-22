@@ -5,7 +5,7 @@ from datetime import datetime
 from app.extensions import db
 
 class Stock(db.Model):
-    __tablename__ = 'stock'
+    __tablename__ = 'Stock'
 
     stock_id = db.Column(
         db.String(36),
