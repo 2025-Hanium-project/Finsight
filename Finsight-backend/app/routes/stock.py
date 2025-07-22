@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify
 from app.services.stock_service import *
 
-stock_bp = Blueprint('stock', __name__, url_prefix='/stocks')
+stock_bp = Blueprint('stock', __name__, url_prefix='/api/stocks')
 
 @stock_bp.route('/', methods=['GET'])
 def list_stocks():

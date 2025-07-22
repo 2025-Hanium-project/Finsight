@@ -59,3 +59,4 @@ pathlib2>=2.3.7; python_version<"3.4"
 boto3
 
 openpyxl
+pykrx
