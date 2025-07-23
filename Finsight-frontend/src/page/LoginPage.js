@@ -15,7 +15,7 @@ function LoginPage() {
     e.preventDefault();
     // 실제 로그인 로직(서버 통신) 추가 필요!
     // 성공 시 메인 대시보드로 이동
-    navigate('/');
+    navigate('/dashboard');
   };
 
   return (
