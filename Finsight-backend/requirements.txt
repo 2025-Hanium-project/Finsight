@@ -2,3 +2,5 @@ flask
 flask_restful
 flask_cors
 flasgger
+flask_sqlalchemy
+flask_marshmallow
