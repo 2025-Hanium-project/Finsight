@@ -3,6 +3,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import asyncio
 from agents.data_agents.financial_statement_agent import FinancialStatementAgent
+import json
 
 def test_financial_statement_agent_basic():
     """기본 에이전트 기능 테스트"""

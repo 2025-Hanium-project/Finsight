@@ -45,37 +45,35 @@ class FinancialStatementAgent(AnalysisAgent):
         }
         
         # 개선된 프롬프트 템플릿
-        prompt_template = """당신은 전문적인 재무제표 분석가입니다. 제공된 재무 데이터를 분석하여 기업의 재무 건전성을 종합적으로 평가해주세요.
+        prompt_template = """
+당신은 전문 재무제표 분석가입니다. 아래 financial_data만을 근거로, 완결된 재무제표 분석 보고서를 작성하세요.
 
-분석해야 할 재무 데이터:
-{{input_data}}
+**중요 지침:**
+- 반드시 완결된 분석만 제공하세요. '~분석이 필요합니다', '~추가 데이터 필요', '~추가 분석 필요' 등 회피성 문구는 절대 사용하지 마세요.
+- 각 항목에는 반드시 수치, 근거, 해석, 결론이 모두 포함되어야 합니다.
+- 제공된 데이터만으로 분석을 마무리하세요. 추가 데이터 요청, 추가 분석 요청은 금지합니다.
+- 정성적 해석보다 수치 중심의 분석을 우선하세요.
+- 반드시 아래 예시와 동일한 JSON 구조로만 답변하세요.
+- 텍스트, 마크다운, 표, 리스트 등은 절대 사용하지 마세요.
+- input 데이터의 계정명(account_id, account_nm)과 수치를 근거로 분석하세요.
+- 전년 대비 증감, 급격한 변화 등 input 내에서 비교 가능한 모든 정보를 활용하세요.
 
-분석 지침:
-1. 재무 건전성: 전반적인 재무 상태를 excellent/good/fair/poor로 평가
-2. 수익성 분석: 매출액, 영업이익, 순이익의 규모와 성장률 분석
-3. 유동성 분석: 단기 지급능력을 나타내는 비율들 분석
-4. 지급능력 분석: 장기 부채 상환능력 분석
-5. 성장 추세: 과거 대비 성장률과 향후 전망 분석
-6. 주요 재무비율: ROE, ROA, 영업이익률, 순이익률 등 계산 및 분석
-7. 리스크 요인: 재무적 취약점과 위험 요소 식별
-8. 개선 권고: 재무 건전성 향상을 위한 구체적 방안 제시
-
-{{collaboration_info}}
-
-분석 결과를 다음 JSON 형식으로 제공해주세요:
+[예시 JSON]
 {
-    "financial_health": "재무 건전성 평가 (excellent/good/fair/poor, 구체적인 근거 포함)",
-    "profitability_analysis": "수익성 분석 (매출액, 영업이익, 순이익, 성장률 등 구체적 분석)",
-    "liquidity_analysis": "유동성 분석 (유동비율, 당좌비율, 현금비율 등 구체적 분석)",
-    "solvency_analysis": "지급능력 분석 (부채비율, 이자보상배율 등 구체적 분석)",
-    "growth_trends": "성장 추세 분석 (매출 성장률, 이익 성장률 등 구체적 분석)",
-    "key_ratios": "주요 재무비율 (ROE, ROA, 영업이익률, 순이익률 등 구체적 수치)",
-    "risk_factors": "재무 리스크 요인 (구체적인 위험 요소들)",
-    "recommendations": "재무 개선 권고사항 (구체적인 개선 방안들)",
-    "confidence_score": "분석 신뢰도 (0-100, 데이터 품질과 분석 완성도 기반)"
+  "financial_health": "우수. 자산총계 514.5조원으로 전년(455.9조원) 대비 12.9% 증가했습니다. 부채총계 112.3조원, 자본총계 402.2조원으로 부채비율 27.9%를 기록해 매우 건전한 재무구조를 보여줍니다. 업계 평균 부채비율 50-60% 대비 현저히 낮은 수준으로 재무 안정성이 탁월합니다.",
+  "profitability_analysis": "수익성 회복세 뚜렷. 매출액 300.9조원(전년 258.9조원 대비 +16.2%)으로 강력한 성장을 기록했습니다. 영업이익 32.7조원(전년 6.6조원)으로 영업이익률이 2.5%에서 10.9%로 급격히 개선되었습니다. 당기순이익 34.5조원(전년 15.5조원)으로 순이익률 11.5%를 달성해 수익성이 크게 향상되었습니다.",
+  "liquidity_analysis": "유동성 매우 우수. 유동자산 227.1조원, 유동부채 93.3조원으로 유동비율 243.3%를 기록했습니다. 현금 및 현금성자산 53.7조원으로 현금비율 23.7%를 유지하고 있어 단기 지급능력이 매우 안정적입니다. 전년 대비 현금 보유액이 감소했으나 여전히 충분한 수준입니다.",
+  "solvency_analysis": "장기 지급능력 탁월. 부채비율 27.9%로 매우 낮은 수준이며, 자기자본비율 78.2%로 자본 구조가 매우 건전합니다. 이자보상배율 2.52배로 다소 낮은 편이나, 절대적인 영업이익 규모(32.7조원)가 크고 금융비용(13.0조원) 대비 여유가 있어 장기 지급능력에는 문제없습니다.",
+  "growth_trends": "성장 모멘텀 강화. 매출액 성장률 16.2%, 영업이익 398.3% 급증으로 사업 회복력을 입증했습니다. 자산 성장률 12.9%, 자본 성장률 10.6%로 내실 있는 확장세를 보이고 있습니다. 특히 유형자산이 187.3조원에서 205.9조원으로 증가해 적극적인 설비투자를 진행하고 있습니다.",
+  "key_ratios": "핵심 지표 대폭 개선. ROE 8.57%(전년 추정 4.0% 수준에서 상승), ROA 6.70%로 자산과 자본 활용도가 크게 향상되었습니다. 영업이익률 10.9%, 순이익률 11.5%로 두 자릿수 수익성을 회복했습니다. 기본주당이익 4,950원(전년 2,131원)으로 주주가치도 크게 개선되었습니다.",
+  "risk_factors": "전반적 리스크 제한적. 부채비율 27.9%로 재무레버리지 리스크는 매우 낮습니다. 다만 이자보상배율 2.52배는 다소 여유롭지 않은 수준으로, 금리 상승 시 금융비용 부담 증가 가능성을 주의해야 합니다. 매출채권 43.6조원, 재고자산 51.8조원으로 운전자본 관리 효율성 개선 여지가 있습니다.",
+  "recommendations": "현재의 우수한 수익성 회복세를 지속하기 위해 운전자본 회전율 개선과 금융비용 최적화를 권고합니다. 건전한 재무구조를 바탕으로 성장 투자를 확대하되, 이자보상배율 개선을 위한 영업이익 증대에 집중해야 합니다. 현금흐름 관리 강화를 통한 금융 효율성 제고가 필요합니다.",
+  "confidence_score": "92"
 }
 
-중요: 제공된 재무 데이터를 기반으로 구체적인 수치와 분석을 제공하세요. 각 재무 지표에 대해 정량적이고 정성적인 평가를 모두 수행하세요."""
+아래는 분석해야 할 데이터입니다:
+{{financial_data}}
+"""
         
         # 문자열 포맷팅을 안전하게 수행
         financial_data = input_data.get("financial_data", {})
@@ -213,120 +211,19 @@ class FinancialStatementAgent(AnalysisAgent):
 
     async def _provide_financial_metrics(self, context: dict) -> dict:
         """
-        DART 사업보고서 요약재무제표 기반 주요 계정 데이터 수집 및 주요 비율 직접 계산
+        DART 사업보고서 요약재무제표 기반 주요 계정 데이터 수집 (collector에서 비율까지 계산)
         """
         import os
         stock_code = context.get("stock_code")
         api_key = context.get("dart_api_key") or os.environ.get("DART_API_KEY")
         from utils.data_collectors.financial_collector import FinancialStatementCollector
         collector = FinancialStatementCollector(api_key=api_key)
-        from datetime import datetime
-        now = datetime.now()
         accounts = collector.get_major_accounts()
-        ids = accounts['ids']
-        nms = accounts['nms']
-        # 최근 3년 중 데이터가 존재하는 가장 최신 연도부터 시도
-        for try_year in [now.year, now.year-1, now.year-2]:
-            data = collector.collect_summary_financials(stock_code, try_year, accounts=accounts)
-            if data:
-                year = try_year
-                break
-        else:
-            return {"error": f"DART 사업보고서 요약재무제표 데이터가 최근 3년({now.year}, {now.year-1}, {now.year-2}) 모두 없습니다."}
-        # 연도/계정별로 값 합산 (account_id, account_nm 모두 활용)
-        by_year = {}
-        acc_id_to_nm = {}
-        for item in data:
-            y = int(item['year'])
-            acc_id = item['account_id']
-            acc_nm = item['account_nm']
-            amt = item['amount']
-            if y not in by_year:
-                by_year[y] = {}
-            by_year[y][acc_id] = amt
-            acc_id_to_nm[acc_id] = acc_nm
-        years = sorted(by_year.keys(), reverse=True)[:3]
-        # 주요 비율 직접 계산 (account_id 기준)
-        ratios = {}
-        for y in years:
-            d = by_year.get(y, {})
-            # 순이익: 여러 account_id 후보 중 존재하는 값 사용 (우선순위 적용)
-            순이익_후보들 = [
-                'ifrs-full_ProfitLoss',  # 기본 당기순이익
-                'ifrs-full_ProfitLossAttributableToOwnersOfParent',  # 지배기업 소유주 귀속
-                'dart_ProfitLoss',  # DART 특화 당기순이익
-                'ifrs-full_ProfitLossBeforeTax'  # 법인세비용차감전순이익 (마지막 후보)
-            ]
-            순이익 = 0.0
-            사용된_계정 = None
-            for candidate in 순이익_후보들:
-                if candidate in d and d[candidate] != 0:
-                    순이익 = float(d[candidate])
-                    사용된_계정 = candidate
-                    print(f"✅ {y}년 당기순이익: {candidate} = {순이익:,.0f}")
-                    break
-            else:
-                print(f"❌ {y}년 당기순이익: 데이터 없음")
-                사용된_계정 = "없음"
-            
-            자본 = float(d.get('ifrs-full_Equity', 0.0))
-            자산 = float(d.get('ifrs-full_Assets', 0.0))
-            매출 = float(d.get('ifrs-full_Revenue', 0.0))
-            영업이익 = float(d.get('dart_OperatingIncomeLoss', 0.0))
-            부채 = float(d.get('ifrs-full_Liabilities', 0.0))
-            유동자산 = float(d.get('ifrs-full_CurrentAssets', 0.0))
-            유동부채 = float(d.get('ifrs-full_CurrentLiabilities', 0.0))
-            현금및현금성자산 = float(d.get('ifrs-full_CashAndCashEquivalents', 0.0))
-            
-            # 재무비율 계산 (0이 아닌 경우에만 계산)
-            roe = (순이익 / 자본 * 100) if (자본 != 0 and 순이익 != 0) else None
-            roa = (순이익 / 자산 * 100) if (자산 != 0 and 순이익 != 0) else None
-            op_margin = (영업이익 / 매출 * 100) if (매출 != 0 and 영업이익 != 0) else None
-            net_margin = (순이익 / 매출 * 100) if (매출 != 0 and 순이익 != 0) else None
-            debt_ratio = (부채 / 자본 * 100) if (자본 != 0 and 부채 != 0) else None
-            current_ratio = (유동자산 / 유동부채 * 100) if (유동부채 != 0 and 유동자산 != 0) else None
-            # 현금및현금성자산 비율 (유동자산 대비)
-            cash_ratio = (현금및현금성자산 / 유동자산 * 100) if (유동자산 != 0 and 현금및현금성자산 != 0) else None
-            
-            # 이자보상배율 계산 (실제 데이터에 존재하는 계정 사용)
-            금융비용 = float(d.get('ifrs-full_FinanceCosts', 0.0))
-            이자의지급 = float(d.get('ifrs-full_InterestPaidClassifiedAsOperatingActivities', 0.0))
-            # 이자비용은 금융비용을 우선 사용하고, 없으면 이자의 지급 사용
-            이자비용 = 금융비용 if 금융비용 != 0 else 이자의지급
-            interest_coverage = (영업이익 / 이자비용) if (이자비용 != 0 and 영업이익 != 0) else None
-            
-            # 자산=자본+부채 검증 (dart_api.json 분석 결과에 맞게 개선)
-            자산_합계 = 자산
-            자본부채_합계 = 자본 + 부채
-            차이 = abs(자산_합계 - 자본부채_합계)
-            차이율 = (차이 / 자산_합계 * 100) if 자산_합계 != 0 else None
-            
-            # 검증 결과 로깅
-            if 차이율 is not None and 차이율 > 1.0:  # 1% 이상 차이 시 경고
-                print(f"⚠️  자산=자본+부채 불일치: {차이율:.2f}% (자산: {자산_합계:,.0f}, 자본+부채: {자본부채_합계:,.0f})")
-            elif 차이율 is not None and 차이율 <= 1.0:
-                print(f"✅ 자산=자본+부채 일치: {차이율:.2f}%")
-            
-            ratios[y] = {
-                'ROE': roe,
-                'ROA': roa,
-                '영업이익률': op_margin,
-                '순이익률': net_margin,
-                '부채비율': debt_ratio,
-                '유동비율': current_ratio,
-                '현금비율': cash_ratio,  # 현금및현금성자산을 비율로 변경
-                '이자보상배율': interest_coverage,
-                '자산_자본부채_차이율': 차이율  # 검증용
-            }
-        prompt_data = {
-            "stock_code": stock_code,
-            "years": years,
-            "by_year": by_year,
-            "ratios": ratios,
-            "raw_data": data,
-            "base_year": year
-        }
-        return prompt_data
+        # 최신 연도 자동 선택
+        data = collector.collect_latest_summary_financials(stock_code, accounts=accounts)
+        if "error" in data:
+            return data
+        return data
     
     async def _validate_financial_data(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """재무 데이터 검증"""
@@ -457,16 +354,26 @@ class FinancialStatementAgent(AnalysisAgent):
     async def _execute_analysis(self, input_data: Dict[str, Any], collaboration_data: Dict[str, Any] = None) -> Dict[str, Any]:
         """분석 실행"""
         try:
+            import os
+            import json
+            def save_json(data, filename):
+                path = os.path.join(os.path.dirname(__file__), "../../test_results", filename)
+                with open(path, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+            stock_code = input_data.get("stock_code") or input_data.get("financial_data", {}).get("stock_code") or "unknown"
+            # financial_data에서 raw_data, stock_code, year 등 불필요한 필드 제거
+            financial_data = input_data.get("financial_data", input_data)
+            exclude_keys = ["raw_data", "stock_code", "year"]
+            llm_input_data = {k: v for k, v in financial_data.items() if k not in exclude_keys}
+            llm_input = {"financial_data": llm_input_data}
+            save_json(llm_input, f"{stock_code}_llm_input.json")
             start_time = datetime.now()
-            
             # 프롬프트 생성
-            prompt = self._create_prompt(input_data, collaboration_data)
+            prompt = self._create_prompt(llm_input, collaboration_data)
             print(f"📝 [FinancialStatementAgent] 프롬프트 생성 완료 ({len(prompt)}자)")
-            
             # LLM 호출
             from utils.llm.llm_client import generate_response
             from utils.llm.llm_utils import extract_json_from_response
-            
             print(f"🤖 [FinancialStatementAgent] LLM 호출 시작...")
             response = await generate_response(
                 prompt=prompt,
@@ -475,7 +382,6 @@ class FinancialStatementAgent(AnalysisAgent):
                 max_tokens=self.max_tokens
             )
             print(f"✅ [FinancialStatementAgent] LLM 응답 수신 완료 ({len(response)}자)")
-            
             # 응답 파싱
             try:
                 json_text = extract_json_from_response(response)
@@ -490,10 +396,10 @@ class FinancialStatementAgent(AnalysisAgent):
                     "agent_name": self.name,
                     "timestamp": datetime.now().isoformat()
                 }
-            
+            # LLM output 저장
+            save_json(result, f"{stock_code}_llm_output.json")
             # 성능 통계 업데이트
             execution_time = (datetime.now() - start_time).total_seconds()
-            
             # 결과에 메타데이터 추가
             result.update({
                 "agent_name": self.name,
@@ -501,10 +407,8 @@ class FinancialStatementAgent(AnalysisAgent):
                 "execution_time": execution_time,
                 "timestamp": datetime.now().isoformat()
             })
-            
             print(f"✅ [FinancialStatementAgent] 분석 완료 (실행시간: {execution_time:.2f}초)")
             return result
-            
         except Exception as e:
             print(f"❌ [FinancialStatementAgent] _execute_analysis 오류: {e}")
             import traceback
