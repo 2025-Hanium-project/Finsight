@@ -1,0 +1,214 @@
+{
+  "financial_data": {
+    "by_year": {
+      "2024": {
+        "ifrs-full_Assets": {
+          "year": 2024,
+          "account_id": "ifrs-full_Assets",
+          "account_nm": "자산총계",
+          "amount": 514531948000000,
+          "frmtrm_amount": 455905980000000,
+          "bfefrmtrm_amount": 448424507000000,
+          "account_detail": "-"
+        },
+        "ifrs-full_CurrentAssets": {
+          "year": 2024,
+          "account_id": "ifrs-full_CurrentAssets",
+          "account_nm": "유동자산",
+          "amount": 227062266000000,
+          "frmtrm_amount": 195936557000000,
+          "bfefrmtrm_amount": 218470581000000,
+          "account_detail": "-"
+        },
+        "ifrs-full_CashAndCashEquivalents": {
+          "year": 2024,
+          "account_id": "ifrs-full_CashAndCashEquivalents",
+          "account_nm": "현금및현금성자산",
+          "amount": 53705579000000,
+          "frmtrm_amount": 69080893000000,
+          "bfefrmtrm_amount": 49680710000000,
+          "account_detail": "-"
+        },
+        "ifrs-full_CurrentTradeReceivables": {
+          "year": 2024,
+          "account_id": "ifrs-full_CurrentTradeReceivables",
+          "account_nm": "매출채권",
+          "amount": 43623073000000,
+          "frmtrm_amount": 36647393000000,
+          "bfefrmtrm_amount": 35721563000000,
+          "account_detail": "-"
+        },
+        "ifrs-full_Inventories": {
+          "year": 2024,
+          "account_id": "ifrs-full_Inventories",
+          "account_nm": "재고자산",
+          "amount": 51754865000000,
+          "frmtrm_amount": 51625874000000,
+          "bfefrmtrm_amount": 52187866000000,
+          "account_detail": "-"
+        },
+        "ifrs-full_NoncurrentAssets": {
+          "year": 2024,
+          "account_id": "ifrs-full_NoncurrentAssets",
+          "account_nm": "비유동자산",
+          "amount": 287469682000000,
+          "frmtrm_amount": 259969423000000,
+          "bfefrmtrm_amount": 229953926000000,
+          "account_detail": "-"
+        },
+        "ifrs-full_PropertyPlantAndEquipment": {
+          "year": 2024,
+          "account_id": "ifrs-full_PropertyPlantAndEquipment",
+          "account_nm": "유형자산",
+          "amount": 205945209000000,
+          "frmtrm_amount": 187256262000000,
+          "bfefrmtrm_amount": 168045388000000,
+          "account_detail": "-"
+        },
+        "ifrs-full_Liabilities": {
+          "year": 2024,
+          "account_id": "ifrs-full_Liabilities",
+          "account_nm": "부채총계",
+          "amount": 112339878000000,
+          "frmtrm_amount": 92228115000000,
+          "bfefrmtrm_amount": 93674903000000,
+          "account_detail": "-"
+        },
+        "ifrs-full_CurrentLiabilities": {
+          "year": 2024,
+          "account_id": "ifrs-full_CurrentLiabilities",
+          "account_nm": "유동부채",
+          "amount": 93326299000000,
+          "frmtrm_amount": 75719452000000,
+          "bfefrmtrm_amount": 78344852000000,
+          "account_detail": "-"
+        },
+        "ifrs-full_NoncurrentLiabilities": {
+          "year": 2024,
+          "account_id": "ifrs-full_NoncurrentLiabilities",
+          "account_nm": "비유동부채",
+          "amount": 19013579000000,
+          "frmtrm_amount": 16508663000000,
+          "bfefrmtrm_amount": 15330051000000,
+          "account_detail": "-"
+        },
+        "ifrs-full_Equity": {
+          "year": 2024,
+          "account_id": "ifrs-full_Equity",
+          "account_nm": "자본총계",
+          "amount": 402192070000000,
+          "frmtrm_amount": 363677865000000,
+          "bfefrmtrm_amount": 354749604000000,
+          "account_detail": "연결재무제표 [member]"
+        },
+        "ifrs-full_IssuedCapital": {
+          "year": 2024,
+          "account_id": "ifrs-full_IssuedCapital",
+          "account_nm": "자본금",
+          "amount": 897514000000,
+          "frmtrm_amount": 897514000000,
+          "bfefrmtrm_amount": 897514000000,
+          "account_detail": "-"
+        },
+        "ifrs-full_RetainedEarnings": {
+          "year": 2024,
+          "account_id": "ifrs-full_RetainedEarnings",
+          "account_nm": "이익잉여금",
+          "amount": 370513188000000,
+          "frmtrm_amount": 346652238000000,
+          "bfefrmtrm_amount": 337946407000000,
+          "account_detail": "-"
+        },
+        "ifrs-full_Revenue": {
+          "year": 2024,
+          "account_id": "ifrs-full_Revenue",
+          "account_nm": "매출액",
+          "amount": 300870903000000,
+          "frmtrm_amount": 258935494000000,
+          "bfefrmtrm_amount": 302231360000000,
+          "account_detail": "-"
+        },
+        "dart_OperatingIncomeLoss": {
+          "year": 2024,
+          "account_id": "dart_OperatingIncomeLoss",
+          "account_nm": "영업이익",
+          "amount": 32725961000000,
+          "frmtrm_amount": 6566976000000,
+          "bfefrmtrm_amount": 43376630000000,
+          "account_detail": "-"
+        },
+        "ifrs-full_ProfitLoss": {
+          "year": 2024,
+          "account_id": "ifrs-full_ProfitLoss",
+          "account_nm": "당기순이익",
+          "amount": 34451351000000,
+          "frmtrm_amount": 15487100000000,
+          "bfefrmtrm_amount": 55654077000000,
+          "account_detail": "-"
+        },
+        "ifrs-full_ProfitLossAttributableToOwnersOfParent": {
+          "year": 2024,
+          "account_id": "ifrs-full_ProfitLossAttributableToOwnersOfParent",
+          "account_nm": "지배기업 소유지분",
+          "amount": 33621363000000,
+          "frmtrm_amount": 14473401000000,
+          "bfefrmtrm_amount": 54730018000000,
+          "account_detail": "-"
+        },
+        "ifrs-full_ProfitLossBeforeTax": {
+          "year": 2024,
+          "account_id": "ifrs-full_ProfitLossBeforeTax",
+          "account_nm": "법인세비용차감전순이익",
+          "amount": 37529734000000,
+          "frmtrm_amount": 11006265000000,
+          "bfefrmtrm_amount": 46440474000000,
+          "account_detail": "-"
+        },
+        "ifrs-full_BasicEarningsLossPerShare": {
+          "year": 2024,
+          "account_id": "ifrs-full_BasicEarningsLossPerShare",
+          "account_nm": "기본주당이익",
+          "amount": 4950,
+          "frmtrm_amount": 2131,
+          "bfefrmtrm_amount": 8057,
+          "account_detail": "-"
+        },
+        "ifrs-full_FinanceCosts": {
+          "year": 2024,
+          "account_id": "ifrs-full_FinanceCosts",
+          "account_nm": "금융비용",
+          "amount": 12985684000000,
+          "frmtrm_amount": 12645530000000,
+          "bfefrmtrm_amount": 19027689000000,
+          "account_detail": "-"
+        },
+        "ifrs-full_InterestPaidClassifiedAsOperatingActivities": {
+          "year": 2024,
+          "account_id": "ifrs-full_InterestPaidClassifiedAsOperatingActivities",
+          "account_nm": "이자의 지급",
+          "amount": 675049000000,
+          "frmtrm_amount": 844691000000,
+          "bfefrmtrm_amount": 714543000000,
+          "account_detail": "-"
+        }
+      }
+    },
+    "years": [
+      2024
+    ],
+    "raw_count": 213,
+    "ratios": {
+      "2024": {
+        "ROE": 8.565895145570622,
+        "ROA": 6.695668001552354,
+        "영업이익률": 10.877077402197314,
+        "순이익률": 11.450542626915306,
+        "부채비율": 27.931897811908623,
+        "유동비율": 243.29933623533063,
+        "현금비율": 23.652357543194782,
+        "이자보상배율": 2.520156889694836,
+        "자산_자본부채_차이율": 0.0
+      }
+    }
+  }
+}

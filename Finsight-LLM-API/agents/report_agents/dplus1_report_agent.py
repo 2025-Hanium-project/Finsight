@@ -96,6 +96,7 @@ class DPlus1ReportAgent(AnalysisAgent):
             
             # LLM 호출
             from utils.llm.llm_client import generate_response
+            from utils.llm.llm_utils import extract_json_from_response
             response = await generate_response(
                 prompt=prompt,
                 model=self.model_name,
@@ -105,7 +106,8 @@ class DPlus1ReportAgent(AnalysisAgent):
             
             # 응답 파싱
             try:
-                result = json.loads(response)
+                json_text = extract_json_from_response(response)
+                result = json.loads(json_text)
             except json.JSONDecodeError:
                 # JSON 파싱 실패 시 텍스트 응답으로 처리
                 result = {
