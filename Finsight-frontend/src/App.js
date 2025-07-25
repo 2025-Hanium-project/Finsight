@@ -24,7 +24,7 @@ function App() {
         <Route path="/profileedit" element={<ProfileEditPage />} />
         <Route path="/dday" element={<DdayReportPage />} /> 
         <Route path="/dplus1" element={<DPlus1ReportPage />} />
-        <Route path="/detail" element={<DetailPage />} />
+        <Route path="/detail/:stockCode" element={<DetailPage />} />
         {/* 추가 라우팅 */}
       </Routes>
     </BrowserRouter>
