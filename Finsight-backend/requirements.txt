@@ -4,3 +4,5 @@ flask_cors
 flasgger
 flask_sqlalchemy
 flask_marshmallow
+flask_bcrypt
+flask_login
