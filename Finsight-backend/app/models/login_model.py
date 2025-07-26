@@ -1,9 +1,5 @@
-from flask_sqlalchemy import SQLAlchemy
-from flask_bcrypt import Bcrypt
 from flask_login import UserMixin
-
-db = SQLAlchemy()
-bcrypt = Bcrypt()
+from ..extensions import db, bcrypt
 
 class User(db.Model, UserMixin):
     __tablename__ = 'user'
@@ -16,3 +12,5 @@ class User(db.Model, UserMixin):
 
     def check_password(self, password):
         return bcrypt.check_password_hash(self.password, password)
+    def get_id(self):
+        return str(self.user_id)
