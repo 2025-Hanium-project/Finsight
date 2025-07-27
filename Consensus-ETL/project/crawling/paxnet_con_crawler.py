@@ -1,6 +1,8 @@
 import time
 import os
 import re
+import argparse
+import sys
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -41,85 +43,104 @@ class PaxnetPDFDownloader:
         # 헤드리스 모드 옵션 (필요시 주석 해제)
         # self.chrome_options.add_argument('--headless')
         
-    def download_from_list_page(self, list_url):
+    def download_from_list_page(self, list_url, max_pages=2):
         """
-        리스트 페이지에서 모든 리포트 PDF 다운로드
+        리스트 페이지에서 모든 리포트 PDF 다운로드 (여러 페이지 지원)
         
         Args:
-            list_url: 리포트 목록 페이지 URL
+            list_url: 리포트 목록 페이지 URL (첫 페이지)
+            max_pages: 처리할 최대 페이지 수 (기본: 2)
         """
         driver = webdriver.Chrome(options=self.chrome_options)
         downloaded_files = []
         
         try:
-            print(f"리스트 페이지 접속: {list_url}")
-            driver.get(list_url)
+            print(f"팍스넷 리포트 다운로드 시작 - 최대 {max_pages}페이지")
             
-            # 페이지가 완전히 로드될 때까지 대기
-            WebDriverWait(driver, 20).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, "ul.board-list"))
-            )
-            time.sleep(3)
-            
-            # 팍스넷 리포트 목록 찾기 - 스크린샷에서 확인된 구조
-            report_links = driver.find_elements(By.CSS_SELECTOR, "ul.board-list li a[href*='javascript:selectView']")
-            
-            if not report_links:
-                print("리포트 목록을 찾을 수 없습니다.")
-                return downloaded_files
-            
-            print(f"총 {len(report_links)}개의 리포트 발견")
-            
-            # 각 리포트 처리
-            processed = 0
-            for i in range(len(report_links)):
+            for page_num in range(1, max_pages + 1):
+                print(f"\n=== 페이지 {page_num} 처리 중 ===")
+                
+                # 페이지별 URL 생성
+                page_url = self._get_page_url(list_url, page_num)
+                print(f"페이지 접속: {page_url}")
+                
+                driver.get(page_url)
+                
+                # 페이지가 완전히 로드될 때까지 대기
                 try:
-                    # 매번 새로 찾기 (DOM이 변경될 수 있으므로)
-                    report_links = driver.find_elements(By.CSS_SELECTOR, "ul.board-list li a[href*='javascript:selectView']")
-                    if i >= len(report_links):
+                    WebDriverWait(driver, 20).until(
+                        EC.presence_of_element_located((By.CSS_SELECTOR, "ul.board-list"))
+                    )
+                    time.sleep(3)
+                except TimeoutException:
+                    print(f"  페이지 {page_num} 로드 실패 - 건너뛰기")
+                    continue
+                
+                # 팍스넷 리포트 목록 찾기
+                report_links = driver.find_elements(By.CSS_SELECTOR, "ul.board-list li a[href*='javascript:selectView']")
+                
+                if not report_links:
+                    print(f"  페이지 {page_num}에서 리포트 목록을 찾을 수 없습니다.")
+                    if page_num == 1:
+                        print("  첫 페이지에 데이터가 없어 중단합니다.")
                         break
-                    
-                    link = report_links[i]
-                    title = link.text.strip()
-                    
-                    if not title:
-                        continue
-                    
-                    print(f"\n[{processed+1}/{len(report_links)}] 리포트: {title[:60]}...")
-                    
-                    # href에서 reportId 추출
-                    href = link.get_attribute('href')
-                    if href:
-                        match = re.search(r"selectView\('(\d+)'\)", href)
+                    continue
+                
+                print(f"  페이지 {page_num}에서 {len(report_links)}개의 리포트 발견")
+                
+                # 각 리포트 처리
+                page_processed = 0
+                for i in range(len(report_links)):
+                    try:
+                        # 매번 새로 찾기 (DOM이 변경될 수 있으므로)
+                        report_links = driver.find_elements(By.CSS_SELECTOR, "ul.board-list li a[href*='javascript:selectView']")
+                        if i >= len(report_links):
+                            break
                         
-                        if match:
-                            report_id = match.group(1)
-                            report_url = f"https://www.paxnet.co.kr/stock/report/reportView?menuCode=2222&reportId={report_id}"
+                        link = report_links[i]
+                        title = link.text.strip()
+                        
+                        if not title:
+                            continue
+                        
+                        print(f"    [{page_processed+1}/{len(report_links)}] 리포트: {title[:60]}...")
+                    
+                        # href에서 reportId 추출
+                        href = link.get_attribute('href')
+                        if href:
+                            match = re.search(r"selectView\('(\d+)'\)", href)
                             
-                            # 새 탭에서 열기
-                            driver.execute_script("window.open('');")
-                            driver.switch_to.window(driver.window_handles[-1])
-                            driver.get(report_url)
-                            time.sleep(3)
-                            
-                            # PDF 다운로드
-                            pdf_file = self._download_pdf_from_detail_page(driver, title)
-                            if pdf_file:
-                                downloaded_files.append(pdf_file)
-                                processed += 1
-                            
-                            # 탭 닫고 원래 탭으로 돌아가기
+                            if match:
+                                report_id = match.group(1)
+                                report_url = f"https://www.paxnet.co.kr/stock/report/reportView?menuCode=2222&reportId={report_id}"
+                                
+                                # 새 탭에서 열기
+                                driver.execute_script("window.open('');")
+                                driver.switch_to.window(driver.window_handles[-1])
+                                driver.get(report_url)
+                                time.sleep(3)
+                                
+                                # PDF 다운로드
+                                pdf_file = self._download_pdf_from_detail_page(driver, title)
+                                if pdf_file:
+                                    downloaded_files.append(pdf_file)
+                                    page_processed += 1
+                                
+                                # 탭 닫고 원래 탭으로 돌아가기
+                                driver.close()
+                                driver.switch_to.window(driver.window_handles[0])
+                                time.sleep(1)
+                    
+                    except Exception as e:
+                        print(f"      오류 발생: {e}")
+                        # 오류 발생 시에도 원래 탭으로 돌아가기
+                        if len(driver.window_handles) > 1:
                             driver.close()
                             driver.switch_to.window(driver.window_handles[0])
-                            time.sleep(1)
-                    
-                except Exception as e:
-                    print(f"  오류 발생: {e}")
-                    # 오류 발생 시에도 원래 탭으로 돌아가기
-                    if len(driver.window_handles) > 1:
-                        driver.close()
-                        driver.switch_to.window(driver.window_handles[0])
-                    continue
+                        continue
+                
+                print(f"  페이지 {page_num} 완료: {page_processed}개 다운로드")
+                time.sleep(2)  # 페이지 간 대기
                     
         except Exception as e:
             print(f"전체 프로세스 오류: {e}")
@@ -127,7 +148,8 @@ class PaxnetPDFDownloader:
         finally:
             driver.quit()
             
-        print(f"\n총 {len(downloaded_files)}개의 PDF 다운로드 완료")
+        print(f"\n=== 다운로드 완료 ===")
+        print(f"총 {len(downloaded_files)}개의 PDF 다운로드 완료")
         return downloaded_files
     
     def _download_pdf_from_detail_page(self, driver, title):
@@ -260,6 +282,18 @@ class PaxnetPDFDownloader:
             print(f"  PDF 다운로드 실패: {e}")
             return None
     
+    def _get_page_url(self, base_url, page_num):
+        """
+        페이지 번호에 따라 URL 생성
+        """
+        if 'currentPageNo=' in base_url:
+            # 기존 페이지 번호 대체
+            return re.sub(r'currentPageNo=\d+', f'currentPageNo={page_num}', base_url)
+        else:
+            # 페이지 번호 추가
+            separator = '&' if '?' in base_url else '?'
+            return f"{base_url}{separator}currentPageNo={page_num}"
+    
     def _download_pdf_direct(self, pdf_url, title):
         """
         URL로 직접 PDF 다운로드
@@ -338,14 +372,32 @@ class PaxnetPDFDownloader:
 
 # 사용 예시
 if __name__ == "__main__":
-    # 다운로더 초기화
-    downloader = PaxnetPDFDownloader()
+    parser = argparse.ArgumentParser(description='팍스넷 리포트 PDF 다운로더')
+    parser.add_argument('--max-pages', type=int, default=2, help='처리할 최대 페이지 수 (기본: 2)')
+    parser.add_argument('--start-page', type=int, default=1, help='시작 페이지 (기본: 1)')
     
-    # 리스트 페이지에서 모든 리포트 다운로드
-    list_url = "https://www.paxnet.co.kr/stock/report/report?menuCode=2222&currentPageNo=1"
-    downloaded_files = downloader.download_from_list_page(list_url)
+    args = parser.parse_args()
     
-    # 다운로드된 파일 목록 출력
-    print("\n다운로드된 파일:")
-    for file in downloaded_files:
-        print(f"- {file}")
+    try:
+        # 다운로더 초기화
+        downloader = PaxnetPDFDownloader()
+        
+        # 리스트 페이지에서 모든 리포트 다운로드
+        list_url = f"https://www.paxnet.co.kr/stock/report/report?menuCode=2222&currentPageNo={args.start_page}"
+        downloaded_files = downloader.download_from_list_page(list_url, max_pages=args.max_pages)
+        
+        # 다운로드된 파일 목록 출력
+        print("\n다운로드된 파일:")
+        for file in downloaded_files:
+            print(f"- {os.path.basename(file)}")
+            
+        if not downloaded_files:
+            print("다운로드된 파일이 없습니다.")
+            sys.exit(1)
+            
+    except KeyboardInterrupt:
+        print("\n사용자에 의해 중단되었습니다.")
+        sys.exit(1)
+    except Exception as e:
+        print(f"오류 발생: {e}")
+        sys.exit(1)

@@ -214,6 +214,9 @@ def navigate_to_next_page(driver, current_start_count):
         
         time.sleep(3)  # 페이지 로드 대기
         
+        # 로그인 알림창 확인 및 처리
+        check_and_handle_login_alert(driver)
+        
         # 페이지 로드 확인
         WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "table.tbl-type.board"))
@@ -344,7 +347,7 @@ def main():
         # 전체 리포트 목록
         all_reports = []
         current_start_count = 0
-        max_pages = 20  # 최대 20페이지까지 크롤링 (140개 리포트)
+        max_pages = 10  # 최대 10페이지까지 크롤링 (70개 리포트)
         page_num = 1
         
         while page_num <= max_pages:
