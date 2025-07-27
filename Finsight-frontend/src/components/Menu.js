@@ -29,7 +29,7 @@ function Menu() {
       </div>
       <div className="sidebar-nav-item">
         <i>🔍</i>
-        <button id="nav-detail" onClick={() => navigate('/detail')}>
+        <button id="nav-detail" onClick={() => navigate('/detail/005930')}>
           종목 상세 정보
         </button>
       </div>
