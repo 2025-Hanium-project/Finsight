@@ -2,8 +2,10 @@ import time
 import os
 import pandas as pd
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
+import argparse
+import sys
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -55,10 +57,14 @@ class MaeilEconomyCrawler:
         if hasattr(self, 'driver'):
             self.driver.quit()
     
-    def crawl_reports(self, date="2025-07-19", page=1, stock_code=""):
-        """매일경제 증권사 리포트 크롤링"""
+    def crawl_reports(self, page=1, stock_code="", date=None):
+        """매일경제 증권사 리포트 크롤링 (페이지 기반)"""
         try:
-            url = f"{self.base_url}/price/report?stock_code={stock_code}&day={date}&page={page}"
+            # 날짜 파라미터는 선택적으로 사용 (없으면 전체 최신 리포트)
+            if date:
+                url = f"{self.base_url}/price/report?stock_code={stock_code}&day={date}&page={page}"
+            else:
+                url = f"{self.base_url}/price/report?stock_code={stock_code}&page={page}"
             print(f"페이지 URL: {url}")
             
             # 페이지 접속
@@ -76,6 +82,14 @@ class MaeilEconomyCrawler:
             reports = self._parse_report_table()
             
             print(f"발견된 리포트 수: {len(reports)}")
+            
+            # 데이터가 없으면 빈 리스트 반환
+            if not reports:
+                if date:
+                    print(f"날짜 {date} 페이지 {page}에 리포트가 없습니다.")
+                else:
+                    print(f"페이지 {page}에 리포트가 없습니다.")
+            
             return reports
             
         except Exception as e:
@@ -458,18 +472,23 @@ class MaeilEconomyCrawler:
         
         return downloaded_files
     
-    def run(self, date="2025-07-19", max_pages=3, stock_code=""):
-        """크롤러 실행"""
-        print("매일경제 리포트 크롤링 시작")
+    def run(self, max_pages=2, stock_code="", date=None):
+        """크롤러 실행 (페이지 기반)"""
+        if date:
+            print(f"매일경제 리포트 크롤링 시작 - 날짜: {date}, 페이지: 1~{max_pages}")
+        else:
+            print(f"매일경제 리포트 크롤링 시작 - 최신 {max_pages}페이지")
         
         all_reports = []
         
         for page in range(1, max_pages + 1):
             print(f"페이지 {page} 크롤링 중...")
-            reports = self.crawl_reports(date=date, page=page, stock_code=stock_code)
+            reports = self.crawl_reports(page=page, stock_code=stock_code, date=date)
             
             if not reports:
                 print(f"페이지 {page}에서 리포트를 찾을 수 없습니다.")
+                if page == 1:
+                    print(f"첫 페이지에 데이터가 없어 크롤링을 중단합니다.")
                 break
                 
             all_reports.extend(reports)
@@ -477,20 +496,107 @@ class MaeilEconomyCrawler:
         
         if all_reports:
             # CSV 저장
-            df = self.save_to_csv(all_reports)
+            if date:
+                filename = f"maeil_consensus_{date.replace('-', '')}.csv"
+            else:
+                filename = f"maeil_consensus_{datetime.now().strftime('%Y%m%d')}.csv"
+            
+            df = self.save_to_csv(all_reports, filename=filename)
             
             # PDF 다운로드 (모든 리포트)
             downloaded = self.download_reports(all_reports, max_downloads=None)
             
             if df is not None:
                 print("\n=== 크롤링 결과 요약 ===")
+                if date:
+                    print(f"수집 날짜: {date}")
+                else:
+                    print(f"수집 페이지: 1~{max_pages}페이지")
                 print(f"총 리포트 수: {len(df)}")
                 print(f"다운로드된 파일 수: {len(downloaded)}")
                 print(f"컬럼: {list(df.columns)}")
+                return True
         else:
-            print("크롤링된 데이터가 없습니다.")
+            if date:
+                print(f"날짜 {date}에 크롤링된 데이터가 없습니다.")
+            else:
+                print(f"페이지 1~{max_pages}에서 크롤링된 데이터가 없습니다.")
+            return False
+
+def run_page_backfill(start_page, end_page, stock_code=""):
+    """페이지 범위 백필 실행 함수"""
+    crawler = MaeilEconomyCrawler()
+    success_count = 0
+    total_pages = end_page - start_page + 1
+    
+    print(f"페이지 백필 시작: {start_page}~{end_page}페이지 ({total_pages}페이지)")
+    
+    all_reports = []
+    
+    for page in range(start_page, end_page + 1):
+        print(f"\n[페이지 {page}] 백필 중... ({page - start_page + 1}/{total_pages})")
+        
+        try:
+            reports = crawler.crawl_reports(page=page, stock_code=stock_code)
+            
+            if reports:
+                all_reports.extend(reports)
+                success_count += 1
+                print(f"✅ 페이지 {page} 백필 성공 ({len(reports)}개 리포트)")
+            else:
+                print(f"⚠️ 페이지 {page} 데이터 없음")
+                
+        except Exception as e:
+            print(f"❌ 페이지 {page} 백필 실패: {e}")
+        
+        time.sleep(2)  # 서버 부하 방지
+    
+    # 전체 결과 저장
+    if all_reports:
+        filename = f"maeil_consensus_pages_{start_page}to{end_page}_{datetime.now().strftime('%Y%m%d')}.csv"
+        df = crawler.save_to_csv(all_reports, filename=filename)
+        downloaded = crawler.download_reports(all_reports, max_downloads=None)
+        
+        print(f"\n=== 페이지 백필 완료 ===")
+        print(f"성공한 페이지: {success_count}/{total_pages}")
+        print(f"총 수집 리포트: {len(all_reports)}개")
+        print(f"다운로드된 파일: {len(downloaded)}개")
+    else:
+        print(f"\n페이지 백필 완료: 수집된 데이터 없음")
+    
+    # 크롤러 정리
+    try:
+        if hasattr(crawler, 'driver') and crawler.driver:
+            crawler.driver.quit()
+    except:
+        pass
 
 if __name__ == "__main__":
-    crawler = MaeilEconomyCrawler()
-    # 첫 페이지만 테스트하고, 처음 3개 리포트만 다운로드 시도
-    crawler.run(date="2025-07-19", max_pages=1)
+    parser = argparse.ArgumentParser(description='매일경제 리포트 크롤러 (페이지 기반)')
+    parser.add_argument('--date', type=str, help='수집할 날짜 (YYYY-MM-DD), 미지정시 최신 리포트')
+    parser.add_argument('--max-pages', type=int, default=2, help='최대 페이지 수 (기본: 2)')
+    parser.add_argument('--start-page', type=int, help='백필 시작 페이지')
+    parser.add_argument('--end-page', type=int, help='백필 종료 페이지')
+    parser.add_argument('--stock-code', type=str, default='', help='종목 코드 (선택)')
+    
+    args = parser.parse_args()
+    
+    try:
+        # 페이지 백필 모드
+        if args.start_page and args.end_page:
+            run_page_backfill(args.start_page, args.end_page, args.stock_code)
+        else:
+            # 일반 모드 (최신 페이지 또는 특정 날짜)
+            crawler = MaeilEconomyCrawler()
+            result = crawler.run(max_pages=args.max_pages, stock_code=args.stock_code, date=args.date)
+            
+            if not result:
+                print("데이터가 없어 수집을 완료하지 못했습니다.")
+                sys.exit(1)
+                
+    except KeyboardInterrupt:
+        print("\n사용자에 의해 중단되었습니다.")
+        sys.exit(1)
+    except Exception as e:
+        print(f"오류 발생: {e}")
+        sys.exit(1)
