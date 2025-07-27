@@ -1,17 +1,16 @@
-
 import os
 from pathlib import Path
 import fitz  # PyMuPDF
 import tempfile
 from docling.document_converter import DocumentConverter
 
-def extract_first_page_and_parse(pdf_path):
+def extract_first_page_markdown(pdf_path):
     tmp_pdf_path = None
     try:
         # 첫 페이지만 포함된 임시 PDF 생성
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp_pdf:
             tmp_pdf_path = Path(tmp_pdf.name)
-            tmp_pdf.close()  # Windows에서 필요
+            tmp_pdf.close()  # Windows 호환을 위해 닫기
             doc = fitz.open(pdf_path)
             first_page_doc = fitz.open()
             first_page_doc.insert_pdf(doc, from_page=0, to_page=0)
@@ -20,32 +19,32 @@ def extract_first_page_and_parse(pdf_path):
         # Docling으로 파싱
         converter = DocumentConverter()
         result = converter.convert(tmp_pdf_path)
-        markdown_text = result.document.export_to_markdown()
-        return markdown_text
+        return result.document.export_to_markdown()
     except Exception as e:
-        print(f"PDF 첫 페이지 파싱 실패: {e}")
+        print(f"{pdf_path.name} 첫 페이지 파싱 실패: {e}")
         return ""
     finally:
-        # 임시 PDF 삭제
         try:
             if tmp_pdf_path and tmp_pdf_path.exists():
                 tmp_pdf_path.unlink()
         except Exception as cleanup_error:
             print(f"임시 파일 삭제 실패: {cleanup_error}")
 
-def main():
-    base_dir = Path(__file__).parent
-    pdf_path = base_dir / "2025-05-15_메리츠금융지주_키움증권.pdf"
-    output_txt = base_dir / "kiwoom_docling_debug.txt"
+def parse_pdfs_to_txt(security):
+    base_dir = Path(__file__).parent.parent
+    pdf_dir = base_dir / "consensus" / security
+    output_dir = base_dir / "consensus_to_txt" / security
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-    if not pdf_path.exists():
-        print(f"PDF 파일이 존재하지 않습니다: {pdf_path}")
-        return
-
-    text = extract_first_page_and_parse(pdf_path)
-    with open(output_txt, 'w', encoding='utf-8') as f:
-        f.write(text)
-    print(f"첫 페이지 텍스트가 {output_txt}로 저장되었습니다.")
+    for pdf_file in pdf_dir.glob("*.pdf"):
+        try:
+            text = extract_first_page_markdown(pdf_file)
+            output_path = output_dir / (pdf_file.stem + ".txt")
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(text)
+            print(f"{pdf_file.name} -> {output_path.name} 저장 완료")
+        except Exception as e:
+            print(f"{pdf_file.name} 변환 실패: {e}")
 
 if __name__ == "__main__":
-    main()
+    parse_pdfs_to_txt("bnk")
