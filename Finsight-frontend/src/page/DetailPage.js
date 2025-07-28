@@ -1,12 +1,14 @@
 // src/pages/DetailPage.jsx
 
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import Menu from "../components/Menu";
 import "../css/detail.css";
 import StockCandleChart from "../components/StockCandleChart";
 function DetailPage() {
   const { stockCode } = useParams();
+  const [searchValue, setSearchValue] = useState("");
+  const navigate = useNavigate();
 
   // API에서 받아올 상태
   const [latest, setLatest] = useState(null);
@@ -87,9 +89,41 @@ function DetailPage() {
             type="text"
             className="search-input"
             placeholder="종목명 또는 종목코드 검색"
-            defaultValue="삼성전자"
+            value={searchValue}
+            onChange={e => setSearchValue(e.target.value)}
           />
-          <button className="search-button">검색</button>
+          <button
+            className="search-button"
+            onClick={async () => {
+              const value = searchValue.trim();
+              if (!value) return;
+              let code = value;
+              // 숫자가 아니면 종목명으로 간주
+              if (isNaN(Number(value))) {
+                try {
+                  const res = await fetch(`http://localhost:5000/api/stocks/name/${encodeURIComponent(value)}`);
+                  if (res.ok) {
+                    const data = await res.json();
+                    if (data.stock_code) {
+                      code = data.stock_code;
+                    } else {
+                      alert('종목명을 찾을 수 없습니다.');
+                      return;
+                    }
+                  } else {
+                    alert('종목명을 찾을 수 없습니다.');
+                    return;
+                  }
+                } catch (e) {
+                  alert('종목명 변환 중 오류가 발생했습니다.');
+                  return;
+                }
+              }
+              navigate(`/detail/${code}`);
+            }}
+          >
+            검색
+          </button>
         </div>
 
         {/* 종목 헤더 (동적) */}
