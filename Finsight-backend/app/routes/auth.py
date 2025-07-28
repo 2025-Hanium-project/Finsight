@@ -19,10 +19,11 @@ auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
                 'type': 'object',
                 'properties': {
                     'user_name': {'type': 'string'},
+                    'login_id': {'type': 'string'}, # 로그인 ID 추가
                     'password': {'type': 'string'},
                     'email': {'type': 'string'}
                 },
-                'required': ['user_name', 'password']
+                'required': ['login_id', 'password']
             }
         }
     ],
@@ -33,13 +34,14 @@ auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 })
 def register():
     data = request.get_json()
-    if User.query.filter_by(user_name=data['user_name']).first():
+    if User.query.filter_by(login_id=data['login_id']).first():
         return jsonify({'message': 'User already exists'}), 409
 
     hashed_pw = bcrypt.generate_password_hash(data['password']).decode('utf-8')
     new_user = User(
         user_id=str(uuid.uuid4()),
         user_name=data['user_name'],
+        login_id=data['login_id'],
         password=hashed_pw,
         email=data.get('email')
     )
@@ -59,10 +61,10 @@ def register():
             'schema': {
                 'type': 'object',
                 'properties': {
-                    'user_name': {'type': 'string'},
+                    'login_id': {'type': 'string'},
                     'password': {'type': 'string'}
                 },
-                'required': ['user_name', 'password']
+                'required': ['login_id', 'password']
             }
         }
     ],
@@ -73,7 +75,7 @@ def register():
 })
 def login():
     data = request.get_json()
-    user = User.query.filter_by(user_name=data['user_name']).first()
+    user = User.query.filter_by(login_id=data['login_id']).first()
     if user and user.check_password(data['password']):
         login_user(user)
         return jsonify({'message': 'Login successful', 'user_id': user.user_id}), 200
@@ -106,6 +108,7 @@ def logout():
                 'properties': {
                     'user_id': {'type': 'string'},
                     'user_name': {'type': 'string'},
+                    'login_id': {'type': 'string'},
                     'email': {'type': 'string'}
                 }
             }
@@ -117,5 +120,6 @@ def me():
     return jsonify({
         'user_id': current_user.user_id,
         'user_name': current_user.user_name,
+        'login_id': current_user.login_id, 
         'email': current_user.email
     })
