@@ -134,11 +134,11 @@ body {
 }
 
 /* 사이드바 스타일 */
-.sidebar {
+.main-sidebar {
     width: 240px;
     background-color: var(--secondary);
     color: white;
-    padding: 0 0;
+    padding: 20px 0;
     transition: all 0.3s;
 }
 

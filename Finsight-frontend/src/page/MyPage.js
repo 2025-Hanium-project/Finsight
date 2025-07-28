@@ -253,7 +253,7 @@ function Mypage() {
             <div className="settings-content">
               <div className="setting-item">
                 <div className="setting-info">
-                  <div className="setting-label">위험도 선호</div>
+                  <div className="setting-label">투자 성향</div>
                   <div className="setting-description">투자 성향에 맞는 종목 추천을 받으세요</div>
                 </div>
                 <select className="setting-select" value={risk} onChange={handleRiskChange}>

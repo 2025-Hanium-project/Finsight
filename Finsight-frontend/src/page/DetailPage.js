@@ -40,7 +40,7 @@ function DetailPage() {
   }, [stockCode]);
 
   if (loading) {
-    return <div className="container">로딩 중...</div>;
+    return <div className="container"></div>;
   }
   if (!latest) {
     return <div className="container">데이터가 없습니다.</div>;
@@ -63,7 +63,7 @@ function DetailPage() {
   return (
     <div className="container">
       {/* 사이드바 */}
-      <div className="sidebar">
+      <div className="main-sidebar">
         <div className="sidebar-header">
           <div className="logo">
             <span className="logo-icon">📊</span>

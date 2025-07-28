@@ -276,38 +276,6 @@ body {
     color: var(--warning);
 }
 
-/* 주소 입력 */
-.address-input {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.address-row {
-    display: flex;
-    gap: 10px;
-}
-
-.address-row input {
-    flex: 1;
-}
-
-.btn-address-search {
-    padding: 10px 16px;
-    background-color: var(--primary);
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: background-color 0.2s;
-    white-space: nowrap;
-}
-
-.btn-address-search:hover {
-    background-color: var(--primary-light);
-}
-
 /* 보안 설정 */
 .security-settings {
     display: flex;
