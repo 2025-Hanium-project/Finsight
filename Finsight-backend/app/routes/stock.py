@@ -73,7 +73,7 @@ def get_stock(stock_code):
     else:
         return jsonify({'error': 'Stock not found'}), 404
 
-# 종목명에서 종목코드 조회 엔드포인트 추가
+# 종목명에서 종목코드 조회 엔드포인트 추가 (DetailPage.js에서 사용)
 @stock_bp.route('/name/<string:stock_name>', methods=['GET'])
 def get_stock_by_name(stock_name):
     """
