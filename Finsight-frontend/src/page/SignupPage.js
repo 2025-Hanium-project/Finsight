@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import "../css/signup.css"; // 기존 signup.css 내용 복사해서 사용
+import "../css/signup.css"; 
 
 function SignupPage() {
   const navigate = useNavigate();
@@ -119,29 +119,30 @@ function SignupPage() {
       setUserIdChecked(false);
       return;
     }
-    // 실제로는 서버에 중복확인 요청 필요. 예시로 임시 로직 사용
-    // const res = await fetch(`/api/check-username?userId=${encodeURIComponent(userId)}`);
-    // const data = await res.json();
-    // if (data.available) {
-    //   setUserIdMsg("사용 가능한 아이디입니다.");
-    //   setUserIdChecked(true);
-    // } else {
-    //   setUserIdMsg("이미 사용 중인 아이디입니다.");
-    //   setUserIdChecked(false);
-    // }
-    // 임시: 4자 이상, 영문/숫자만 허용, 'test'는 중복으로 처리
+
     if (!/^[a-zA-Z0-9]{4,}$/.test(userId)) {
       setUserIdMsg("4자 이상 영문/숫자만 사용 가능합니다.");
       setUserIdChecked(false);
-    } else if (userId.toLowerCase() === "test") {
-      setUserIdMsg("이미 사용 중인 아이디입니다.");
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/auth/check-login-id?login_id=${encodeURIComponent(userId)}`);
+      const data = await res.json();
+
+      if (res.ok && data.available) {
+        setUserIdMsg("사용 가능한 아이디입니다.");
+        setUserIdChecked(true);
+      } else {
+        setUserIdMsg("이미 사용 중인 아이디입니다.");
+        setUserIdChecked(false);
+      }
+    } catch (err) {
+      console.error("중복 확인 오류:", err);
+      setUserIdMsg("서버 오류가 발생했습니다.");
       setUserIdChecked(false);
-    } else {
-      setUserIdMsg("사용 가능한 아이디입니다.");
-      setUserIdChecked(true);
     }
   };
-
   // 폼 전체 유효성 검사
   React.useEffect(() => {
     const requiredFilled =
@@ -158,11 +159,38 @@ function SignupPage() {
   ]);
 
   // 폼 제출 처리
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (!submitActive) return;
-    alert("회원가입이 완료되었습니다! 로그인 페이지로 이동합니다.");
-    navigate("/login");
+
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          user_name: name,
+          login_id: userId,
+          password: password,
+          email: email
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.status === 201) {
+        alert("회원가입이 완료되었습니다!");
+        navigate("/login");
+      } else if (response.status === 409) {
+        alert(data.message || "이미 존재하는 사용자입니다.");
+      } else {
+        alert("회원가입에 실패했습니다. 다시 시도해주세요.");
+      }
+    } catch (error) {
+      console.error("회원가입 오류:", error);
+      alert("서버와의 연결에 문제가 발생했습니다.");
+    }
   }
 
   return (

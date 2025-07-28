@@ -21,7 +21,7 @@ function DetailPage() {
       setLoading(true);
       try {
         // 추후 endpoint URL을 환경변수로 관리하는 것이 좋아보임.
-        const res = await fetch(`http://localhost:5000/api/direct/${stockCode}/ohlcv`);
+        const res = await fetch(`/api/direct/${stockCode}/ohlcv`);
         if (!res.ok) throw new Error(res.statusText);
         const data = await res.json();
         
@@ -101,7 +101,7 @@ function DetailPage() {
               // 숫자가 아니면 종목명으로 간주
               if (isNaN(Number(value))) {
                 try {
-                  const res = await fetch(`http://localhost:5000/api/stocks/name/${encodeURIComponent(value)}`);
+                  const res = await fetch(`/api/stocks/name/${encodeURIComponent(value)}`);
                   if (res.ok) {
                     const data = await res.json();
                     if (data.stock_code) {
