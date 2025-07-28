@@ -31,9 +31,7 @@ function ProfileEditPage() {
     birth: "1990-05-15",
     email: "investor@example.com",
     phone: "010-1234-5678",
-    zipcode: "",
-    address: "",
-    detailAddress: ""
+    zipcode: ""
   });
 
   // 이미지 변경
@@ -118,10 +116,6 @@ function ProfileEditPage() {
     navigate("/mypage");
   };
 
-  // 주소 검색(실제 구현 필요)
-  const handleAddressSearch = () => {
-    alert("주소 검색 기능을 구현하세요.");
-  };
 
   // 뒤로가기, 취소
   const handleBack = () => navigate("/mypage");
@@ -215,18 +209,6 @@ function ProfileEditPage() {
                     <i className="fas fa-check-circle"></i>
                     인증됨
                   </span>
-                </div>
-              </div>
-              <div className="input-field">
-                <label htmlFor="address">주소</label>
-                <div className="address-input">
-                  <div className="address-row">
-                    <input type="text" id="zipcode" name="zipcode" placeholder="우편번호" readOnly value={profile.zipcode} />
-                    <button type="button" className="btn-address-search" onClick={handleAddressSearch}>주소 검색</button>
-                  </div>
-                  <input type="text" id="address" name="address" placeholder="기본 주소" readOnly value={profile.address} />
-                  <input type="text" id="detailAddress" name="detailAddress" placeholder="상세 주소"
-                    value={profile.detailAddress} onChange={e => setProfile(p => ({ ...p, detailAddress: e.target.value }))} />
                 </div>
               </div>
             </div>

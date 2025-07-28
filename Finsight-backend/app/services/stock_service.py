@@ -12,3 +12,10 @@ def get_stock_by_code(stock_code):
     """
     stock = Stock.query.filter_by(stock_code=stock_code).first()
     return stock.to_dict() if stock else None
+
+def fetch_stock_by_name(stock_name):
+    """
+    stock_name으로 Stock 레코드 조회
+    """
+    stock = Stock.query.filter_by(stock_name=stock_name).first()
+    return stock.to_dict() if stock else None

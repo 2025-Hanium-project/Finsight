@@ -1,19 +1,20 @@
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import "../css/signup.css"; // 기존 signup.css 내용 복사해서 사용
+import "../css/signup.css"; 
 
 function SignupPage() {
   const navigate = useNavigate();
 
+  // 아이디 상태
+  const [userId, setUserId] = useState("");
+  const [userIdMsg, setUserIdMsg] = useState("");
+  const [userIdChecked, setUserIdChecked] = useState(false);
+
   // 기본 정보 상태
   const [name, setName] = useState("");
-  const [birth, setBirth] = useState("");
   const [email, setEmail] = useState("");
   const [emailMsg, setEmailMsg] = useState("");
   const [emailVerified, setEmailVerified] = useState(false);
-  const [phone, setPhone] = useState("");
-  const [phoneMsg, setPhoneMsg] = useState("");
-  const [phoneVerified, setPhoneVerified] = useState(false);
 
   // 계정 정보 상태
   const [password, setPassword] = useState("");
@@ -24,9 +25,9 @@ function SignupPage() {
   const [passwordMsg, setPasswordMsg] = useState("");
 
   // 투자 정보 상태
-  const [experience, setExperience] = useState("");
-  const [riskTolerance, setRiskTolerance] = useState("");
-  const [investmentAmount, setInvestmentAmount] = useState("");
+  // const [experience, setExperience] = useState("");
+  // const [riskTolerance, setRiskTolerance] = useState("");
+  // const [investmentAmount, setInvestmentAmount] = useState("");
 
   // 약관 동의 상태
   const [agreeAll, setAgreeAll] = useState(false);
@@ -42,7 +43,6 @@ function SignupPage() {
 
   // refs
   const emailVerifyBtn = useRef(null);
-  const phoneVerifyBtn = useRef(null);
 
   // 비밀번호 강도 체크 함수
   function checkPasswordStrength(pw) {
@@ -69,11 +69,11 @@ function SignupPage() {
   }
 
   // 비밀번호 확인
-  function checkPasswordMatch() {
-    if (confirmPassword && password !== confirmPassword) {
-      setPasswordMsg("비밀번호가 일치하지 않습니다.");
+  function checkPasswordMatch(pw = password, confirmPw = confirmPassword) {
+    if (confirmPw && pw !== confirmPw) {
+      setPasswordMsg("비밀번호를 다시 입력하세요");
       return false;
-    } else if (confirmPassword && password === confirmPassword) {
+    } else if (confirmPw && pw === confirmPw) {
       setPasswordMsg("비밀번호가 일치합니다.");
       return true;
     }
@@ -112,53 +112,85 @@ function SignupPage() {
     }
   };
 
-  // 휴대폰 인증 버튼 클릭
-  const handlePhoneVerify = () => {
-    if (!/^01[0-9]-[0-9]{4}-[0-9]{4}$/.test(phone)) {
-      setPhoneMsg("올바른 휴대폰 번호 형식을 입력하세요. (010-0000-0000)");
+  // 아이디 중복 확인 함수
+  const handleUserIdCheck = async () => {
+    if (!userId.trim()) {
+      setUserIdMsg("아이디를 입력하세요.");
+      setUserIdChecked(false);
       return;
     }
-    setPhoneMsg("인증번호가 발송되었습니다.");
-    setPhoneVerified(true);
-    if (phoneVerifyBtn.current) {
-      phoneVerifyBtn.current.innerText = "재발송";
+
+    if (!/^[a-zA-Z0-9]{4,}$/.test(userId)) {
+      setUserIdMsg("4자 이상 영문/숫자만 사용 가능합니다.");
+      setUserIdChecked(false);
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/auth/check-login-id?login_id=${encodeURIComponent(userId)}`);
+      const data = await res.json();
+
+      if (res.ok && data.available) {
+        setUserIdMsg("사용 가능한 아이디입니다.");
+        setUserIdChecked(true);
+      } else {
+        setUserIdMsg("이미 사용 중인 아이디입니다.");
+        setUserIdChecked(false);
+      }
+    } catch (err) {
+      console.error("중복 확인 오류:", err);
+      setUserIdMsg("서버 오류가 발생했습니다.");
+      setUserIdChecked(false);
     }
   };
-
-  // 휴대폰 번호 자동 포맷팅
-  function handlePhoneInput(e) {
-    let value = e.target.value.replace(/[^0-9]/g, "");
-    if (value.length >= 11) {
-      value = value.replace(/(\d{3})(\d{4})(\d{4})/, "$1-$2-$3");
-    } else if (value.length >= 7) {
-      value = value.replace(/(\d{3})(\d{4})/, "$1-$2");
-    } else if (value.length >= 3) {
-      value = value.replace(/(\d{3})/, "$1-");
-    }
-    setPhone(value);
-  }
-
   // 폼 전체 유효성 검사
   React.useEffect(() => {
     const requiredFilled =
-      name && birth && email && phone &&
+      name && email && userIdChecked &&
       password && confirmPassword &&
       agreements.terms && agreements.privacy && agreements.investment;
     const passwordValid = checkPasswordStrength(password);
     const passwordMatches = password === confirmPassword && password.length > 0;
     setSubmitActive(!!(requiredFilled && passwordValid && passwordMatches));
   }, [
-    name, birth, email, phone,
+    name, email, userIdChecked,
     password, confirmPassword,
     agreements.terms, agreements.privacy, agreements.investment,
   ]);
 
   // 폼 제출 처리
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (!submitActive) return;
-    alert("회원가입이 완료되었습니다! 로그인 페이지로 이동합니다.");
-    navigate("/login");
+
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          user_name: name,
+          login_id: userId,
+          password: password,
+          email: email
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.status === 201) {
+        alert("회원가입이 완료되었습니다!");
+        navigate("/login");
+      } else if (response.status === 409) {
+        alert(data.message || "이미 존재하는 사용자입니다.");
+      } else {
+        alert("회원가입에 실패했습니다. 다시 시도해주세요.");
+      }
+    } catch (error) {
+      console.error("회원가입 오류:", error);
+      alert("서버와의 연결에 문제가 발생했습니다.");
+    }
   }
 
   return (
@@ -191,17 +223,6 @@ function SignupPage() {
                   onChange={(e) => setName(e.target.value)}
                 />
               </div>
-              <div className="input-field">
-                <label htmlFor="birth">생년월일 *</label>
-                <input
-                  type="date"
-                  id="birth"
-                  name="birth"
-                  required
-                  value={birth}
-                  onChange={(e) => setBirth(e.target.value)}
-                />
-              </div>
             </div>
 
             <div className="input-field">
@@ -229,38 +250,38 @@ function SignupPage() {
               </div>
               <div className="input-message">{emailMsg}</div>
             </div>
-
-            <div className="input-field">
-              <label htmlFor="phone">휴대폰 번호 *</label>
-              <div className="input-with-button">
-                <input
-                  type="tel"
-                  id="phone"
-                  name="phone"
-                  placeholder="010-0000-0000"
-                  required
-                  value={phone}
-                  onChange={handlePhoneInput}
-                  disabled={phoneVerified}
-                  maxLength={13}
-                />
-                <button
-                  type="button"
-                  className="verify-button"
-                  ref={phoneVerifyBtn}
-                  onClick={handlePhoneVerify}
-                  disabled={phoneVerified}
-                >
-                  {phoneVerified ? "인증완료" : "인증"}
-                </button>
-              </div>
-              <div className="input-message">{phoneMsg}</div>
-            </div>
           </div>
 
           {/* 계정 정보 */}
           <div className="form-section">
             <h3 className="section-title">계정 정보</h3>
+            <div className="input-field">
+              <label htmlFor="userId">아이디 *</label>
+              <div className="input-with-button">
+                <input
+                  type="text"
+                  id="userId"
+                  name="userId"
+                  placeholder="아이디를 입력하세요"
+                  required
+                  value={userId}
+                  onChange={e => {
+                    setUserId(e.target.value);
+                    setUserIdChecked(false);
+                    setUserIdMsg("");
+                  }}
+                />
+                <button
+                  type="button"
+                  className="verify-button"
+                  onClick={handleUserIdCheck}
+                  disabled={userIdChecked}
+                >
+                  {userIdChecked ? "확인됨" : "중복 확인"}
+                </button>
+              </div>
+              <div className="input-message" style={{ color: userIdChecked ? "#10b981" : "#ef4444" }}>{userIdMsg}</div>
+            </div>
             <div className="input-field">
               <label htmlFor="password">비밀번호 *</label>
               <input
@@ -270,7 +291,10 @@ function SignupPage() {
                 placeholder="8자 이상, 영문/숫자/특수문자 포함"
                 required
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (confirmPassword) checkPasswordMatch(e.target.value, confirmPassword);
+                }}
               />
               <div className="password-strength">
                 <div className="strength-bar">
@@ -293,7 +317,10 @@ function SignupPage() {
                 placeholder="비밀번호를 다시 입력하세요"
                 required
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  checkPasswordMatch(password, e.target.value);
+                }}
               />
               <div className="input-message" style={{ color: password === confirmPassword ? "#10b981" : "#ef4444" }}>
                 {passwordMsg}
@@ -302,7 +329,7 @@ function SignupPage() {
           </div>
 
           {/* 투자 정보 */}
-          <div className="form-section">
+          {/* <div className="form-section">
             <h3 className="section-title">투자 정보</h3>
             <div className="input-field">
               <label htmlFor="experience">투자 경험</label>
@@ -314,7 +341,7 @@ function SignupPage() {
               </select>
             </div>
             <div className="input-field">
-              <label htmlFor="riskTolerance">위험 성향</label>
+              <label htmlFor="riskTolerance">투자 성향</label>
               <select id="riskTolerance" name="riskTolerance" value={riskTolerance} onChange={e => setRiskTolerance(e.target.value)}>
                 <option value="">선택하세요</option>
                 <option value="conservative">보수적</option>
@@ -323,16 +350,15 @@ function SignupPage() {
               </select>
             </div>
             <div className="input-field">
-              <label htmlFor="investmentAmount">투자 목표 금액</label>
+              <label htmlFor="investmentAmount">투자 금액 범위</label>
               <select id="investmentAmount" name="investmentAmount" value={investmentAmount} onChange={e => setInvestmentAmount(e.target.value)}>
                 <option value="">선택하세요</option>
                 <option value="low">1천만원 이하</option>
                 <option value="medium">1천만원 - 5천만원</option>
-                <option value="high">5천만원 - 1억원</option>
-                <option value="very-high">1억원 이상</option>
+                <option value="high">5천만원 이상</option>
               </select>
             </div>
-          </div>
+          </div> */}
 
           {/* 약관 동의 */}
           <div className="form-section">
@@ -423,27 +449,6 @@ function SignupPage() {
                 <div className="feature-title">안전한 서비스</div>
                 <div className="feature-desc">금융 보안 표준 준수</div>
               </div>
-            </div>
-          </div>
-        </div>
-        <div className="signup-benefits">
-          <h3 className="benefits-title">FinSight 회원 혜택</h3>
-          <div className="benefits-list">
-            <div className="benefit-item">
-              <span className="benefit-icon">✓</span>
-              <span>무료 포트폴리오 분석 (월 5회)</span>
-            </div>
-            <div className="benefit-item">
-              <span className="benefit-icon">✓</span>
-              <span>실시간 시장 알림 서비스</span>
-            </div>
-            <div className="benefit-item">
-              <span className="benefit-icon">✓</span>
-              <span>프리미엄 리포트 열람 권한</span>
-            </div>
-            <div className="benefit-item">
-              <span className="benefit-icon">✓</span>
-              <span>투자 교육 콘텐츠 무료 제공</span>
             </div>
           </div>
         </div>

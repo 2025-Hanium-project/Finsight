@@ -1,21 +1,52 @@
 // src/page/LoginPage.js
 
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../contexts/AuthContext'; 
 import '../css/login.css'; 
 
 function LoginPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
+  const { setIsAuthenticated, setUserInfo } = useContext(AuthContext);
+  const [loginId, setLoginId] = useState('');   // ✅ 변수명 변경
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   // 로그인 버튼 클릭 시 처리 함수
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    // 실제 로그인 로직(서버 통신) 추가 필요!
-    // 성공 시 메인 대시보드로 이동
-    navigate('/dashboard');
+    setErrorMsg('');
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',  // ✅ Flask 세션 쿠키 전송 필수
+        body: JSON.stringify({
+          login_id: loginId,
+          password: password
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.status === 200) {
+        setIsAuthenticated(true);             // ✅ 로그인 성공 처리
+        setUserInfo({ login_id: loginId });   // ✅ 필요한 유저 정보 저장
+        setErrorMsg('');
+        navigate('/dashboard');
+      } else if (res.status === 401) {
+        setErrorMsg('비밀번호가 틀렸습니다.');
+      } else {
+        setErrorMsg('로그인에 실패했습니다.');
+      }
+    } catch (err) {
+      console.error('로그인 오류:', err);
+      setErrorMsg('서버 오류가 발생했습니다.');
+    }
   };
 
   return (
@@ -32,13 +63,13 @@ function LoginPage() {
 
         <form onSubmit={handleLogin}>
           <div className="input-field">
-            <label htmlFor="email">이메일</label>
+            <label htmlFor="loginId">아이디</label>
             <input
-              type="email"
-              id="email"
-              placeholder="이메일 주소를 입력하세요"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="text"
+              id="loginId"
+              placeholder="아이디를 입력하세요"
+              value={loginId}
+              onChange={(e) => setLoginId(e.target.value)}
               required
             />
           </div>
@@ -52,6 +83,11 @@ function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
+            {errorMsg && (
+              <div className="input-message" style={{ color: 'red', marginTop: '4px' }}>
+                {errorMsg}
+              </div>
+            )}
           </div>
 
           <div className="password-options">
