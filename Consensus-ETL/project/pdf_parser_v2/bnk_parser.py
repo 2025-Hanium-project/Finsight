@@ -72,18 +72,16 @@ def extract_stock_name_and_code(info):
         if match and not stock_code:
             stock_name = match.group(1).strip()
             stock_code = match.group(2)
-        
         # 종목명만 있는 경우 (자료:)
         match = re.match(pattern_jaryo, line)
         if match and not stock_code:
             stock_name = match.group(1).strip()
             stock_code = get_code_by_name_from_db(stock_name)
-
         # 제목
         match = re.match(pattern_title, line)
         if match and not report_title:
-            report_title = match.group(1).strip()
-
+            if not re.match(pattern_code, line):
+                report_title = match.group(1).strip()
         # 날짜
         match = re.search(pattern_date, line)
         if match and not report_date:
@@ -108,7 +106,6 @@ def extract_stock_name_and_code(info):
         if match and not rating and not opinion_change:
             opinion_change = match.group(1).strip()
             rating = match.group(2).strip()
-
         # 투자 의견 - 2) 세 줄 나눠진 버전
         if '투자의견' in line and not rating and not opinion_change:
             if i + 2 < len(lines):
@@ -120,7 +117,6 @@ def extract_stock_name_and_code(info):
                     opinion_change = bracket_match.group(1).strip()
                     rating = rating_match.group(0).strip()
                     i += 2  # 건너뛴 만큼 증가
-
         # 목표기, 상승/하락 여력 추출
         match = re.search(pattern_target, line)
         if match:
@@ -159,7 +155,8 @@ if __name__ == "__main__":
         main_content = extract_content(file_info)
         stock_name, stock_code, report_title, report_date, report_type, analyst, company_name, rating, opinion_change, target_price_change, target_price = extract_stock_name_and_code(file_info)
         # current_price, investment_rationale는 예시로 None 처리 (추출 함수 필요시 추가)
-        current_price = None
+
+        print(report_title)
         investment_rationale = main_content
         results.append([
             stock_code,
@@ -172,15 +169,13 @@ if __name__ == "__main__":
             rating,
             opinion_change,
             target_price,
-            current_price,
             target_price_change,
             investment_rationale
         ])
-
     # CSV 저장
     output_dir = Path(__file__).parent.parent / "consensus_parsed"
     output_dir.mkdir(parents=True, exist_ok=True)
-    output_csv = output_dir / "bnk_report_parsed.csv"
+    output_csv = output_dir / "bnk_consensus_reports.csv"
     columns = [
         "stock_code",
         "stock_name",
@@ -192,7 +187,6 @@ if __name__ == "__main__":
         "rating",
         "opinion_change",
         "target_price",
-        "current_price",
         "target_price_change",
         "investment_rationale"
     ]

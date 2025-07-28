@@ -47,7 +47,7 @@ def insert_report(row, stock_id):
         rating,
         opinion_change,
         target_price,
-        current_price,
+        target_price_change,
         Stock_id,
         created_at
     ) VALUES (
@@ -64,7 +64,7 @@ def insert_report(row, stock_id):
         row.get('rating'),
         row.get('opinion_change'),
         row.get('target_price'),
-        row.get('current_price'),
+        row.get('target_price_change'),
         stock_id
     ))
     # 생성된 report_id 받아오기

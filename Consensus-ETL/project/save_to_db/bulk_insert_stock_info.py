@@ -1,6 +1,7 @@
 from pykrx import stock
 import pymysql
-import pandas as pd
+
+# 새로운 종목이 상장할 경우 이 코드를 실행하여 새로운 종목에 대한 코드와 이름을 DB에 저장할 필요가 있음
 
 # 1. 종목 코드와 이름 수집
 kospi_codes = stock.get_market_ticker_list(market="KOSPI")
