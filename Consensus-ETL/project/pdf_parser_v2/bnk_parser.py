@@ -1,8 +1,14 @@
 from utils import read_files, extract_all_info
 
+
 import re
 import pymysql
+import csv
+from pathlib import Path
 
+
+# 생각해보니 종목코드나 종목명 하나만 추출하면 된다. 어차피 stock table에 있는 두 정보로 stock_id를 알아내서 FK로
+# report_metadata table에 저장하기 때문에.
 def get_code_by_name_from_db(stock_name):
     """
     DB에서 종목명으로 종목코드 조회
@@ -26,6 +32,21 @@ def get_code_by_name_from_db(stock_name):
     finally:
         conn.close()
     return None
+
+
+def extract_content(info):
+    """
+    '자료:'로 시작하는 줄이 나오기 전까지의 텍스트만 반환
+    """
+    lines = info.splitlines()
+    result_lines = []
+    for line in lines:
+        if line.strip().startswith('자료:'):
+            break
+        result_lines.append(line)
+    return '\n'.join(result_lines)
+
+
 
 def extract_stock_name_and_code(info):
     pattern_code = r"^##\s*(.+?)\s*\((\d{6})\)"
@@ -128,10 +149,55 @@ def extract_stock_name_and_code(info):
         target_price_change, target_price, 
     )
 
+
 if __name__ == "__main__":
     txt_list = read_files("bnk")
     info_list = extract_all_info(txt_list)
+    results = []
     for info in info_list:
         file_info = info['info']
+        main_content = extract_content(file_info)
         stock_name, stock_code, report_title, report_date, report_type, analyst, company_name, rating, opinion_change, target_price_change, target_price = extract_stock_name_and_code(file_info)
-        print(stock_code, stock_name, report_title, report_date, analyst, company_name, rating, opinion_change, target_price_change, target_price)
+        # current_price, investment_rationale는 예시로 None 처리 (추출 함수 필요시 추가)
+        current_price = None
+        investment_rationale = main_content
+        results.append([
+            stock_code,
+            stock_name,
+            report_title,
+            report_date,
+            report_type,
+            analyst,
+            company_name,
+            rating,
+            opinion_change,
+            target_price,
+            current_price,
+            target_price_change,
+            investment_rationale
+        ])
+
+    # CSV 저장
+    output_dir = Path(__file__).parent.parent / "consensus_parsed"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_csv = output_dir / "bnk_report_parsed.csv"
+    columns = [
+        "stock_code",
+        "stock_name",
+        "report_title",
+        "report_date",
+        "report_type",
+        "analyst_name",
+        "company_name",
+        "rating",
+        "opinion_change",
+        "target_price",
+        "current_price",
+        "target_price_change",
+        "investment_rationale"
+    ]
+    with open(output_csv, 'w', encoding='utf-8-sig', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(columns)
+        writer.writerows(results)
+    print(f"CSV 저장 완료: {output_csv}")
