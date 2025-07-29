@@ -1,3 +1,5 @@
 consensus_parsed
+con_deleted/
+con_parsed_deleted/
 consensus/*
 consensus_to_txt/*

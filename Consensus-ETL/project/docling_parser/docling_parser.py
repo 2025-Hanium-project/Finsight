@@ -34,7 +34,9 @@ def parse_pdfs_to_txt(security):
     base_dir = Path(__file__).parent.parent
     pdf_dir = base_dir / "consensus" / security
     output_dir = base_dir / "consensus_to_txt" / security
+    con_deleted_dir = base_dir / "con_deleted" / security
     output_dir.mkdir(parents=True, exist_ok=True)
+    con_deleted_dir.mkdir(parents=True, exist_ok=True)
 
     for pdf_file in pdf_dir.glob("*.pdf"):
         try:
@@ -43,8 +45,12 @@ def parse_pdfs_to_txt(security):
             with open(output_path, 'w', encoding='utf-8') as f:
                 f.write(text)
             print(f"{pdf_file.name} -> {output_path.name} 저장 완료")
+            # 변환 완료된 PDF를 con_deleted로 이동
+            target_pdf_path = con_deleted_dir / pdf_file.name
+            pdf_file.rename(target_pdf_path)
+            print(f"{pdf_file.name} -> {target_pdf_path} 이동 완료")
         except Exception as e:
             print(f"{pdf_file.name} 변환 실패: {e}")
 
 if __name__ == "__main__":
-    parse_pdfs_to_txt("daishin")
+    parse_pdfs_to_txt("bnk")
