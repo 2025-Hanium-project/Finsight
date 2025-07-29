@@ -23,4 +23,4 @@ jobs:
       - name: Pull latest code on server
         run: |
           ssh -p ${{ secrets.SERVER_PORT }} ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            "cd ${{ secrets.SERVER_APP_PATH }} && git reset --hard HEAD && git pull origin main && echo '✅ Deploy completed'"
+            "cd ${{ secrets.SERVER_APP_PATH }} && git reset --hard HEAD && git pull origin main && echo 'Deploy completed'"
