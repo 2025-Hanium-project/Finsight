@@ -33,7 +33,7 @@ dag = DAG(
     schedule='0 3 * * *',  # 매일 새벽 3시에 실행
     catchup=False,
     max_active_runs=1,
-    max_active_tasks=1,
+    max_active_tasks_per_dag = 24,
     tags=['etl', 'consensus', 'financial']
 )
 
