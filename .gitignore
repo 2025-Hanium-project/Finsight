@@ -182,4 +182,4 @@ logs
 airflow.db
 nohup.out
 
-start_dev.sh
+*.sh
