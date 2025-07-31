@@ -393,7 +393,7 @@ if __name__ == "__main__":
             
         if not downloaded_files:
             print("다운로드된 파일이 없습니다.")
-            sys.exit(1)
+            sys.exit(0)
             
     except KeyboardInterrupt:
         print("\n사용자에 의해 중단되었습니다.")
