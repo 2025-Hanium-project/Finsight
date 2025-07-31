@@ -6,3 +6,5 @@ flask_sqlalchemy
 flask_marshmallow
 flask_bcrypt
 flask_login
+pykrx
+dotenv

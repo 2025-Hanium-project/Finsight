@@ -41,7 +41,8 @@ crawlers = [
     'bnk', 'daishin', 'ds', 'hana', 'heungkuk', 'hk',
     'ibks', 'im', 'kiwoom', 'kyobo', 'mirae', 'naver',
     'sangsangin', 'shinhan', 'yj', 'yuanta', 'fnguide',
-    'hyundai', 'krx', 'maeil', 'paxnet', 'samsung', 'wisereport',
+    'hyundai', 'krx', 'maeil','samsung', 'wisereport'
+    # 'paxnet' paxnet 서버에서 실패
 ]
 
 crawler_tasks = []
