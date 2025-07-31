@@ -180,3 +180,6 @@ logs
 
 # Airflow configuration file
 airflow.db
+nohup.out
+
+start_dev.sh
