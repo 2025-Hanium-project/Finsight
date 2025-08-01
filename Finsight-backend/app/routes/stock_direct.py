@@ -210,7 +210,3 @@ def get_today_market_index():
     except Exception as e:
         return jsonify({"error": f"지수 조회 실패: {e}"}), 500
 
-
-
-
-
