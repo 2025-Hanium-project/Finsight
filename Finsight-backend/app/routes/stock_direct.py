@@ -2,14 +2,14 @@
 
 from flask import Blueprint, jsonify, request
 from pykrx import stock as krx
-from datetime import datetime
+from datetime import datetime, timedelta
 
 direct_bp = Blueprint('stock_direct', __name__, url_prefix='/api/direct')
 
 @direct_bp.route('/<string:stock_code>/ohlcv', methods=['GET'])
 def direct_ohlcv(stock_code):
     """
-    Get direct OHLCV + market cap for a stock
+    종목 코드에 해당하는 종목 ohlcv 정보
     ---
     tags:
       - DirectStocks
@@ -125,3 +125,90 @@ def direct_ohlcv(stock_code):
         "ohlcv": ohlcv_list
     }
     return jsonify(result), 200
+
+
+market_bp = Blueprint('market_direct', __name__, url_prefix='/api/direct/market')
+
+@market_bp.route('/today', methods=['GET'])
+def get_today_market_index():
+    """
+    오늘 코스피 / 코스닥 지수 정보 (전일 대비 등락률)
+    ---
+    tags:
+      - DirectMarket
+    responses:
+      200:
+        description: 오늘 코스피/코스닥 지수 정보
+        schema:
+          type: object
+          properties:
+            date:
+              type: string
+              format: date
+            kospi:
+              type: object
+              properties:
+                close: { type: number }
+                change: { type: number, description: 전일 대비 절대 변화량 }
+                change_rate: { type: number, description: 전일 대비 등락률(%) }
+            kosdaq:
+              type: object
+              properties:
+                close: { type: number }
+                change: { type: number }
+                change_rate: { type: number }
+      404:
+        description: 데이터 없음
+      500:
+        description: 조회 실패
+    """
+    try:
+        today = datetime.today()
+        # 전일 데이터까지 포함 (주말·공휴일 보정 위해 7일 전부터 조회)
+        start_date = (today - timedelta(days=7)).strftime("%Y%m%d")
+        end_date = today.strftime("%Y%m%d")
+
+        # 코스피 / 코스닥 지수 조회
+        kospi_df = krx.get_index_ohlcv_by_date(start_date, end_date, "1001")  # KOSPI
+        kosdaq_df = krx.get_index_ohlcv_by_date(start_date, end_date, "2001") # KOSDAQ
+
+        if kospi_df.empty or kosdaq_df.empty:
+            return jsonify({"error": "지수 데이터가 없습니다."}), 404
+
+        # 최신(오늘) & 전일 데이터
+        kospi_today = kospi_df.iloc[-1]
+        kospi_prev = kospi_df.iloc[-2]
+
+        kosdaq_today = kosdaq_df.iloc[-1]
+        kosdaq_prev = kosdaq_df.iloc[-2]
+
+        # KOSPI
+        kospi_close = float(kospi_today['종가'])
+        kospi_change = kospi_close - float(kospi_prev['종가'])
+        kospi_change_rate = round((kospi_change / float(kospi_prev['종가'])) * 100, 2)
+
+        # KOSDAQ
+        kosdaq_close = float(kosdaq_today['종가'])
+        kosdaq_change = kosdaq_close - float(kosdaq_prev['종가'])
+        kosdaq_change_rate = round((kosdaq_change / float(kosdaq_prev['종가'])) * 100, 2)
+
+        result = {
+            "date": today.strftime("%Y-%m-%d"),
+            "kospi": {
+                "close": kospi_close,
+                "change": kospi_change,
+                "change_rate": kospi_change_rate
+            },
+            "kosdaq": {
+                "close": kosdaq_close,
+                "change": kosdaq_change,
+                "change_rate": kosdaq_change_rate
+            }
+        }
+        return jsonify(result), 200
+
+    except Exception as e:
+        return jsonify({"error": f"지수 조회 실패: {e}"}), 500
+
+
+

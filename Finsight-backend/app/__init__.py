@@ -3,7 +3,7 @@ from .config import config_by_name
 from .extensions import db, ma, swagger
 from flasgger import LazyJSONEncoder
 from .routes.stock import stock_bp
-from .routes.stock_direct import direct_bp
+from .routes.stock_direct import *
 from flask_cors import CORS
 from .extensions import db, ma, swagger, bcrypt, login_manager
 from .routes.auth import auth_bp 
@@ -34,7 +34,7 @@ def create_app(config_name='dev'):
     app.register_blueprint(stock_bp)
     app.register_blueprint(direct_bp)
     app.register_blueprint(auth_bp)
-
+    app.register_blueprint(market_bp)
     return app
 
 @login_manager.user_loader
