@@ -3,6 +3,8 @@
 from flask import Blueprint, jsonify, request
 from pykrx import stock as krx
 from datetime import datetime, timedelta
+from app.services.market_extra import get_kor_treasury_3y, get_usdkrw_realtime
+
 
 direct_bp = Blueprint('stock_direct', __name__, url_prefix='/api/direct')
 
@@ -132,13 +134,13 @@ market_bp = Blueprint('market_direct', __name__, url_prefix='/api/direct/market'
 @market_bp.route('/today', methods=['GET'])
 def get_today_market_index():
     """
-    오늘 코스피 / 코스닥 지수 정보 (전일 대비 등락률)
+    오늘 코스피 / 코스닥 지수, 원/달러 환율, 국채 3년물 금리 정보 (전일 대비 등락률)
     ---
     tags:
       - DirectMarket
     responses:
       200:
-        description: 오늘 코스피/코스닥 지수 정보
+        description: 오늘 주요 시장 지표 정보
         schema:
           type: object
           properties:
@@ -148,20 +150,33 @@ def get_today_market_index():
             kospi:
               type: object
               properties:
-                close: { type: number }
+                close: { type: number, description: 종가 }
                 change: { type: number, description: 전일 대비 절대 변화량 }
                 change_rate: { type: number, description: 전일 대비 등락률(%) }
             kosdaq:
               type: object
               properties:
-                close: { type: number }
-                change: { type: number }
-                change_rate: { type: number }
+                close: { type: number, description: 종가 }
+                change: { type: number, description: 전일 대비 절대 변화량 }
+                change_rate: { type: number, description: 전일 대비 등락률(%) }
+            usdkrw:
+              type: object
+              properties:
+                today: { type: number, description: 현재 원/달러 환율 }
+                change: { type: number, description: 전일 대비 절대 변화량 (원) }
+                change_rate: { type: number, description: 전일 대비 등락률(%) }
+            bond_3y:
+              type: object
+              properties:
+                today: { type: number, description: 현재 국채 3년물 금리(%) }
+                change: { type: number, description: 전일 대비 절대 변화량(bp) }
+                change_rate: { type: number, description: 전일 대비 등락률(%) }
       404:
         description: 데이터 없음
       500:
         description: 조회 실패
     """
+
     try:
         today = datetime.today()
         # 전일 데이터까지 포함 (주말·공휴일 보정 위해 7일 전부터 조회)
@@ -192,6 +207,9 @@ def get_today_market_index():
         kosdaq_change = kosdaq_close - float(kosdaq_prev['종가'])
         kosdaq_change_rate = round((kosdaq_change / float(kosdaq_prev['종가'])) * 100, 2)
 
+        usdkrw_info = get_usdkrw_realtime()
+        bond3y_info = get_kor_treasury_3y()
+
         result = {
             "date": today.strftime("%Y-%m-%d"),
             "kospi": {
@@ -203,7 +221,9 @@ def get_today_market_index():
                 "close": kosdaq_close,
                 "change": kosdaq_change,
                 "change_rate": kosdaq_change_rate
-            }
+            },
+            "usdkrw" : usdkrw_info,
+            "bond3y_info" : bond3y_info, 
         }
         return jsonify(result), 200
 
