@@ -178,15 +178,31 @@ body {
 }
 
 .card-status-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: var(--bg-light);
-    color: var(--primary);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f7f8fa;
 }
+
+.card-status-icon.caret-up {
+  background: #fcebec;
+}
+.card-status-icon.caret-down {
+  background: #e9f1fe;
+}
+
+.card-status-icon .fa-caret-up {
+  color: #ff6b6b;
+  font-size: 15px;
+}
+.card-status-icon .fa-caret-down {
+  color: #3b82f6;
+  font-size: 15px;
+}
+
 
 /* 시장 지수 스타일 */
 .market-index-content {
@@ -196,9 +212,24 @@ body {
     margin-bottom: 10px;
 }
 
-.mini-line-chart-placeholder {
-    background-color: var(--gray-100);
-    border-radius: 6px;
+.market-index-content span {
+  letter-spacing: -1px;
+}
+.market-index-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 0.5px 2px 0 rgba(30,40,60,0.03);
+  padding: 20px 18px 20px 18px;
+  min-width: 200px;
+}
+.market-index-card .main-value {
+  color: #222f3e;
+}
+.market-index-card .change-positive {
+  color: #ff6b6b;
+}
+.market-index-card .change-negative {
+  color: #3b82f6;
 }
 
 /* 차트 컨테이너 */

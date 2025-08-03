@@ -1,6 +1,6 @@
 // src/pages/IndexPage.jsx
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Menu from "../components/Menu";      // menu.html JSX 변환 필요
 import Navbar from "../components/Navbar";  // navbar.html JSX 변환 필요
 import Chart from "chart.js/auto"; 
@@ -12,6 +12,36 @@ import "../css/dashboard.css";
 function IndexPage() {
   const chartRef = useRef(null);     // canvas ref
   const chartInstance = useRef(null); // chart.js instance ref
+
+  // 시장지수 데이터 상태 추가
+  const [marketData, setMarketData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // fetch로 시장지수 데이터 불러오기
+  useEffect(() => {
+    fetch("/api/direct/market/today")
+      .then(res => {
+        if (!res.ok) throw new Error("Network response was not ok");
+        return res.json();
+      })
+      .then(data => {
+        setMarketData(data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setMarketData(null);
+        setLoading(false);
+      });
+  }, []);
+
+  // 카드 디자인을 위한 유틸
+  const formatChange = (value) => (value > 0 ? `+${value}` : value);
+  const getChangeClass = (value) =>
+    value > 0
+      ? "change-positive"
+      : value < 0
+      ? "change-negative"
+      : "";
 
   useEffect(() => {
     // 이전 차트 인스턴스 파괴
@@ -67,6 +97,106 @@ function IndexPage() {
     };
   }, []);
 
+  // 시장지수 카드 JSX (로딩/에러 처리)
+  const renderMarketIndexGrid = () => {
+    if (loading) {
+      return (
+        <div className="market-index-grid">
+          <div style={{ gridColumn: "1/5", textAlign: "center", padding: 20 }}>불러오는 중...</div>
+        </div>
+      );
+    }
+    if (!marketData) {
+      return (
+        <div className="market-index-grid">
+          <div style={{ gridColumn: "1/5", textAlign: "center", padding: 20, color: "#ff6b6b" }}>
+            시장 지수 데이터를 불러올 수 없습니다.
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="market-index-grid">
+        {/* 코스피 */}
+        <div className="market-index-card">
+          <div className="card-header">
+            <h3 className="card-title"><i className="fas fa-chart-line"></i>&nbsp;코스피</h3>
+            <div className={`card-status-icon ${marketData.kospi.change > 0 ? "caret-up" : "caret-down"}`}>
+              <i className={`fas fa-caret-${marketData.kospi.change > 0 ? "up" : "down"}`}></i>
+            </div>
+          </div>
+          <div className="market-index-content">
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span style={{ fontSize: "1.8rem", fontWeight: 700 }}>
+                {marketData.kospi.close.toLocaleString()}
+              </span>
+              <span className={getChangeClass(marketData.kospi.change)} style={{ fontWeight: 500 }}>
+                {formatChange(marketData.kospi.change.toFixed(2))} ({formatChange(marketData.kospi.change_rate.toFixed(2))}%)
+              </span>
+            </div>
+          </div>
+        </div>
+        {/* 코스닥 */}
+        <div className="market-index-card">
+          <div className="card-header">
+            <h3 className="card-title"><i className="fas fa-chart-line"></i> 코스닥</h3>
+            <div className={`card-status-icon ${getChangeClass(marketData.kosdaq.change)}`}>
+              <i className={`fas fa-caret-${marketData.kosdaq.change > 0 ? "up" : "down"}`}></i>
+            </div>
+          </div>
+          <div className="market-index-content">
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span style={{ fontSize: "1.8rem", fontWeight: 700 }}>
+                {marketData.kosdaq.close.toLocaleString()}
+              </span>
+              <span className={getChangeClass(marketData.kosdaq.change)} style={{ fontWeight: 500 }}>
+                {formatChange(marketData.kosdaq.change.toFixed(2))} ({formatChange(marketData.kosdaq.change_rate.toFixed(2))}%)
+              </span>
+            </div>
+          </div>
+        </div>
+        {/* 원/달러 */}
+        <div className="market-index-card">
+          <div className="card-header">
+            <h3 className="card-title"><i className="fas fa-dollar-sign"></i> 원/달러</h3>
+            <div className={`card-status-icon ${getChangeClass(marketData.usdkrw.change)}`}>
+              <i className={`fas fa-caret-${marketData.usdkrw.change > 0 ? "up" : "down"}`}></i>
+            </div>
+          </div>
+          <div className="market-index-content">
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span style={{ fontSize: "1.8rem", fontWeight: 700 }}>
+                {marketData.usdkrw.today.toLocaleString()}
+              </span>
+              <span className={getChangeClass(marketData.usdkrw.change)} style={{ fontWeight: 500 }}>
+                {formatChange(marketData.usdkrw.change.toFixed(2))} ({formatChange(marketData.usdkrw.change_rate.toFixed(2))}%)
+              </span>
+            </div>
+          </div>
+        </div>
+        {/* 국채 3년 */}
+        <div className="market-index-card">
+          <div className="card-header">
+            <h3 className="card-title"><i className="fas fa-file-invoice-dollar"></i> 국채 3년</h3>
+            <div className={`card-status-icon ${getChangeClass(marketData.bond3y_info.change)}`}>
+              <i className={`fas fa-caret-${marketData.bond3y_info.change > 0 ? "up" : "down"}`}></i>
+            </div>
+          </div>
+          <div className="market-index-content">
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span style={{ fontSize: "1.8rem", fontWeight: 700 }}>
+                {marketData.bond3y_info.today}%
+              </span>
+              <span className={getChangeClass(marketData.bond3y_info.change)} style={{ fontWeight: 500 }}>
+                {formatChange(marketData.bond3y_info.change.toFixed(2))}%p
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="layout-container">
       {/* 사이드바 */}
@@ -90,68 +220,7 @@ function IndexPage() {
         </div>
 
         {/* 시장 지수 섹션 */}
-        <div className="market-index-grid">
-          {/* 코스피 */}
-          <div className="market-index-card">
-            <div className="card-header">
-              <h3 className="card-title"><i className="fas fa-chart-line"></i> 코스피</h3>
-              <div className="card-status-icon change-positive"><i className="fas fa-caret-up"></i></div>
-            </div>
-            <div className="market-index-content">
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '1.8rem', fontWeight: 700 }}>2,654.31</span>
-                <span className="change-positive" style={{ fontWeight: 500 }}>+21.59 (+0.82%)</span>
-              </div>
-              <div className="mini-line-chart-placeholder"
-                style={{ width: 120, height: 50, backgroundColor: "var(--gray-100)", borderRadius: 6 }} />
-            </div>
-          </div>
-          {/* 코스닥 */}
-          <div className="market-index-card">
-            <div className="card-header">
-              <h3 className="card-title"><i className="fas fa-chart-line"></i> 코스닥</h3>
-              <div className="card-status-icon change-negative"><i className="fas fa-caret-down"></i></div>
-            </div>
-            <div className="market-index-content">
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '1.8rem', fontWeight: 700 }}>892.15</span>
-                <span className="change-negative" style={{ fontWeight: 500 }}>-3.30 (-0.37%)</span>
-              </div>
-              <div className="mini-line-chart-placeholder"
-                style={{ width: 120, height: 50, backgroundColor: "var(--gray-100)", borderRadius: 6 }} />
-            </div>
-          </div>
-          {/* 원/달러 */}
-          <div className="market-index-card">
-            <div className="card-header">
-              <h3 className="card-title"><i className="fas fa-dollar-sign"></i> 원/달러</h3>
-              <div className="card-status-icon change-negative"><i className="fas fa-caret-down"></i></div>
-            </div>
-            <div className="market-index-content">
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '1.8rem', fontWeight: 700 }}>1,320.50</span>
-                <span className="change-negative" style={{ fontWeight: 500 }}>-6.02 (-0.45%)</span>
-              </div>
-              <div className="mini-line-chart-placeholder"
-                style={{ width: 120, height: 50, backgroundColor: "var(--gray-100)", borderRadius: 6 }} />
-            </div>
-          </div>
-          {/* 국채 3년 */}
-          <div className="market-index-card">
-            <div className="card-header">
-              <h3 className="card-title"><i className="fas fa-file-invoice-dollar"></i> 국채 3년</h3>
-              <div className="card-status-icon change-positive"><i className="fas fa-caret-up"></i></div>
-            </div>
-            <div className="market-index-content">
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '1.8rem', fontWeight: 700 }}>3.65%</span>
-                <span className="change-positive" style={{ fontWeight: 500 }}>+0.05%p</span>
-              </div>
-              <div className="mini-line-chart-placeholder"
-                style={{ width: 120, height: 50, backgroundColor: "var(--gray-100)", borderRadius: 6 }} />
-            </div>
-          </div>
-        </div>
+        {renderMarketIndexGrid()}
 
         {/* 투자 종목 및 특이 종목 */}
         <div className="stock-section-container">

@@ -171,12 +171,7 @@ function DetailPage() {
         {/* 차트 영역 (동적 - placeholder) */}
         <div className="info-card full-span">
           <div className="time-tab-nav">
-            <div className="tab active">일별</div>
-            <div className="tab">주별</div>
-            <div className="tab">월별</div>
-            <div className="tab">3개월</div>
-            <div className="tab">1년</div>
-            <div className="tab">3년</div>
+            <div className="tab active">일별 차트</div>
           </div>
 +        <div className="chart-box-detail">
 +          {/* StockChart 에 전체 ohlcv 또는 원하는 slice만 넘겨주세요 */}
@@ -302,8 +297,6 @@ function DetailPage() {
             </div>
             <div className="time-tab-nav">
               <div className="tab active">최근 1주일</div>
-              <div className="tab">최근 1개월</div>
-              <div className="tab">최근 3개월</div>
             </div>
             <div className="table-container">
               <table>
