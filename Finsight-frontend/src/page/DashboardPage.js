@@ -213,7 +213,7 @@ function IndexPage() {
       {/* 메인 대시보드 */}
       <div className="main-dashboard-content">
         <div className="main-dashboard-header">
-          <h1 className="page-title">메인 대시보드</h1>
+          <h1 className="page-title">투자 대시보드</h1>
           <div>
             <Navbar />
           </div>

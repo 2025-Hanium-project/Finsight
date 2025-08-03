@@ -1,5 +1,4 @@
 // src/pages/DetailPage.jsx
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Menu from "../components/Menu";
@@ -175,7 +174,7 @@ function DetailPage() {
           </div>
 +        <div className="chart-box-detail">
 +          {/* StockChart 에 전체 ohlcv 또는 원하는 slice만 넘겨주세요 */}
-+          <StockCandleChart data={ohlcv.slice(-30)} />
++          <StockCandleChart data={ohlcv.slice(-90)} />
 +        </div>
         </div>
 
