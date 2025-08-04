@@ -1,15 +1,20 @@
-fastapi==0.104.1
-uvicorn==0.24.0
-pydantic==2.5.0
-python-dotenv==1.0.0
-google-generativeai==0.3.2
-langgraph==0.0.40
-langchain==0.1.0
-langchain-google-genai==0.0.6
-asyncio
-aiofiles
-python-multipart
-httpx
-# 이미지 처리 라이브러리
-Pillow==10.1.0
-numpy==1.24.3
+# FastAPI 관련
+fastapi
+uvicorn
+
+# LangGraph 및 LangChain 관련
+langgraph
+langgraph-supervisor
+langchain-core
+langchain-community
+langchain-google-genai
+langsmith
+
+# PDF 처리
+pypdf
+
+# 환경 변수 관리
+python-dotenv
+
+# 데이터 처리
+pydantic
