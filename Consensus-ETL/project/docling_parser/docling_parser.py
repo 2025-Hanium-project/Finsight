@@ -53,4 +53,5 @@ def parse_pdfs_to_txt(security):
             print(f"{pdf_file.name} 변환 실패: {e}")
 
 if __name__ == "__main__":
+    target_list = ["bnk", "daishin"]
     parse_pdfs_to_txt("bnk")
