@@ -2,48 +2,56 @@
 
 **LangGraph 기반의 지능형 멀티 에이전트 시스템**
 
-컨센서스 리포트 처리를 위한 FastAPI 애플리케이션으로, PDF 문서에서 자동으로 투자 정보를 추출하고 구조화된 데이터로 변환합니다.
+KOSPI200 컨센서스 리포트 처리 및 분석을 위한 FastAPI 애플리케이션으로, PDF 문서에서 자동으로 투자 정보를 추출하고 컨센서스 데이터를 분석합니다.
 
 ## 📋 주요 기능
 
 - **PDF 텍스트 추출**: 컨센서스 리포트 PDF에서 텍스트 자동 추출
 - **지능형 정보 파싱**: AI 에이전트를 통한 투자 정보 자동 분석
-- **구조화된 데이터 변환**: JSON 형식의 표준화된 컨센서스 데이터 출력
-- **멀티 에이전트 시스템**: 감독자 에이전트와 처리 에이전트 간 협업
+- **컨센서스 분석**: DB 기반 정량/정성 컨센서스 데이터 종합 분석
+- **실시간 주가 조회**: pykrx, yfinance를 통한 실제 주가 데이터 연동
+- **멀티 에이전트 시스템**: 감독자 에이전트와 전문 분석 에이전트 간 협업
 - **RESTful API**: 간편한 HTTP API 인터페이스
 
 ## 🛠 기술 스택
 
-- **프레임워크**: FastAPI
-- **AI/LLM**: Google Gemini API, LangChain, LangGraph
+- **프레임워크**: FastAPI, Uvicorn
+- **AI/LLM**: Google Gemini 2.5 Flash, LangChain, LangGraph
 - **모니터링**: LangSmith
-- **PDF 처리**: PyPDF
-- **서버**: Uvicorn
+- **PDF 처리**: PyPDF, Unstructured
+- **데이터베이스**: MySQL, SQLite (테스트용)
+- **주가 데이터**: pykrx, yfinance
 
 ## 📁 프로젝트 구조
 
-```
+```text
 Finsight-LLM-API/
-├── api/                    # API 엔드포인트
-│   ├── endpoints.py        # 컨센서스 처리 API
+├── api/                         # API 엔드포인트
+│   ├── endpoints.py             # 워크플로우 처리 API
 │   └── __init__.py
-├── agents/                 # AI 에이전트
-│   ├── supervisor_agent.py          # 감독자 에이전트
-│   ├── consensus_processing_agent.py # 컨센서스 처리 에이전트
-│   ├── prompts.py          # 에이전트 프롬프트
+├── agents/                      # AI 에이전트
+│   ├── supervisor_agent.py      # 감독자 에이전트
+│   ├── consensus_processing_agent.py  # 컨센서스 처리 에이전트
+│   ├── consensus_analyst_agent.py     # 컨센서스 분석 에이전트
 │   └── __init__.py
-├── tools/                  # 도구 모듈
-│   ├── document_tools.py   # PDF 처리 도구
+├── tools/                       # 도구 모듈
+│   ├── pdf_tools.py            # PDF 처리 도구
+│   ├── db_tools.py             # 데이터베이스 도구
+│   ├── stock_tools.py          # 주식 데이터 도구
 │   └── __init__.py
-├── workflows/              # 워크플로우
-│   ├── consensus_workflow.py # 컨센서스 처리 워크플로우
+├── workflows/                   # 워크플로우
+│   ├── consensus_workflow.py    # 컨센서스 처리 워크플로우
 │   └── __init__.py
-├── schemas/                # 데이터 스키마
-│   ├── schema.py          # Pydantic 스키마
+├── schemas/                     # 데이터 스키마
+│   ├── schema.py               # Pydantic 스키마
 │   └── __init__.py
-├── data/                   # 데이터 폴더
-├── app.py                  # 메인 애플리케이션
-└── requirements.txt        # 의존성
+├── tests/                      # 테스트 폴더
+│   ├── test_consensus_analyst_agent.py  # 에이전트 테스트
+│   ├── consensus_local.db      # 테스트용 로컬 DB
+│   └── __init__.py
+├── app.py                      # 메인 애플리케이션
+├── requirements.txt            # 의존성
+└── README.md
 ```
 
 ## ⚙️ 설치 및 설정
@@ -93,19 +101,40 @@ GET /health
 ```
 서비스 상태 및 환경 설정을 확인합니다.
 
-#### 3. 컨센서스 처리
+#### 3. 워크플로우 처리
 ```
-POST /consensus
+POST /workflow
 ```
 
 **요청 형식:**
 ```json
 {
-    "file_path": "/path/to/consensus_report.pdf"
+    "request_type": "consensus",
+    "file_path": "C:/path/to/consensus_report.pdf"
 }
 ```
 
-**응답 형식:**
+또는
+
+```json
+{
+    "request_type": "report",
+    "stock_code": "005930",
+    "base_date": "2025-01-21"
+}
+```
+
+또는
+
+```json
+{
+    "request_type": "review",
+    "stock_code": "005930",
+    "base_date": "2025-01-21"
+}
+```
+
+**응답 형식 (consensus):**
 ```json
 {
     "status": "success",
@@ -113,7 +142,7 @@ POST /consensus
         "stock_code": "005930",
         "stock_name": "삼성전자",
         "report_title": "리포트 제목",
-        "report_date": "2024-01-15",
+        "report_date": "2025-01-15",
         "report_type": "기업분석",
         "analyst_name": "애널리스트명",
         "company_name": "증권사명",
@@ -129,24 +158,34 @@ POST /consensus
 
 ### 예시 사용법
 
-```python
-import requests
+```bash
+# PDF 컨센서스 리포트 처리
+curl -X 'POST' \
+  'http://localhost:8000/workflow' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "request_type": "consensus",
+  "file_path": "C:/path/to/report.pdf"
+}'
 
-# 컨센서스 리포트 처리
-response = requests.post(
-    "http://localhost:8000/consensus",
-    json={"file_path": "/path/to/report.pdf"}
-)
-
-result = response.json()
-print(result['data']['stock_name'])  # 종목명
-print(result['data']['target_price'])  # 목표가
+# 컨센서스 분석 요청
+curl -X 'POST' \
+  'http://localhost:8000/workflow' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "request_type": "report",
+  "stock_code": "005930",
+  "base_date": "2025-01-21"
+}'
 ```
 
 ## 🤖 AI 에이전트 시스템
 
 ### 감독자 에이전트 (Supervisor Agent)
 - 워크플로우 전체를 관리하고 라우팅
+- request_type에 따른 적절한 에이전트 선택
 - 결과 품질 검토 및 검증
 - 구조화된 최종 출력 생성
 
@@ -155,13 +194,49 @@ print(result['data']['target_price'])  # 목표가
 - 투자 정보 파싱 및 구조화
 - 표준 JSON 형식으로 데이터 변환
 
-## 📊 추출되는 정보
+### 컨센서스 분석 에이전트 (Consensus Analyst Agent)
+- DB 기반 컨센서스 메타데이터 정량 분석
+- 증권사별 애널리스트 요약 질적 분석
+- 실시간 주가 대비 목표주가 분석
+- KOSPI200 대형주 관점의 종합 투자 분석
 
+## 📊 추출/분석 정보
+
+### PDF 처리 (consensus)
 - **기본 정보**: 종목코드, 종목명, 리포트 제목/날짜/유형
 - **애널리스트 정보**: 애널리스트명, 증권사명
 - **투자 의견**: 투자등급, 의견 변경 여부
 - **목표가**: 목표가, 목표가 변경 여부
 - **분석 내용**: 전체 리포트 본문, 요약
+
+### 컨센서스 분석 (report/review)
+- **정량 분석**: 평균/최고/최저 목표주가, 투자의견 분포
+- **질적 분석**: 증권사별 핵심 논리, 애널리스트 합의도
+- **현재가 대비 분석**: 실시간 주가 대비 상승여력
+- **종합 평가**: 컨센서스 신뢰성, 일관성, 투자 의미
+
+## 🧪 테스트
+
+### 컨센서스 분석 에이전트 테스트
+```bash
+python tests/test_consensus_analyst_agent.py
+```
+
+테스트 기능:
+- 로컬 SQLite DB를 이용한 테스트 환경
+- 실제 주가 데이터(pykrx/yfinance) 연동 테스트
+- 정량/정성 분석 종합 평가
+
+## 🗃 데이터베이스
+
+### 실제 서비스
+- **MySQL**: 메인 컨센서스 데이터베이스
+- **호스트**: finsight.kro.kr:32503
+- **테이블**: consensus_reports
+
+### 테스트 환경
+- **SQLite**: tests/consensus_local.db
+- **용도**: 로컬 테스트 및 개발
 
 ## 🔧 개발 가이드
 
@@ -173,11 +248,25 @@ print(result['data']['target_price'])  # 목표가
 ### 로깅 및 모니터링
 LangSmith를 통한 에이전트 실행 과정 추적 및 모니터링이 가능합니다.
 
+### 지원 모델
+- **기본 모델**: Gemini 2.5 Flash
+- **특징**: 빠른 응답속도, 비용 효율성, 한국어 최적화
+
 ## ⚠️ 주의사항
 
 - Google API 키가 필수적으로 필요합니다
 - PDF 파일 경로는 서버에서 접근 가능한 절대 경로여야 합니다
+- Windows 경로 사용 시 JSON에서 백슬래시 이스케이프 필요 (`\\` 또는 `/` 사용)
 - 이미지 기반 PDF는 현재 지원되지 않습니다 (텍스트 추출 가능한 PDF만 지원)
+- KOSPI200 종목만 지원됩니다
+
+## 🎯 향후 계획
+
+- [ ] report/review 워크플로우 구현
+- [ ] 추가 주식 시장 데이터 연동
+- [ ] 성능 최적화 및 캐싱
+- [ ] 배치 처리 기능
+- [ ] 웹 인터페이스 개발
 
 ## 📝 라이선스
 
