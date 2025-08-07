@@ -22,4 +22,4 @@ def extract_pdf(file_path: str) -> str:
     first_page = docs[0]
     page_text = first_page.page_content.strip()
     
-    return page_text
+    return page_text 
