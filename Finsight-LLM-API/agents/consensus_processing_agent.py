@@ -1,6 +1,6 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.prebuilt import create_react_agent
-from tools.document_tools import extract_pdf
+from tools.pdf_tools import extract_pdf
 
 # Consensus Processing Agent 프롬프트
 CONSENSUS_PROCESSING_PROMPT = """
