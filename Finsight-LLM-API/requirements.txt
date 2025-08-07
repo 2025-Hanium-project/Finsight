@@ -1,8 +1,6 @@
-# FastAPI 관련
 fastapi
 uvicorn
 
-# LangGraph 및 LangChain 관련
 langgraph
 langgraph-supervisor
 langchain-core
@@ -10,11 +8,15 @@ langchain-community
 langchain-google-genai
 langsmith
 
-# PDF 처리
 pypdf
+unstructured[pdf]
 
-# 환경 변수 관리
 python-dotenv
 
-# 데이터 처리
 pydantic
+pandas
+
+pymysql
+
+yfinance
+pykrx
