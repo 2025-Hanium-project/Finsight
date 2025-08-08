@@ -1,7 +1,0 @@
-pandas
-psycopg2-binary
-fastapi
-uvicorn
-sentence-transformers
-torch
-python-dotenv

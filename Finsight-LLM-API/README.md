@@ -1,238 +1,277 @@
-# FinsightAI - AI 기반 금융 분석 시스템
+# FinsightAI LLM API
 
-## 개요
+**LangGraph 기반의 지능형 멀티 에이전트 시스템**
 
-FinsightAI는 증권사 리포트와 금융 데이터를 AI로 분석하여 투자 인사이트를 제공하는 종합 금융 분석 시스템입니다.
+KOSPI200 컨센서스 리포트 처리 및 분석을 위한 FastAPI 애플리케이션으로, PDF 문서에서 자동으로 투자 정보를 추출하고 컨센서스 데이터를 분석합니다.
 
-## 주요 기능
+## 📋 주요 기능
 
-### 📊 데이터 분석
-- **재무제표 분석**: 기업 재무상태 종합 분석
-- **뉴스 분석**: 실시간 뉴스 감성 및 영향도 분석
-- **증권사 리포트 분석**: 전문가 리포트 요약 및 인사이트 추출
-- **시장 데이터 분석**: 주가, 거래량, 지표 분석
+- **PDF 텍스트 추출**: 컨센서스 리포트 PDF에서 텍스트 자동 추출
+- **지능형 정보 파싱**: AI 에이전트를 통한 투자 정보 자동 분석
+- **컨센서스 분석**: DB 기반 정량/정성 컨센서스 데이터 종합 분석
+- **실시간 주가 조회**: pykrx, yfinance를 통한 실제 주가 데이터 연동
+- **멀티 에이전트 시스템**: 감독자 에이전트와 전문 분석 에이전트 간 협업
+- **RESTful API**: 간편한 HTTP API 인터페이스
 
-### 🤖 AI 에이전트 시스템
-- **리스크 평가**: 투자 리스크 요인 분석
-- **성장성 분석**: 기업 성장 동력 및 전망 분석
-- **가치 평가**: 기업 가치 평가 및 투자 적정성 분석
-- **동료 비교**: 업종 내 경쟁사 비교 분석
+## 🛠 기술 스택
 
-### 📈 리포트 생성
-- **D-day 리포트**: 실시간 시장 상황 분석
-- **D+1 리포트**: 다음날 전망 및 투자 전략
-- **종합 분석**: 다각도 분석 결과 통합 리포트
+- **프레임워크**: FastAPI, Uvicorn
+- **AI/LLM**: Google Gemini 2.5 Flash, LangChain, LangGraph
+- **모니터링**: LangSmith
+- **PDF 처리**: PyPDF, Unstructured
+- **데이터베이스**: MySQL, SQLite (테스트용)
+- **주가 데이터**: pykrx, yfinance
 
-### 🔧 시스템 관리
-- **품질 관리**: AI 분석 결과 품질 검토
-- **문서 처리**: PDF, 이미지 등 다양한 문서 처리
-- **협업 시스템**: 다중 에이전트 협업 분석
+## 📁 프로젝트 구조
 
-## 시스템 아키텍처
-
-```
+```text
 Finsight-LLM-API/
-├── agents/                         # AI 분석 에이전트
-│   ├── data_agents/               # 데이터 수집/분석 에이전트
-│   ├── analysis_agents/           # 전문 분석 에이전트
-│   ├── report_agents/             # 리포트 생성 에이전트
-│   └── support_agents/            # 지원 에이전트
-├── routers/                        # API 라우터
-│   └── report_router.py           # 리포트 분석 API
-├── models/                         # 데이터 모델
-│   └── schemas.py                 # Pydantic 스키마
-├── utils/                          # 유틸리티
-│   ├── core/                      # 핵심 유틸리티
-│   ├── llm/                       # LLM 통신
-│   ├── collaboration/             # 협업 시스템
-│   └── performance/               # 성능 모니터링
-├── rag_system/                     # RAG 시스템
-├── tests/                          # 테스트 코드
-├── error_handlers.py               # 에러 처리
-├── config.py                       # 설정 관리
-├── app.py                          # FastAPI 애플리케이션
-└── requirements.txt                # 의존성 목록
+├── api/                         # API 엔드포인트
+│   ├── endpoints.py             # 워크플로우 처리 API
+│   └── __init__.py
+├── agents/                      # AI 에이전트
+│   ├── supervisor_agent.py      # 감독자 에이전트
+│   ├── consensus_processing_agent.py  # 컨센서스 처리 에이전트
+│   ├── consensus_analyst_agent.py     # 컨센서스 분석 에이전트
+│   └── __init__.py
+├── tools/                       # 도구 모듈
+│   ├── pdf_tools.py            # PDF 처리 도구
+│   ├── db_tools.py             # 데이터베이스 도구
+│   ├── stock_tools.py          # 주식 데이터 도구
+│   └── __init__.py
+├── workflows/                   # 워크플로우
+│   ├── consensus_workflow.py    # 컨센서스 처리 워크플로우
+│   └── __init__.py
+├── schemas/                     # 데이터 스키마
+│   ├── schema.py               # Pydantic 스키마
+│   └── __init__.py
+├── tests/                      # 테스트 폴더
+│   ├── test_consensus_analyst_agent.py  # 에이전트 테스트
+│   ├── consensus_local.db      # 테스트용 로컬 DB
+│   └── __init__.py
+├── app.py                      # 메인 애플리케이션
+├── requirements.txt            # 의존성
+└── README.md
 ```
 
-## API 엔드포인트
-
-### 기본 상태 확인
-- `GET /` : API 상태 확인
-- `GET /api` : API 정보
-- `GET /api/v1/health` : 헬스체크
-- `GET /api/system/status` : 시스템 상태
-
-### 에이전트 API
-- `POST /api/v1/agents/financial-statement` : 재무제표 분석
-- `POST /api/v1/agents/news-analysis` : 뉴스 분석
-- `POST /api/v1/agents/securities-report` : 증권사 리포트 분석
-- `POST /api/v1/agents/market-data` : 시장 데이터 분석
-- `POST /api/v1/agents/risk-assessment` : 리스크 평가
-- `POST /api/v1/agents/growth-analysis` : 성장성 분석
-- `POST /api/v1/agents/valuation` : 가치 평가
-- `POST /api/v1/agents/peer-comparison` : 동료 비교
-
-### 리포트 API
-- `POST /api/v1/agents/dday-report` : D-day 리포트
-- `POST /api/v1/agents/dplus1-report` : D+1 리포트
-
-### 협업 API
-- `POST /api/v1/collaboration/basic` : 기본 협업
-- `POST /api/v1/collaboration/advanced` : 고급 협업
-- `POST /api/v1/collaboration/optimized` : 최적화 협업
-- `GET /api/collaboration/status` : 협업 상태
-
-### 대시보드 API
-- `GET /api/v1/dashboard/summary` : 대시보드 요약
-- `GET /api/v1/dashboard/agent/{agent_name}` : 에이전트 상세
-- `GET /api/v1/dashboard/alerts` : 시스템 알림
-- `GET /api/v1/dashboard/visualization` : 시각화 데이터
-
-### 워크플로우 API
-- `POST /api/v1/workflow/comprehensive` : 종합 워크플로우
-
-## 설치 및 실행
+## ⚙️ 설치 및 설정
 
 ### 1. 의존성 설치
+
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. 환경 설정
-`.env` 파일을 생성하고 다음 설정을 추가:
+### 2. 환경 변수 설정
 
-#### Gemini API 사용 (권장)
+`.env` 파일을 생성하고 다음 환경 변수를 설정하세요:
+
 ```env
-# LLM 제공자 설정
-LLM_PROVIDER=gemini
+# Google API 설정
+GOOGLE_API_KEY=your_google_api_key
 
-# Gemini API 설정
-GEMINI_API_KEY=your_gemini_api_key_here
-DEFAULT_GEMINI_MODEL=gemini-1.5-pro
-
-# API 서버 설정
-API_HOST=0.0.0.0
-API_PORT=8000
-LOG_LEVEL=INFO
-
-# 보안 설정
-SECRET_KEY=your_secret_key_here
-```
-
-#### Ollama 사용 (로컬)
-```env
-# LLM 제공자 설정
-LLM_PROVIDER=ollama
-
-# Ollama API 설정
-OLLAMA_API_BASE_URL=http://localhost:11434
-DEFAULT_MODEL=llama3.2:latest
-
-# API 서버 설정
-API_HOST=0.0.0.0
-API_PORT=8000
-LOG_LEVEL=INFO
-
-# 보안 설정
-SECRET_KEY=your_secret_key_here
+# LangSmith 설정 (선택사항)
+LANGSMITH_API_KEY=your_langsmith_api_key
+LANGSMITH_PROJECT=your_project_name
+LANGSMITH_TRACING_V2=true
+LANGSMITH_ENDPOINT=https://api.smith.langchain.com
 ```
 
 ### 3. 서버 실행
+
 ```bash
 python app.py
 ```
 
+서버는 `http://localhost:8000`에서 실행됩니다.
+
+## 🚀 사용법
+
+### API 엔드포인트
+
+#### 1. 루트 엔드포인트
+```
+GET /
+```
+API 정보 및 사용 가능한 엔드포인트 목록을 반환합니다.
+
+#### 2. 헬스 체크
+```
+GET /health
+```
+서비스 상태 및 환경 설정을 확인합니다.
+
+#### 3. 워크플로우 처리
+```
+POST /workflow
+```
+
+**요청 형식:**
+```json
+{
+    "request_type": "consensus",
+    "file_path": "C:/path/to/consensus_report.pdf"
+}
+```
+
 또는
 
-```bash
-uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+```json
+{
+    "request_type": "report",
+    "stock_code": "005930",
+    "base_date": "2025-01-21"
+}
 ```
 
-### 4. API 문서 확인
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
+또는
 
-## 테스트
-
-### 전체 테스트 실행
-```bash
-python -m tests.test_api
+```json
+{
+    "request_type": "review",
+    "stock_code": "005930",
+    "base_date": "2025-01-21"
+}
 ```
 
-### 개별 테스트 실행
-```bash
-# API 테스트
-python -m tests.test_api
-
-# 단위 테스트
-python -m tests.test_unit
-
-# 협업 테스트
-python -m tests.test_collaboration
+**응답 형식 (consensus):**
+```json
+{
+    "status": "success",
+    "data": {
+        "stock_code": "005930",
+        "stock_name": "삼성전자",
+        "report_title": "리포트 제목",
+        "report_date": "2025-01-15",
+        "report_type": "기업분석",
+        "analyst_name": "애널리스트명",
+        "company_name": "증권사명",
+        "rating": "매수",
+        "opinion_change": "유지",
+        "target_price": 84000,
+        "target_price_change": "상향",
+        "investment_rationale": "전체 리포트 본문 내용...",
+        "summary": "3-5문장 요약"
+    }
+}
 ```
 
-## 사용 예시
+### 예시 사용법
 
-### 재무제표 분석
 ```bash
-curl -X POST "http://localhost:8000/api/v1/agents/financial-statement" \
-  -H "Content-Type: application/json" \
+# PDF 컨센서스 리포트 처리
+curl -X 'POST' \
+  'http://localhost:8000/workflow' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
   -d '{
-    "target_type": "company",
-    "target_name": "삼성전자",
-    "symbol": "005930",
-    "reports": ["재무제표 데이터"],
-    "context": "분석 컨텍스트"
-  }'
-```
+  "request_type": "consensus",
+  "file_path": "C:/path/to/report.pdf"
+}'
 
-### 뉴스 분석
-```bash
-curl -X POST "http://localhost:8000/api/v1/agents/news-analysis" \
-  -H "Content-Type: application/json" \
+# 컨센서스 분석 요청
+curl -X 'POST' \
+  'http://localhost:8000/workflow' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
   -d '{
-    "target_type": "company",
-    "target_name": "삼성전자",
-    "symbol": "005930",
-    "reports": ["뉴스 데이터"],
-    "context": "분석 컨텍스트"
-  }'
+  "request_type": "report",
+  "stock_code": "005930",
+  "base_date": "2025-01-21"
+}'
 ```
 
-### 협업 분석
+## 🤖 AI 에이전트 시스템
+
+### 감독자 에이전트 (Supervisor Agent)
+- 워크플로우 전체를 관리하고 라우팅
+- request_type에 따른 적절한 에이전트 선택
+- 결과 품질 검토 및 검증
+- 구조화된 최종 출력 생성
+
+### 컨센서스 처리 에이전트 (Consensus Processing Agent)
+- PDF 텍스트 추출 및 분석
+- 투자 정보 파싱 및 구조화
+- 표준 JSON 형식으로 데이터 변환
+
+### 컨센서스 분석 에이전트 (Consensus Analyst Agent)
+- DB 기반 컨센서스 메타데이터 정량 분석
+- 증권사별 애널리스트 요약 질적 분석
+- 실시간 주가 대비 목표주가 분석
+- KOSPI200 대형주 관점의 종합 투자 분석
+
+## 📊 추출/분석 정보
+
+### PDF 처리 (consensus)
+- **기본 정보**: 종목코드, 종목명, 리포트 제목/날짜/유형
+- **애널리스트 정보**: 애널리스트명, 증권사명
+- **투자 의견**: 투자등급, 의견 변경 여부
+- **목표가**: 목표가, 목표가 변경 여부
+- **분석 내용**: 전체 리포트 본문, 요약
+
+### 컨센서스 분석 (report/review)
+- **정량 분석**: 평균/최고/최저 목표주가, 투자의견 분포
+- **질적 분석**: 증권사별 핵심 논리, 애널리스트 합의도
+- **현재가 대비 분석**: 실시간 주가 대비 상승여력
+- **종합 평가**: 컨센서스 신뢰성, 일관성, 투자 의미
+
+## 🧪 테스트
+
+### 컨센서스 분석 에이전트 테스트
 ```bash
-curl -X POST "http://localhost:8000/api/v1/collaboration/basic" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "target_type": "company",
-    "target_name": "삼성전자",
-    "symbol": "005930",
-    "reports": ["분석 데이터"],
-    "context": "분석 컨텍스트"
-  }'
+python tests/test_consensus_analyst_agent.py
 ```
 
-## 개발 가이드
+테스트 기능:
+- 로컬 SQLite DB를 이용한 테스트 환경
+- 실제 주가 데이터(pykrx/yfinance) 연동 테스트
+- 정량/정성 분석 종합 평가
 
-### 에러 처리
-- 모든 에러는 `error_handlers.py`에서 중앙 관리
-- 보안을 위한 에러 메시지 sanitization 적용
-- Rate limiting 및 IP 차단 기능 포함
+## 🗃 데이터베이스
 
-### 로깅
-- 구조화된 로깅 시스템
-- 에이전트별 로그 분리
-- 성능 모니터링 및 알림
+### 실제 서비스
+- **MySQL**: 메인 컨센서스 데이터베이스
+- **호스트**: finsight.kro.kr:32503
+- **테이블**: consensus_reports
 
-### 확장성
-- 모듈화된 에이전트 시스템
-- 플러그인 방식의 기능 확장
-- 마이크로서비스 아키텍처 지원
+### 테스트 환경
+- **SQLite**: tests/consensus_local.db
+- **용도**: 로컬 테스트 및 개발
 
-## 라이선스
+## 🔧 개발 가이드
 
-이 프로젝트는 MIT 라이선스 하에 배포됩니다.
+### API 문서
+서버 실행 후 다음 URL에서 자동 생성된 API 문서를 확인할 수 있습니다:
+- Swagger UI: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
 
-## 기여
+### 로깅 및 모니터링
+LangSmith를 통한 에이전트 실행 과정 추적 및 모니터링이 가능합니다.
 
-버그 리포트, 기능 요청, 풀 리퀘스트를 환영합니다.
+### 지원 모델
+- **기본 모델**: Gemini 2.5 Flash
+- **특징**: 빠른 응답속도, 비용 효율성, 한국어 최적화
+
+## ⚠️ 주의사항
+
+- Google API 키가 필수적으로 필요합니다
+- PDF 파일 경로는 서버에서 접근 가능한 절대 경로여야 합니다
+- Windows 경로 사용 시 JSON에서 백슬래시 이스케이프 필요 (`\\` 또는 `/` 사용)
+- 이미지 기반 PDF는 현재 지원되지 않습니다 (텍스트 추출 가능한 PDF만 지원)
+- KOSPI200 종목만 지원됩니다
+
+## 🎯 향후 계획
+
+- [ ] report/review 워크플로우 구현
+- [ ] 추가 주식 시장 데이터 연동
+- [ ] 성능 최적화 및 캐싱
+- [ ] 배치 처리 기능
+- [ ] 웹 인터페이스 개발
+
+## 📝 라이선스
+
+이 프로젝트는 개인/내부 사용을 위한 것입니다.
+
+## 🤝 기여
+
+버그 리포트나 기능 개선 제안은 이슈를 통해 제출해주세요.
