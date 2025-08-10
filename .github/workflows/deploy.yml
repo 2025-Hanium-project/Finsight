@@ -26,5 +26,6 @@ jobs:
             "cd ${{ secrets.SERVER_APP_PATH }} \
             && git reset --hard HEAD \
             && git pull origin main \
+            && cd ~/Finsight-service/Finsight-frontend \
             && npm install \
             && echo 'Deploy completed'"
