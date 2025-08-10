@@ -228,10 +228,6 @@ function DetailPage() {
                 <div className="metric-value">2.3%</div>
               </div>
               <div className="metric-item">
-                <div className="metric-label">베타</div>
-                <div className="metric-value">0.95</div>
-              </div>
-              <div className="metric-item">
                 <div className="metric-label">EPS</div>
                 <div className="metric-value">4,681원</div>
               </div>
