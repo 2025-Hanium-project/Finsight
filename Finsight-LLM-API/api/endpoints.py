@@ -89,11 +89,12 @@ async def process_workflow(request: WorkflowRequest):
             
             # 워크플로우 실행
             result = workflow.run({"file_path": request.file_path})
-            return {"message": "처리 완료", "result": result}
             
-        elif request.request_type in ["report", "review"]:
-            # report, review 타입 처리 (미래 구현)
-            return {"message": f"{request.request_type} 타입은 아직 구현되지 않았습니다"}
+            # 에러 체크
+            if isinstance(result, dict) and "error" in result:
+                raise HTTPException(status_code=500, detail=result["error"])
+            
+            return {"message": "처리 완료", "result": result}
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"처리 중 오류 발생: {str(e)}")

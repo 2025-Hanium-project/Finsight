@@ -54,6 +54,8 @@ class ConsensusWorkflow:
             처리 결과 또는 중간 chunk
         """
         print(f"워크플로우 실행: {inputs}")
+    
+        final_result = None
         
         # 스트리밍 실행
         for chunk in self.graph.stream(
@@ -64,20 +66,24 @@ class ConsensusWorkflow:
                 }
             }
         ):
-            # supervisor에서 최종 JSON 결과가 나오면 파싱하여 반환
+            # supervisor에서 최종 JSON 결과가 나오면 저장
             if self._is_final_json_result(chunk):
                 json_content = self._extract_json_from_chunk(chunk)
                 if json_content:
                     try:
-                        result = json.loads(json_content)
-                        yield result
+                        final_result = json.loads(json_content)
+                        print(f"최종 결과 추출 완료: {final_result.get('stock_code', 'Unknown')}")
+                        break  # 최종 결과를 찾으면 중단
                     except json.JSONDecodeError as e:
                         print(f"JSON 파싱 오류: {e}")
-                        yield {"error": "JSON 파싱 실패", "raw_content": json_content}
-                else:
-                    yield chunk
-            else:
-                yield chunk
+                        final_result = {"error": "JSON 파싱 실패", "raw_content": json_content}
+                        break
+        
+        # 최종 결과가 없으면 에러 반환
+        if final_result is None:
+            final_result = {"error": "최종 결과를 찾을 수 없습니다"}
+        
+        return final_result
     
     def _is_final_json_result(self, chunk):
         """supervisor에서 나온 최종 JSON 결과인지 확인"""
