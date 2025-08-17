@@ -1,100 +1,97 @@
 """
-API 엔드포인트
+API 엔드포인트 - 최종 응답 형식 개선
 """
 
+import os
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, field_validator
 from workflows.consensus_workflow import ConsensusWorkflow
-import os
+from workflows.report_workflow import ReportWorkflow
 from typing import Literal, Optional
 from datetime import datetime
 
 router = APIRouter()
 
 class WorkflowRequest(BaseModel):
-    """워크플로우 처리 요청 모델"""
     request_type: Literal["consensus", "report", "review"] = Field(
         ..., 
-        description="워크플로우 타입: consensus, report, review 중 하나"
+        description="워크플로우 타입"
     )
-    
-    # consensus용 필드
-    file_path: Optional[str] = Field(None, description="PDF 파일 경로 (consensus 타입에서 필수)")
-    
-    # report, review용 필드
-    stock_code: Optional[str] = Field(None, description="종목코드 (report, review 타입에서 필수)")
-    base_date: Optional[str] = Field(None, description="기준 날짜 YYYY-MM-DD (report, review 타입에서 필수)")
+    file_path: Optional[str] = Field(
+        None, 
+        description="처리할 파일 경로 (consensus 타입에서 필수)"
+    )
+    stock_code: Optional[str] = Field(
+        None,
+        description="종목코드 (report, review 타입에서 필수)"
+    )
     
     @field_validator('file_path')
     @classmethod
     def validate_file_path(cls, v, info):
-        """consensus 타입일 때 file_path 필수 검증"""
         request_type = info.data.get('request_type')
         if request_type == 'consensus':
             if not v:
                 raise ValueError('consensus 타입에서는 file_path가 필수입니다')
-        elif request_type in ['report', 'review']:
-            if v is not None:
-                raise ValueError('report, review 타입에서는 file_path를 사용할 수 없습니다')
+            if not os.path.exists(v):
+                raise ValueError(f'파일을 찾을 수 없습니다: {v}')
         return v
     
     @field_validator('stock_code')
     @classmethod
     def validate_stock_code(cls, v, info):
-        """report, review 타입일 때 stock_code 필수 검증"""
         request_type = info.data.get('request_type')
         if request_type in ['report', 'review']:
             if not v:
-                raise ValueError('report, review 타입에서는 stock_code가 필수입니다')
-        elif request_type == 'consensus':
-            if v is not None:
-                raise ValueError('consensus 타입에서는 stock_code를 사용할 수 없습니다')
-        return v
-    
-    @field_validator('base_date')
-    @classmethod
-    def validate_base_date(cls, v, info):
-        """report, review 타입일 때 base_date 필수 검증 및 형식 확인"""
-        request_type = info.data.get('request_type')
-        if request_type in ['report', 'review']:
-            if not v:
-                raise ValueError('report, review 타입에서는 base_date가 필수입니다')
-            # 날짜 형식 검증 (YYYY-MM-DD)
-            try:
-                datetime.strptime(v, '%Y-%m-%d')
-            except ValueError:
-                raise ValueError('base_date는 YYYY-MM-DD 형식이어야 합니다')
-        elif request_type == 'consensus':
-            if v is not None:
-                raise ValueError('consensus 타입에서는 base_date를 사용할 수 없습니다')
+                raise ValueError(f'{request_type} 타입에서는 stock_code가 필수입니다')
         return v
 
-@router.post("/workflow")
-async def process_workflow(request: WorkflowRequest):
-    """워크플로우 처리 API (consensus, report, review)"""
+@router.get("/", summary="API 상태 확인")
+async def health_check():
+    return {
+        "status": "healthy",
+        "message": "Finsight LLM API가 정상 작동 중입니다",
+        "timestamp": datetime.now().isoformat()
+    }
+
+@router.post("/workflow", summary="워크플로우 실행", description="다양한 워크플로우를 실행합니다")
+async def run_workflow(request: WorkflowRequest):
     try:
-        # Google API 키 확인
         google_api_key = os.getenv("GOOGLE_API_KEY")
-        if not google_api_key:
-            raise HTTPException(status_code=500, detail="Google API Key not configured")
         
-        # 워크플로우 실행
-        workflow = ConsensusWorkflow(google_api_key, request.request_type)
-        
-        # request_type에 따른 처리 분기
         if request.request_type == "consensus":
-            # 파일 존재 확인
-            if not os.path.exists(request.file_path):
-                raise HTTPException(status_code=400, detail=f"파일을 찾을 수 없습니다: {request.file_path}")
+            # Consensus 워크플로우 - JSON 형식으로 응답
+            print(f"🚀 Consensus 워크플로우 시작: {request.file_path}")
             
-            # 워크플로우 실행
-            result = workflow.run({"file_path": request.file_path})
+            consensus_workflow = ConsensusWorkflow(
+                google_api_key=google_api_key,
+                request_type="consensus"
+            )
+            result = consensus_workflow.run({
+                "file_path": request.file_path
+            })
             
-            # 에러 체크
-            if isinstance(result, dict) and "error" in result:
-                raise HTTPException(status_code=500, detail=result["error"])
+            # Consensus는 파싱된 JSON만 반환
+            return result
             
-            return {"message": "처리 완료", "result": result}
-        
+        elif request.request_type == "report":
+            # Report 워크플로우 - 리포트 텍스트 그대로 응답
+            print(f"🚀 Report 워크플로우 시작: {request.stock_code}")
+            
+            report_workflow = ReportWorkflow(
+                google_api_key=google_api_key,
+                request_type="report"
+            )
+            result = report_workflow.run({
+                "stock_code": request.stock_code
+            })
+            
+            # Report는 최종 보고서 텍스트만 반환 (메시지 히스토리 제외)
+            return result
+            
+        else:
+            return {"error": f"지원하지 않는 워크플로우 타입: {request.request_type}"}
+            
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"처리 중 오류 발생: {str(e)}")
+        print(f"❌ 워크플로우 실행 오류: {str(e)}")
+        return {"error": f"워크플로우 실행 중 오류 발생: {str(e)}"}
