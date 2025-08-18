@@ -1,5 +1,5 @@
 """
-D-day Report 워크플로우 - 간단한 최종 결과 반환
+D+1 Review 워크플로우 - 성과 분석 및 원인 규명
 """
 
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -7,7 +7,7 @@ from langchain_core.messages import HumanMessage
 from langsmith import traceable
 from typing import Dict, Any
 
-from agents.consensus_analyst_agent import create_consensus_analyst_agent
+from agents.performance_analyst_agent import create_performance_analyst_agent
 from agents.corporate_analyst_agent import create_corporate_analyst_agent
 from agents.industry_analyst_agent import create_industry_analyst_agent
 from agents.market_context_analyst_agent import create_market_context_analyst_agent
@@ -15,10 +15,10 @@ from agents.quantitative_analyst_agent import create_quantitative_analyst_agent
 from agents.report_writer_agent import create_report_writer_agent
 from agents.supervisor_agent import create_supervisor_agent
 
-class ReportWorkflow:
-    """D-day 리포트 처리 워크플로우 - 간단한 최종 결과 반환"""
+class ReviewWorkflow:
+    """D+1 Review 워크플로우 - 성과 분석 및 원인 규명"""
     
-    def __init__(self, google_api_key: str, request_type: str = "report"):
+    def __init__(self, google_api_key: str, request_type: str = "review"):
         self.llm = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash",
             google_api_key=google_api_key,
@@ -30,37 +30,37 @@ class ReportWorkflow:
     def _build_graph(self):
         """워크플로우 그래프 구축"""
         # 각 전문 분석가 에이전트 생성
-        consensus_analyst_agent = create_consensus_analyst_agent(self.llm)
+        performance_analyst_agent = create_performance_analyst_agent(self.llm)
         corporate_analyst_agent = create_corporate_analyst_agent(self.llm)
         industry_analyst_agent = create_industry_analyst_agent(self.llm)
         market_context_analyst_agent = create_market_context_analyst_agent(self.llm)
         quantitative_analyst_agent = create_quantitative_analyst_agent(self.llm)
         
-        # Report 전용 Report Writer Agent 생성
-        report_writer_agent = create_report_writer_agent(self.llm, workflow_type="report")
+        # Review 전용 Report Writer Agent 생성
+        review_writer_agent = create_report_writer_agent(self.llm, workflow_type="review")
         
         # Supervisor 워크플로우 생성
         supervisor_workflow = create_supervisor_agent(
             self.llm, 
             [
-                consensus_analyst_agent,
+                performance_analyst_agent,
                 corporate_analyst_agent,
                 industry_analyst_agent,
                 market_context_analyst_agent,
                 quantitative_analyst_agent,
-                report_writer_agent
+                review_writer_agent
             ],
             self.request_type
         )
         
         return supervisor_workflow.compile()
     
-    @traceable(name="report_workflow")
+    @traceable(name="review_workflow")
     def run(self, inputs: Dict[str, Any]):
-        """워크플로우 실행 - 간단한 최종 결과 반환"""
+        """워크플로우 실행 - D+1 성과 분석 보고서 반환"""
         stock_code = inputs.get("stock_code", "005930")
         
-        print(f"워크플로우 시작: {stock_code}")
+        print(f"Review 워크플로우 시작: {stock_code}")
         
         input_message = f"종목코드: {stock_code}"
         
@@ -71,7 +71,7 @@ class ReportWorkflow:
         for chunk in self.graph.stream({
             "messages": [HumanMessage(content=input_message)],
             "workflow_config": {
-                "workflow_type": "report", 
+                "workflow_type": "review", 
                 "stock_code": stock_code
             }
         }):
@@ -86,7 +86,7 @@ class ReportWorkflow:
             if isinstance(all_chunks[0], dict):
                 print(f"첫 번째 chunk 키: {list(all_chunks[0].keys())}")
         
-        # 최종 상태에서 마지막 메시지 추출 (간단한 버전)
+        # 최종 상태에서 D+1 분석 보고서 추출
         if final_state:
             # supervisor 키가 있으면 그 안에서 messages 찾기
             if isinstance(final_state, dict) and 'supervisor' in final_state:
@@ -97,26 +97,26 @@ class ReportWorkflow:
                         last_message = messages[-1]
                         if hasattr(last_message, 'content'):
                             final_content = last_message.content
-                            if final_content and len(final_content.strip()) > 100:
-                                print("supervisor.messages에서 최종 보고서 추출 완료")
+                            if final_content and 'D+1 성과 분석 보고서' in final_content:
+                                print("supervisor.messages에서 D+1 분석 보고서 추출 완료")
                                 return final_content
             
-            # 방법 2: messages 키에서 직접 추출 (기존)
+            # 방법 2: messages 키에서 직접 추출
             if isinstance(final_state, dict) and 'messages' in final_state:
                 messages = final_state['messages']
                 if messages:
                     last_message = messages[-1]
                     if hasattr(last_message, 'content'):
                         final_content = last_message.content
-                        if final_content and len(final_content.strip()) > 100:
-                            print("messages에서 최종 보고서 추출 완료")
+                        if final_content and 'D+1 성과 분석 보고서' in final_content:
+                            print("messages에서 D+1 분석 보고서 추출 완료")
                             return final_content
             
             # 방법 3: 직접 content 키 확인
             if isinstance(final_state, dict) and 'content' in final_state:
                 final_content = final_state['content']
-                if final_content and len(final_content.strip()) > 100:
-                    print("content에서 최종 보고서 추출 완료")
+                if final_content and 'D+1 성과 분석 보고서' in final_content:
+                    print("content에서 D+1 분석 보고서 추출 완료")
                     return final_content
             
             # 방법 4: supervisor 내부 구조 상세 분석
@@ -133,11 +133,11 @@ class ReportWorkflow:
                             last_msg = value[-1]
                             if hasattr(last_msg, 'content'):
                                 content = last_msg.content
-                                if content and len(content.strip()) > 100:
-                                    print(f"supervisor.{key}에서 최종 보고서 추출 완료")
+                                if content and 'D+1 성과 분석 보고서' in content:
+                                    print(f"supervisor.{key}에서 D+1 분석 보고서 추출 완료")
                                     return content
-                        elif key == 'content' and isinstance(value, str) and len(value.strip()) > 100:
-                            print(f"supervisor.{key}에서 최종 보고서 추출 완료")
+                        elif key == 'content' and isinstance(value, str) and 'D+1 성과 분석 보고서' in value:
+                            print(f"supervisor.{key}에서 D+1 분석 보고서 추출 완료")
                             return value
             
             # 방법 5: 마지막 chunk에서 supervisor 구조 확인
@@ -150,12 +150,12 @@ class ReportWorkflow:
                             last_msg = messages[-1]
                             if hasattr(last_msg, 'content'):
                                 content = last_msg.content
-                                if content and len(content.strip()) > 100:
-                                    print("마지막 chunk의 supervisor.messages에서 최종 보고서 추출 완료")
+                                if content and 'D+1 성과 분석 보고서' in content:
+                                    print("마지막 chunk의 supervisor.messages에서 D+1 분석 보고서 추출 완료")
                                     return content
         
-        # 디버깅 정보 출력 (수정된 버전)
-        print(f"최종 결과 추출 실패")
+        # 디버깅 정보 출력
+        print(f"D+1 분석 보고서 추출 실패")
         print(f"final_state 타입: {type(final_state)}")
         if isinstance(final_state, dict):
             print(f"final_state 키: {list(final_state.keys())}")
@@ -177,4 +177,4 @@ class ReportWorkflow:
                                 print(f"    마지막 메시지 내용 길이: {len(content) if content else 0}")
         
         # 예외: 최종 결과가 없으면 에러 메시지
-        return f"{stock_code} 리포트 생성 실패 - 최종 결과를 찾을 수 없습니다."
+        return f"{stock_code} D+1 분석 보고서 생성 실패 - 최종 결과를 찾을 수 없습니다."

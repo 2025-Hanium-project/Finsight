@@ -64,7 +64,7 @@ def get_financial_statements(stock_code: str) -> str:
                 if not fundamental.empty and stock_code in fundamental.index:
                     fundamental_data = fundamental.loc[stock_code]
                     valid_date = check_date_str
-                    result.append(f"✅ **{check_date_str}** 재무지표 데이터 발견")
+                    result.append(f"**{check_date_str}** 재무지표 데이터 발견")
                     
                     # 2. 시가총액, 거래량, 상장주식수 조회
                     market_cap = stock.get_market_cap(check_date_str, market='KOSPI')
@@ -73,18 +73,18 @@ def get_financial_statements(stock_code: str) -> str:
                         
                         # 데이터 유효성 검사 (0이 아닌 값이 있는지)
                         if market_cap_data['시가총액'] > 0:
-                            result.append(f"✅ **{check_date_str}** 유효한 시가총액 데이터 발견")
+                            result.append(f"**{check_date_str}** 유효한 시가총액 데이터 발견")
                         else:
-                            result.append(f"⚠️ **{check_date_str}** 시가총액 데이터는 있지만 값이 0")
+                            result.append(f"**{check_date_str}** 시가총액 데이터는 있지만 값이 0")
                             continue  # 다음 영업일 시도
                     else:
-                        result.append(f"❌ **{check_date_str}** 시가총액 데이터 없음")
+                        result.append(f"**{check_date_str}** 시가총액 데이터 없음")
                         continue
                     break
                 else:
-                    result.append(f"❌ **{check_date_str}** 재무지표 데이터 없음")
+                    result.append(f"**{check_date_str}** 재무지표 데이터 없음")
             except Exception as e:
-                result.append(f"❌ **{check_date_str}** 오류: {str(e)}")
+                result.append(f"**{check_date_str}** 오류: {str(e)}")
                 continue
         
         if fundamental_data is not None and market_cap_data is not None:
@@ -93,7 +93,7 @@ def get_financial_statements(stock_code: str) -> str:
             result.append("")
             
             # 3. 시가총액 정보
-            result.append("### 📊 시가총액 정보")
+            result.append("### 시가총액 정보")
             result.append(f"- **시가총액:** {market_cap_data['시가총액']:,.0f}원")
             result.append(f"- **상장주식수:** {market_cap_data['상장주식수']:,}주")
             result.append(f"- **거래량:** {market_cap_data['거래량']:,}주")
@@ -126,11 +126,11 @@ def get_financial_statements(stock_code: str) -> str:
                 else:
                     result.append(f"- **{config['desc']} ({indicator}):** 키가 존재하지 않음")
         else:
-            result.append("❌ **최근 30일간 유효한 재무지표 데이터를 찾을 수 없습니다.**")
+            result.append("**최근 30일간 유효한 재무지표 데이터를 찾을 수 없습니다.**")
         
         return "\n".join(result)
     except Exception as e:
-        return f"❌ **재무정보 조회 실패:** {str(e)}"
+        return f"**재무정보 조회 실패:** {str(e)}"
 
 # ============================================================================
 # 2. 주가 및 거래 데이터 도구 (Quantitative Analyst용)
@@ -188,7 +188,7 @@ def get_stock_price_data(stock_code: str, days: int = 10) -> str:
             result.append("")
             
             # 기본 OHLCV 정보
-            result.append("### 📊 기본 주가 정보")
+            result.append("### 기본 주가 정보")
             result.append(f"- **현재가:** {latest['종가']:,}원")
             result.append(f"- **시가:** {latest['시가']:,}원")
             result.append(f"- **고가:** {latest['고가']:,}원")
@@ -218,11 +218,11 @@ def get_stock_price_data(stock_code: str, days: int = 10) -> str:
                 else:
                     result.append("- **방향:** ➡️ 보합")
         else:
-            result.append(f"❌ **최근 {days}일간 유효한 주가 데이터를 찾을 수 없습니다.**")
+            result.append(f"**최근 {days}일간 유효한 주가 데이터를 찾을 수 없습니다.**")
         
         return "\n".join(result)
     except Exception as e:
-        return f"❌ **주가 정보 조회 실패:** {str(e)}"
+        return f"**주가 정보 조회 실패:** {str(e)}"
 
 # ============================================================================
 # 3. 기술적 분석 도구 (Quantitative Analyst 전용)
@@ -269,7 +269,7 @@ def get_technical_analysis(stock_code: str, days: int = 90) -> str:
             df = df[df.index.weekday < 5]
             
             if len(df) < 60:
-                result.append(f"❌ **충분한 영업일 데이터가 없습니다.** (실제: {len(df)}일, 필요: 60일)")
+                result.append(f"**충분한 영업일 데이터가 없습니다.** (실제: {len(df)}일, 필요: 60일)")
                 result.append("**해결 방법:** 더 긴 기간으로 분석하거나 다른 종목을 선택하세요.")
                 return "\n".join(result)
             
@@ -294,23 +294,20 @@ def get_technical_analysis(stock_code: str, days: int = 90) -> str:
             latest = df.iloc[-1]
             current_price = latest['종가']
             
-            result.append("### 📊 이동평균 분석")
+            result.append("### 이동평균 분석")
             result.append(f"- **현재가:** {current_price:,}원")
             result.append(f"- **5일 이평:** {latest['MA5']:.0f}원")
             result.append(f"- **20일 이평:** {latest['MA20']:.0f}원")
             result.append(f"- **60일 이평:** {latest['MA60']:.0f}원")
             result.append("")
             
-            # 이동평균 배열 상태 분석
-            ma20 = latest['MA20']
-            ma60 = latest['MA60']
-            
-            if current_price > ma20 > ma60:
-                result.append("✅ **이동평균 배열:** 정배열 상태 (상승 추세)")
-            elif current_price < ma20 < ma60:
-                result.append("❌ **이동평균 배열:** 역배열 상태 (하락 추세)")
+            # 이동평균 배열 상태 확인
+            if current_price > latest['MA20'] > latest['MA60']:
+                result.append("**이동평균 배열:** 정배열 상태 (상승 추세)")
+            elif current_price < latest['MA20'] < latest['MA60']:
+                result.append("**이동평균 배열:** 역배열 상태 (하락 추세)")
             else:
-                result.append("🔄 **이동평균 배열:** 혼조 상태")
+                result.append("**이동평균 배열:** 혼조 상태")
             result.append("")
             
             # RSI 분석
@@ -332,7 +329,7 @@ def get_technical_analysis(stock_code: str, days: int = 90) -> str:
             bb_lower = latest['BB_LOWER']
             
             if pd.notna(bb_upper) and pd.notna(bb_lower):
-                result.append("### 📊 볼린저 밴드")
+                result.append("### 볼린저 밴드")
                 result.append(f"- **상단 밴드:** {bb_upper:.0f}원")
                 result.append(f"- **중간 밴드:** {latest['BB_MIDDLE']:.0f}원")
                 result.append(f"- **하단 밴드:** {bb_lower:.0f}원")
@@ -340,11 +337,11 @@ def get_technical_analysis(stock_code: str, days: int = 90) -> str:
                 
                 # 밴드 위치 분석
                 if current_price > bb_upper:
-                    result.append("⚠️ **밴드 위치:** 상단 밴드 돌파 (과매수 가능성)")
+                    result.append("**밴드 위치:** 상단 밴드 돌파 (과매수 가능성)")
                 elif current_price < bb_lower:
-                    result.append("🔴 **밴드 위치:** 하단 밴드 돌파 (과매도 가능성)")
+                    result.append("**밴드 위치:** 하단 밴드 돌파 (과매도 가능성)")
                 else:
-                    result.append("✅ **밴드 위치:** 밴드 내 정상 범위")
+                    result.append("**밴드 위치:** 밴드 내 정상 범위")
                 result.append("")
             
             # 거래량 분석
@@ -367,12 +364,13 @@ def get_technical_analysis(stock_code: str, days: int = 90) -> str:
             result.append(f"**분석 완료:** {len(df)}일간의 영업일 데이터로 분석 수행")
             
         except Exception as e:
-            result.append(f"❌ **데이터 분석 실패:** {str(e)}")
+            result.append(f"**데이터 분석 실패:** {str(e)}")
             return "\n".join(result)
             
         return "\n".join(result)
+        
     except Exception as e:
-        return f"❌ **기술적 분석 실패:** {str(e)}"
+        return f"**기술적 분석 실패:** {str(e)}"
 
 # ============================================================================
 # 4. 종합 분석 도구 (Report Writer Agent용)
@@ -436,9 +434,9 @@ def get_comprehensive_analysis(stock_code: str) -> str:
                 else:
                     result.append("- **해석:** 52주 구간 중간 - 중립적 위치")
             else:
-                result.append("❌ 52주 데이터 조회 실패")
+                result.append("**52주 데이터 조회 실패**")
         except Exception as e:
-            result.append(f"❌ 52주 성과 분석 실패: {str(e)}")
+            result.append(f"**52주 성과 분석 실패:** {str(e)}")
         
         result.append("")
         
@@ -469,17 +467,17 @@ def get_comprehensive_analysis(stock_code: str) -> str:
                             
                             # 수익률 방향 표시
                             if return_rate > 0:
-                                result.append(f"- **{period_name}:** ✅ +{return_rate:.2f}%")
+                                result.append(f"- **{period_name}:** +{return_rate:.2f}%")
                             elif return_rate < 0:
-                                result.append(f"- **{period_name}:** ❌ {return_rate:.2f}%")
+                                result.append(f"- **{period_name}:** {return_rate:.2f}%")
                             else:
                                 result.append(f"- **{period_name}:** ➡️ {return_rate:.2f}%")
                     except:
-                        result.append(f"- **{period_name}:** ❌ 데이터 없음")
+                        result.append(f"- **{period_name}:** 데이터 없음")
             else:
-                result.append("❌ 현재가 데이터 조회 실패")
+                result.append("**현재가 데이터 조회 실패**")
         except Exception as e:
-            result.append(f"❌ 수익률 분석 실패: {str(e)}")
+            result.append(f"**수익률 분석 실패:** {str(e)}")
         
         result.append("")
         
@@ -505,19 +503,19 @@ def get_comprehensive_analysis(stock_code: str) -> str:
                 
                 # 트렌드 해석
                 if current_price > ma20 > ma60:
-                    result.append("- **트렌드:** ✅ 상승 추세 (정배열)")
+                    result.append("- **트렌드:** 상승 추세 (정배열)")
                 elif current_price < ma20 < ma60:
-                    result.append("- **트렌드:** ❌ 하락 추세 (역배열)")
+                    result.append("- **트렌드:** 하락 추세 (역배열)")
                 else:
-                    result.append("- **트렌드:** 🔄 혼조 상태")
+                    result.append("- **트렌드:** 혼조 상태")
             else:
-                result.append("❌ 기술적 분석 데이터 부족")
+                result.append("**기술적 분석 데이터 부족**")
         except Exception as e:
-            result.append(f"❌ 기술적 분석 실패: {str(e)}")
+            result.append(f"**기술적 분석 실패:** {str(e)}")
         
         return "\n".join(result)
     except Exception as e:
-        return f"❌ **종합 분석 실패:** {str(e)}"
+        return f"**종합 분석 실패:** {str(e)}"
 
 # ============================================================================
 # 5. 보조 도구들 (내부 사용)
@@ -656,9 +654,9 @@ def get_technical_indicators(stock_code: str, days: int = 60) -> str:
         try:
             ohlcv_data = stock.get_market_ohlcv_by_date(start_date, end_date, stock_code)
             if ohlcv_data.empty:
-                return f"❌ **최근 {days}일간 주가 데이터를 찾을 수 없습니다.**"
+                return f"**최근 {days}일간 주가 데이터를 찾을 수 없습니다.**"
         except:
-            return f"❌ **주가 데이터 조회 실패**"
+            return f"**주가 데이터 조회 실패**"
         
         # 기술적 지표 계산
         latest = ohlcv_data.iloc[-1]
@@ -666,7 +664,7 @@ def get_technical_indicators(stock_code: str, days: int = 60) -> str:
         result.append("")
         
         # 이동평균선 계산
-        result.append("### 📊 이동평균선 분석")
+        result.append("### 이동평균선 분석")
         ma5 = ohlcv_data['종가'].rolling(window=5).mean().iloc[-1]
         ma20 = ohlcv_data['종가'].rolling(window=20).mean().iloc[-1]
         ma60 = ohlcv_data['종가'].rolling(window=60).mean().iloc[-1]
@@ -702,7 +700,7 @@ def get_technical_indicators(stock_code: str, days: int = 60) -> str:
         
         # 볼린저 밴드 계산
         result.append("")
-        result.append("### 📊 볼린저 밴드 분석")
+        result.append("### 볼린저 밴드 분석")
         ma20 = ohlcv_data['종가'].rolling(window=20).mean().iloc[-1]
         std20 = ohlcv_data['종가'].rolling(window=20).std().iloc[-1]
         
@@ -727,4 +725,4 @@ def get_technical_indicators(stock_code: str, days: int = 60) -> str:
         return "\n".join(result)
         
     except Exception as e:
-        return f"❌ **기술적 지표 조회 실패:** {str(e)}"
+        return f"**기술적 지표 조회 실패:** {str(e)}"

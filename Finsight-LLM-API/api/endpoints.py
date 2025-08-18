@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, field_validator
 from workflows.consensus_workflow import ConsensusWorkflow
 from workflows.report_workflow import ReportWorkflow
+from workflows.review_workflow import ReviewWorkflow
 from typing import Literal, Optional
 from datetime import datetime
 
@@ -61,7 +62,7 @@ async def run_workflow(request: WorkflowRequest):
         
         if request.request_type == "consensus":
             # Consensus 워크플로우 - JSON 형식으로 응답
-            print(f"🚀 Consensus 워크플로우 시작: {request.file_path}")
+            print(f"Consensus 워크플로우 시작: {request.file_path}")
             
             consensus_workflow = ConsensusWorkflow(
                 google_api_key=google_api_key,
@@ -76,7 +77,7 @@ async def run_workflow(request: WorkflowRequest):
             
         elif request.request_type == "report":
             # Report 워크플로우 - 리포트 텍스트 그대로 응답
-            print(f"🚀 Report 워크플로우 시작: {request.stock_code}")
+            print(f"Report 워크플로우 시작: {request.stock_code}")
             
             report_workflow = ReportWorkflow(
                 google_api_key=google_api_key,
@@ -89,9 +90,24 @@ async def run_workflow(request: WorkflowRequest):
             # Report는 최종 보고서 텍스트만 반환 (메시지 히스토리 제외)
             return result
             
+        elif request.request_type == "review":
+            # Review 워크플로우 - D+1 분석 보고서 텍스트 그대로 응답
+            print(f"Review 워크플로우 시작: {request.stock_code}")
+            
+            review_workflow = ReviewWorkflow(
+                google_api_key=google_api_key,
+                request_type="review"
+            )
+            result = review_workflow.run({
+                "stock_code": request.stock_code
+            })
+            
+            # Review는 최종 D+1 분석 보고서 텍스트만 반환
+            return result
+            
         else:
             return {"error": f"지원하지 않는 워크플로우 타입: {request.request_type}"}
             
     except Exception as e:
-        print(f"❌ 워크플로우 실행 오류: {str(e)}")
+        print(f"워크플로우 실행 오류: {str(e)}")
         return {"error": f"워크플로우 실행 중 오류 발생: {str(e)}"}

@@ -183,3 +183,119 @@ def query_consensus_details(stock_code: str) -> str:
         
     except Exception as e:
         return f"DB 조회 중 오류 발생: {str(e)}"
+
+@tool
+def get_previous_day_investment_reports(stock_code: str) -> str:
+    """
+    전날 투자 보고서 조회 (D+1 성과 분석용)
+    
+    Args:
+        stock_code: 종목코드 (예: "005930")
+        
+    Returns:
+        전날 투자 보고서 정보 (투자의견, 목표주가, 요약, 투자근거 포함)
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # 전날 날짜 계산 (영업일 기준)
+        today = datetime.now()
+        previous_day = today - timedelta(days=1)
+        
+        # 주말인 경우 금요일로 조정
+        while previous_day.weekday() >= 5:  # 5=토요일, 6=일요일
+            previous_day = previous_day - timedelta(days=1)
+        
+        previous_day_str = previous_day.strftime('%Y-%m-%d')
+        
+        # 먼저 investment_reports 테이블에서 조회 시도
+        try:
+            query = """
+            SELECT stock_code, stock_name, report_date, report_type, report_content
+            FROM investment_reports 
+            WHERE stock_code = ? AND report_date = ? AND report_type = 'report'
+            ORDER BY created_at DESC
+            """
+            
+            cursor.execute(query, (stock_code, previous_day_str))
+            results = cursor.fetchall()
+            
+            if results:
+                # investment_reports에서 찾은 경우
+                output = []
+                output.append(f"## {stock_code} 전날({previous_day_str}) 투자 보고서")
+                output.append(f"총 {len(results)}개 리포트")
+                output.append("")
+                
+                for row in results:
+                    stock_code_val, stock_name, report_date, report_type, report_content = row
+                    
+                    output.append(f"### {stock_name} - {report_type} 보고서")
+                    output.append(f"- **보고서 날짜:** {report_date}")
+                    output.append(f"- **보고서 내용:**")
+                    
+                    # 보고서 내용이 너무 길면 요약
+                    if len(report_content) > 500:
+                        content_preview = report_content[:500] + "..."
+                        output.append(f"{content_preview}")
+                        output.append(f"**전체 길이:** {len(report_content)}자")
+                    else:
+                        output.append(f"{report_content}")
+                    
+                    output.append("")
+                
+                cursor.close()
+                conn.close()
+                return "\n".join(output)
+                
+        except Exception as e:
+            # investment_reports 테이블이 없거나 오류가 발생한 경우
+            pass
+        
+        # investment_reports에서 찾지 못한 경우 consensus_reports에서 조회 (기존 로직)
+        query = """
+        SELECT stock_code, stock_name, report_date, analyst_name, company_name,
+               rating, opinion_change, target_price, target_price_change,
+               summary, investment_rationale
+        FROM consensus_reports 
+        WHERE stock_code = ? AND report_date = ?
+        ORDER BY company_name, analyst_name
+        """
+        
+        cursor.execute(query, (stock_code, previous_day_str))
+        results = cursor.fetchall()
+        
+        if not results:
+            return f"종목코드 {stock_code}에 대한 {previous_day_str} 투자 보고서가 없습니다."
+        
+        # 결과 포맷팅
+        output = []
+        output.append(f"## {stock_code} 전날({previous_day_str}) 투자 보고서")
+        output.append(f"총 {len(results)}개 리포트")
+        output.append("")
+        
+        for row in results:
+            stock_code_val, stock_name, report_date, analyst_name, company_name, rating, opinion_change, target_price, target_price_change, summary, investment_rationale = row
+            
+            output.append(f"### {company_name} - {analyst_name}")
+            output.append(f"- **투자의견:** {rating} ({opinion_change})")
+            output.append(f"- **목표주가:** {target_price:,}원 ({target_price_change})")
+            
+            if summary:
+                output.append(f"- **요약:** {summary}")
+            
+            if investment_rationale:
+                # 투자 근거는 첫 300자만 표시
+                rationale_preview = investment_rationale[:300] + "..." if len(investment_rationale) > 300 else investment_rationale
+                output.append(f"- **투자 근거:** {rationale_preview}")
+            
+            output.append("")
+        
+        cursor.close()
+        conn.close()
+        
+        return "\n".join(output)
+        
+    except Exception as e:
+        return f"전날 투자 보고서 조회 중 오류 발생: {str(e)}"

@@ -23,7 +23,8 @@ from .external_data_tools import (
 from .consensus_tools import (
     query_consensus_data,
     query_consensus_summaries,
-    query_consensus_details
+    query_consensus_details,
+    get_previous_day_investment_reports
 )
 
 # 문서 처리 도구들 (실제로 존재하는 것만)
@@ -48,6 +49,7 @@ __all__ = [
     'query_consensus_data',
     'query_consensus_summaries',
     'query_consensus_details',
+    'get_previous_day_investment_reports',
     
     # 문서 처리 도구들
     'extract_pdf'  # 실제로 존재하는 함수

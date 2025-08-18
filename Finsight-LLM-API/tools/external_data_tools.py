@@ -46,7 +46,7 @@ def search_company_news(stock_code: str, days_back: int = 7) -> str:
         )
         
         if not response.get('results'):
-            return f"❌ {company_name}({stock_code}) 관련 뉴스를 찾을 수 없습니다."
+            return f"{company_name}({stock_code}) 관련 뉴스를 찾을 수 없습니다."
         
         result = [f"## {company_name}({stock_code}) 관련 뉴스"]
         result.append(f"*검색 기간: 최근 {days_back}일*")
@@ -96,7 +96,7 @@ def search_competitor_news(stock_code: str, days_back: int = 7) -> str:
         )
         
         if not response.get('results'):
-            return f"❌ {company_name}({stock_code}) 경쟁사 관련 뉴스를 찾을 수 없습니다."
+            return f"{company_name}({stock_code}) 경쟁사 관련 뉴스를 찾을 수 없습니다."
         
         result = [f"## {company_name}({stock_code}) 경쟁사 관련 뉴스"]
         result.append(f"*검색 기간: 최근 {days_back}일*")
@@ -135,7 +135,7 @@ def search_industry_news(industry_keyword: str) -> str:
         )
         
         if not response.get('results'):
-            return f"❌ {industry_keyword} 산업 관련 뉴스를 찾을 수 없습니다."
+            return f"{industry_keyword} 산업 관련 뉴스를 찾을 수 없습니다."
         
         result = [f"## {industry_keyword} 산업 동향 뉴스"]
         result.append("*검색 기간: 최근 2주*")
@@ -172,7 +172,7 @@ def search_financial_news(keyword: str = "금리 환율 인플레이션") -> str
         )
         
         if not response.get('results'):
-            return f"❌ {keyword} 관련 경제 뉴스를 찾을 수 없습니다."
+            return f"{keyword} 관련 경제 뉴스를 찾을 수 없습니다."
         
         result = [f"## {keyword} 관련 경제 뉴스"]
         result.append("*검색 기간: 최근 1주*")
