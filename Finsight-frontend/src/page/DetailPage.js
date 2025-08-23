@@ -452,13 +452,20 @@ function DetailPage() {
             </div>
             <div className="chart-box-detail">
               <div className="chart-placeholder">
-                {/* Dummy 목표가 근접도 차트 */}
-                <svg width="100%" height="60">
-                  <rect x="10" y="20" width="300" height="20" fill="#eee" />
-                  <rect x="10" y="20" width="267" height="20" fill="#4caf50" />
-                  <text x="320" y="35" fontSize="14" fill="#333">89.2%</text>
+                {/* Dummy 목표가 근접도 변화 차트 (선 그래프) */}
+                <svg width="100%" height="80">
+                  <polyline
+                    fill="none"
+                    stroke="#4caf50"
+                    strokeWidth="3"
+                    points="10,60 60,40 110,50 160,30 210,35 260,25 310,20"
+                  />
+                  {[60,40,50,30,35,25,20].map((y, i) => (
+                    <circle key={i} cx={10+i*50} cy={y} r="4" fill="#4caf50" />
+                  ))}
+                  <text x="320" y="25" fontSize="14" fill="#333">최근 근접률 89.2%</text>
                 </svg>
-                <div style={{fontSize:12, color:'#888', marginTop:4}}>현재가/목표가 근접률</div>
+                <div style={{fontSize:12, color:'#888', marginTop:4}}>과거~현재 목표가 근접률 추이</div>
               </div>
             </div>
             <div className="info-desc info-desc-margin">
@@ -508,14 +515,21 @@ function DetailPage() {
             <div style={{ flex: 1 }}>
               <div className="chart-box-detail">
                 <div className="chart-placeholder">
-                  {/* Dummy 감성 분석 차트 */}
-                  <svg width="100%" height="60">
-                    <rect x="10" y="20" width="200" height="20" fill="#2196f3" />
-                    <rect x="210" y="20" width="45" height="20" fill="#f44336" />
-                    <text x="15" y="35" fontSize="14" fill="#fff">긍정 68.5%</text>
-                    <text x="215" y="35" fontSize="14" fill="#fff">부정 15.3%</text>
+                  {/* Dummy 시장 심리 변화 차트 (막대 그래프) */}
+                  <svg width="100%" height="80">
+                    {/* 긍정 막대 */}
+                    <rect x="20" y="60" width="30" height="-40" fill="#2196f3" />
+                    <rect x="60" y="60" width="30" height="-30" fill="#2196f3" />
+                    <rect x="100" y="60" width="30" height="-50" fill="#2196f3" />
+                    <rect x="140" y="60" width="30" height="-60" fill="#2196f3" />
+                    {/* 부정 막대 */}
+                    <rect x="180" y="60" width="30" height="-10" fill="#f44336" />
+                    <rect x="220" y="60" width="30" height="-20" fill="#f44336" />
+                    <rect x="260" y="60" width="30" height="-15" fill="#f44336" />
+                    <text x="20" y="75" fontSize="12" fill="#333">과거</text>
+                    <text x="260" y="75" fontSize="12" fill="#333">현재</text>
                   </svg>
-                  <div style={{fontSize:12, color:'#888', marginTop:4}}>최근 1개월 뉴스/게시판 감성</div>
+                  <div style={{fontSize:12, color:'#888', marginTop:4}}>긍정/부정 시장 심리 변화 추이</div>
                 </div>
               </div>
             </div>
