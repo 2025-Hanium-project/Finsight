@@ -1,5 +1,61 @@
 // src/pages/DetailPage.jsx
 import React, { useState, useEffect } from "react";
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  BarChart, Bar, Legend
+} from "recharts";
+// 목표가 근접도 더미 데이터
+const targetData = [
+  { date: "1월", ratio: 72 },
+  { date: "2월", ratio: 75 },
+  { date: "3월", ratio: 78 },
+  { date: "4월", ratio: 82 },
+  { date: "5월", ratio: 85 },
+  { date: "6월", ratio: 87 },
+  { date: "7월", ratio: 89.2 },
+];
+
+function TargetProximityChart() {
+  return (
+    <ResponsiveContainer width="100%" height={200}>
+      <LineChart data={targetData}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="date" />
+        <YAxis domain={[60, 100]} unit="%" />
+        <Tooltip />
+        <Line
+          type="monotone"
+          dataKey="ratio"
+          stroke="#4caf50"
+          strokeWidth={2}
+          dot={{ r: 4 }}
+        />
+      </LineChart>
+    </ResponsiveContainer>
+  );
+}
+
+// 시장 심리 더미 데이터
+const sentimentData = [
+  { period: "과거", positive: 40, negative: 10 },
+  { period: "현재", positive: 68.5, negative: 15.3 },
+];
+
+function SentimentChart() {
+  return (
+    <ResponsiveContainer width="100%" height={200}>
+      <BarChart data={sentimentData}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="period" />
+        <YAxis />
+        <Tooltip />
+        <Legend />
+        <Bar dataKey="positive" fill="#2196f3" name="긍정" />
+        <Bar dataKey="negative" fill="#f44336" name="부정" />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
 import { useParams, useNavigate } from "react-router-dom";
 import Menu from "../components/Menu";
 import "../css/detail.css";
@@ -451,22 +507,7 @@ function DetailPage() {
               <div className="item-icon">📍</div>
             </div>
             <div className="chart-box-detail">
-              <div className="chart-placeholder">
-                {/* Dummy 목표가 근접도 변화 차트 (선 그래프) */}
-                <svg width="100%" height="80">
-                  <polyline
-                    fill="none"
-                    stroke="#4caf50"
-                    strokeWidth="3"
-                    points="10,60 60,40 110,50 160,30 210,35 260,25 310,20"
-                  />
-                  {[60,40,50,30,35,25,20].map((y, i) => (
-                    <circle key={i} cx={10+i*50} cy={y} r="4" fill="#4caf50" />
-                  ))}
-                  <text x="320" y="25" fontSize="14" fill="#333">최근 근접률 89.2%</text>
-                </svg>
-                <div style={{fontSize:12, color:'#888', marginTop:4}}>과거~현재 목표가 근접률 추이</div>
-              </div>
+              <TargetProximityChart />
             </div>
             <div className="info-desc info-desc-margin">
               <p>
@@ -513,25 +554,9 @@ function DetailPage() {
           </div>
           <div className="sentiment-row">
             <div style={{ flex: 1 }}>
-              <div className="chart-box-detail">
-                <div className="chart-placeholder">
-                  {/* Dummy 시장 심리 변화 차트 (막대 그래프) */}
-                  <svg width="100%" height="80">
-                    {/* 긍정 막대 */}
-                    <rect x="20" y="60" width="30" height="-40" fill="#2196f3" />
-                    <rect x="60" y="60" width="30" height="-30" fill="#2196f3" />
-                    <rect x="100" y="60" width="30" height="-50" fill="#2196f3" />
-                    <rect x="140" y="60" width="30" height="-60" fill="#2196f3" />
-                    {/* 부정 막대 */}
-                    <rect x="180" y="60" width="30" height="-10" fill="#f44336" />
-                    <rect x="220" y="60" width="30" height="-20" fill="#f44336" />
-                    <rect x="260" y="60" width="30" height="-15" fill="#f44336" />
-                    <text x="20" y="75" fontSize="12" fill="#333">과거</text>
-                    <text x="260" y="75" fontSize="12" fill="#333">현재</text>
-                  </svg>
-                  <div style={{fontSize:12, color:'#888', marginTop:4}}>긍정/부정 시장 심리 변화 추이</div>
+                <div className="chart-box-detail">
+                  <SentimentChart />
                 </div>
-              </div>
             </div>
             <div className="sentiment-summary-text">
               <p className="mb-15">
