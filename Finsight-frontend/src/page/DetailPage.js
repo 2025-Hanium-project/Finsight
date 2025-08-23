@@ -35,10 +35,14 @@ function TargetProximityChart() {
   );
 }
 
-// 시장 심리 더미 데이터
+
+// 시장 심리 더미 데이터 (월별)
 const sentimentData = [
-  { period: "과거", positive: 40, negative: 10 },
-  { period: "현재", positive: 68.5, negative: 15.3 },
+  { month: "3월", positive: 45, negative: 20 },
+  { month: "4월", positive: 55, negative: 18 },
+  { month: "5월", positive: 60, negative: 16 },
+  { month: "6월", positive: 65, negative: 15 },
+  { month: "7월", positive: 68.5, negative: 15.3 },
 ];
 
 function SentimentChart() {
@@ -46,8 +50,8 @@ function SentimentChart() {
     <ResponsiveContainer width="100%" height={200}>
       <BarChart data={sentimentData}>
         <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="period" />
-        <YAxis />
+        <XAxis dataKey="month" />
+        <YAxis domain={[0, 100]} unit="%" />
         <Tooltip />
         <Legend />
         <Bar dataKey="positive" fill="#2196f3" name="긍정" />
