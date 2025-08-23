@@ -452,7 +452,13 @@ function DetailPage() {
             </div>
             <div className="chart-box-detail">
               <div className="chart-placeholder">
-                목표가 추이 및 근접도 차트
+                {/* Dummy 목표가 근접도 차트 */}
+                <svg width="100%" height="60">
+                  <rect x="10" y="20" width="300" height="20" fill="#eee" />
+                  <rect x="10" y="20" width="267" height="20" fill="#4caf50" />
+                  <text x="320" y="35" fontSize="14" fill="#333">89.2%</text>
+                </svg>
+                <div style={{fontSize:12, color:'#888', marginTop:4}}>현재가/목표가 근접률</div>
               </div>
             </div>
             <div className="info-desc info-desc-margin">
@@ -501,7 +507,16 @@ function DetailPage() {
           <div className="sentiment-row">
             <div style={{ flex: 1 }}>
               <div className="chart-box-detail">
-                <div className="chart-placeholder">감성 분석 차트</div>
+                <div className="chart-placeholder">
+                  {/* Dummy 감성 분석 차트 */}
+                  <svg width="100%" height="60">
+                    <rect x="10" y="20" width="200" height="20" fill="#2196f3" />
+                    <rect x="210" y="20" width="45" height="20" fill="#f44336" />
+                    <text x="15" y="35" fontSize="14" fill="#fff">긍정 68.5%</text>
+                    <text x="215" y="35" fontSize="14" fill="#fff">부정 15.3%</text>
+                  </svg>
+                  <div style={{fontSize:12, color:'#888', marginTop:4}}>최근 1개월 뉴스/게시판 감성</div>
+                </div>
               </div>
             </div>
             <div className="sentiment-summary-text">
