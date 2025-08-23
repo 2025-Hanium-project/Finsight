@@ -20,7 +20,7 @@ KOSPI200 컨센서스 리포트 처리 및 분석을 위한 FastAPI 애플리케
 - **AI/LLM**: Google Gemini 2.5 Flash, LangChain, LangGraph
 - **모니터링**: LangSmith
 - **PDF 처리**: PyPDF, Unstructured
-- **데이터베이스**: MySQL, SQLite (테스트용)
+- **데이터베이스**: MySQL (Private Cloud)
 - **주가 데이터**: pykrx, yfinance
 
 ## 프로젝트 구조
@@ -56,7 +56,6 @@ Finsight-LLM-API/
 │   ├── schema.py               # Pydantic 스키마
 │   └── __init__.py
 ├── data/                       # 데이터 폴더
-│   ├── consensus_local.db      # 테스트용 로컬 DB
 │   └── report.txt              # 샘플 보고서
 ├── app.py                      # 메인 애플리케이션
 ├── requirements.txt            # 의존성
@@ -84,6 +83,9 @@ LANGSMITH_API_KEY=your_langsmith_api_key
 LANGSMITH_PROJECT=your_project_name
 LANGSMITH_TRACING_V2=true
 LANGSMITH_ENDPOINT=https://api.smith.langchain.com
+
+# Tavily API 설정 (뉴스 검색용)
+TAVILY_API_KEY=your_tavily_api_key
 ```
 
 ### 3. 서버 실행
@@ -93,6 +95,14 @@ python app.py
 ```
 
 서버는 `http://localhost:8000`에서 실행됩니다.
+
+## 데이터베이스
+
+### Private Cloud MySQL
+- **호스트**: finsight.kro.kr:32503
+- **데이터베이스**: finsight_database
+- **테이블**: Stock, report_metadata, report_content
+- **용도**: 실제 서비스 운영
 
 ## 워크플로우 시스템
 
@@ -223,16 +233,6 @@ python app.py
 - search_industry_news: 산업 관련 뉴스 검색
 - search_financial_news: 경제/시장 뉴스 검색
 - get_market_indicators: 시장 지표 조회
-
-## 데이터베이스
-
-### 실제 서비스
-- **MySQL**: 메인 컨센서스 데이터베이스
-- **테이블**: consensus_reports, investment_reports
-
-### 테스트 환경
-- **SQLite**: data/consensus_local.db
-- **용도**: 로컬 테스트 및 개발
 
 ## 실제 테스트 결과 예시
 
