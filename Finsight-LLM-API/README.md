@@ -218,7 +218,6 @@ python app.py
 ### Consensus Tools
 - query_consensus_data: 컨센서스 메타데이터 조회
 - query_consensus_summaries: 컨센서스 요약 정보 조회
-- query_consensus_details: 컨센서스 상세 정보 조회
 - get_previous_day_investment_reports: 전날 투자 보고서 조회
 
 ### Financial Data Tools

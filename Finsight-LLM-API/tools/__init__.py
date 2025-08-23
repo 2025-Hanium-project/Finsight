@@ -23,7 +23,6 @@ from .external_data_tools import (
 from .consensus_tools import (
     query_consensus_data,
     query_consensus_summaries,
-    query_consensus_details,
     get_previous_day_investment_reports
 )
 
@@ -48,7 +47,6 @@ __all__ = [
     # 컨센서스 도구들
     'query_consensus_data',
     'query_consensus_summaries',
-    'query_consensus_details',
     'get_previous_day_investment_reports',
     
     # 문서 처리 도구들

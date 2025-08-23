@@ -95,26 +95,26 @@ def query_consensus_data(stock_code: str) -> str:
 @tool  
 def query_consensus_summaries(stock_code: str) -> str:
     """
-    컨센서스 요약 정보 조회 (증권사별 간단 요약만)
+    컨센서스 요약 정보 조회 (요약문 포함)
     
     Args:
         stock_code: 종목코드 (예: "005930")
         
     Returns:
-        컨센서스 요약 정보 (content_text 필드만)
+        컨센서스 요약 정보 (summary 필드 사용)
     """
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # MySQL용 쿼리
+        # MySQL용 쿼리 - summary 필드 사용
         query = """
         SELECT s.stock_code, s.stock_name, rm.report_date, rm.analyst_name, rm.company_name,
-               rc.content_text as summary
+               rc.summary
         FROM report_metadata rm
         JOIN Stock s ON rm.Stock_id = s.Stock_id
         LEFT JOIN report_content rc ON rm.report_id = rc.report_id
-        WHERE s.stock_code = %s AND rc.content_text IS NOT NULL AND rc.content_text != ''
+        WHERE s.stock_code = %s AND rc.summary IS NOT NULL AND rc.summary != ''
         ORDER BY rm.report_date DESC
         """
         
@@ -151,67 +151,6 @@ def query_consensus_summaries(stock_code: str) -> str:
         return f"DB 조회 중 오류 발생: {str(e)}"
 
 @tool
-def query_consensus_details(stock_code: str) -> str:
-    """
-    컨센서스 상세 정보 조회 (전체 투자 근거 포함)
-    
-    Args:
-        stock_code: 종목코드 (예: "005930")
-        
-    Returns:
-        컨센서스 상세 정보 (content_text 포함)
-    """
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # MySQL용 쿼리
-        query = """
-        SELECT s.stock_code, s.stock_name, rm.report_date, rm.analyst_name, rm.company_name,
-               rc.content_text as investment_rationale
-        FROM report_metadata rm
-        JOIN Stock s ON rm.Stock_id = s.Stock_id
-        LEFT JOIN report_content rc ON rm.report_id = rc.report_id
-        WHERE s.stock_code = %s
-        ORDER BY rm.report_date DESC
-        """
-        
-        cursor.execute(query, (stock_code,))
-        results = cursor.fetchall()
-        
-        if not results:
-            return f"종목코드 {stock_code}에 대한 컨센서스 상세 데이터가 없습니다."
-        
-        # 결과 포맷팅 (상위 5개 리포트만)
-        output = []
-        output.append(f"## 종목코드 {stock_code} 컨센서스 상세 분석")
-        output.append(f"총 {len(results)}개 리포트 중 최신 5개 상세 분석")
-        output.append("")
-        
-        for i, row in enumerate(results[:5]):  # 상위 5개만
-            stock_code_val = row['stock_code']
-            stock_name = row['stock_name']
-            report_date = row['report_date']
-            analyst_name = row['analyst_name']
-            company_name = row['company_name']
-            investment_rationale = row['investment_rationale']
-            
-            output.append(f"### {company_name} - {analyst_name} ({report_date})")
-            if investment_rationale:
-                # 투자 근거는 첫 500자만 표시 (너무 길어지는 것 방지)
-                rationale_preview = investment_rationale[:500] + "..." if len(investment_rationale) > 500 else investment_rationale
-                output.append(f"**투자 근거:** {rationale_preview}")
-            output.append("")
-        
-        cursor.close()
-        conn.close()
-        
-        return "\n".join(output)
-        
-    except Exception as e:
-        return f"DB 조회 중 오류 발생: {str(e)}"
-
-@tool
 def get_previous_day_investment_reports(stock_code: str) -> str:
     """
     전날 투자 보고서 조회 (D+1 성과 분석용)
@@ -220,7 +159,7 @@ def get_previous_day_investment_reports(stock_code: str) -> str:
         stock_code: 종목코드 (예: "005930")
         
     Returns:
-        전날 투자 보고서 정보 (투자의견, 목표주가, 투자근거 포함)
+        전날 투자 보고서 정보 (투자의견, 목표주가, 요약 포함)
     """
     try:
         conn = get_db_connection()
@@ -236,11 +175,11 @@ def get_previous_day_investment_reports(stock_code: str) -> str:
         
         previous_day_str = previous_day.strftime('%Y-%m-%d')
         
-        # MySQL용 쿼리
+        # MySQL용 쿼리 - 실제 테이블 구조에 맞춤
         query = """
         SELECT s.stock_code, s.stock_name, rm.report_date, rm.analyst_name, rm.company_name,
                rm.rating, rm.opinion_change, rm.target_price, rm.target_price_change,
-               rc.content_text as investment_rationale
+               rc.content_text, rc.summary
         FROM report_metadata rm
         JOIN Stock s ON rm.Stock_id = s.Stock_id
         LEFT JOIN report_content rc ON rm.report_id = rc.report_id
@@ -270,17 +209,21 @@ def get_previous_day_investment_reports(stock_code: str) -> str:
             opinion_change = row['opinion_change']
             target_price = row['target_price']
             target_price_change = row['target_price_change']
-            investment_rationale = row['investment_rationale']
+            content_text = row['content_text']
+            summary = row['summary']
             
             output.append(f"### {company_name} - {analyst_name}")
             output.append(f"- **투자의견:** {rating} ({opinion_change})")
             if target_price:
                 output.append(f"- **목표주가:** {target_price:,}원 ({target_price_change})")
             
-            if investment_rationale:
-                # 투자 근거는 첫 300자만 표시
-                rationale_preview = investment_rationale[:300] + "..." if len(investment_rationale) > 300 else investment_rationale
-                output.append(f"- **투자 근거:** {rationale_preview}")
+            if summary:
+                output.append(f"- **요약:** {summary}")
+            
+            if content_text:
+                # 본문 텍스트는 첫 300자만 표시
+                text_preview = content_text[:300] + "..." if len(content_text) > 300 else content_text
+                output.append(f"- **본문:** {text_preview}")
             
             output.append("")
         
