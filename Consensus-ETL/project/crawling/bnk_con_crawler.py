@@ -434,115 +434,92 @@ class BNKReportCrawler:
     def _check_download_completed(self, report):
         time.sleep(5)
 
-        new_filename = self._generate_filename(report['title'], report['date'])
-        new_path = os.path.join(self.download_dir, new_filename)
-        # 파일이 이미 존재하면 다운로드하지 않음
-        if os.path.exists(new_path):
-            logging.info(f"이미 파일이 존재하여 다운로드를 건너뜀: {new_filename}")
-            return True
-
+        # 다운로드 디렉토리에서 가장 최근 PDF 파일을 찾음
         downloaded_files = os.listdir(self.download_dir)
         pdf_files = [f for f in downloaded_files if f.endswith('.pdf')]
 
         if not pdf_files:
             return False
 
-        # 가장 최근 파일 추정
         pdf_files.sort(key=lambda x: os.path.getmtime(os.path.join(self.download_dir, x)), reverse=True)
         latest_pdf = pdf_files[0]
-        old_path = os.path.join(self.download_dir, latest_pdf)
+        file_path = os.path.join(self.download_dir, latest_pdf)
 
-        file_size = os.path.getsize(old_path)
+        file_size = os.path.getsize(file_path)
         if file_size < 1000:
             return False
 
         try:
-            os.rename(old_path, new_path)
             self._save_download_history({
                 'report_no': report['no'],
                 'title': report['title'],
                 'date': report['date'],
                 'author': report['author'],
-                'filename': new_filename,
+                'filename': latest_pdf,
                 'download_method': 'selenium'
             })
-            logging.info(f"다운로드 성공: {new_filename} ({file_size} bytes)")
+            logging.info(f"다운로드 성공: {latest_pdf} ({file_size} bytes)")
             return True
         except Exception as e:
-            logging.error(f"파일 이름 변경 실패: {e}")
+            logging.error(f"다운로드 기록 저장 실패: {e}")
             return False
 
     def _download_pdf_from_url(self, pdf_url, report):
         """
-        PDF URL에서 직접 다운로드
-        
-        Args:
-            pdf_url (str): PDF 파일 URL
-            report (dict): 리포트 정보 딕셔너리
-            
-        Returns:
-            bool: 다운로드 성공 여부
+        PDF URL에서 직접 다운로드 (원본 파일명으로 저장)
         """
         try:
-            # 파일명 구성
-            safe_title = re.sub(r'[\\/*?:"<>|]', '_', report['title'])
-            file_name = self._generate_filename(report['title'], report['date'])
-            file_path = os.path.join(self.download_dir, file_name)
-
-            # 파일이 이미 존재하면 다운로드하지 않음
-            if os.path.exists(file_path):
-                logging.info(f"이미 파일이 존재하여 다운로드를 건너뜀: {file_name}")
-                return True
-
             # PDF 파일 다운로드
             response = requests.get(pdf_url, headers=self.headers, stream=True, timeout=10)
-            
+
             if response.status_code == 200:
                 # Content-Type 확인
                 content_type = response.headers.get('Content-Type', '')
                 is_pdf = 'pdf' in content_type.lower() or 'application/octet-stream' in content_type.lower()
-                
+
                 if not is_pdf and len(response.content) < 1000:
                     logging.warning(f"PDF가 아닌 것 같습니다: {content_type}")
                     return False
-                
+
+                # 파일명 추출 (URL에서)
+                url_filename = pdf_url.split('/')[-1].split('?')[0]
+                file_path = os.path.join(self.download_dir, url_filename)
+
+                # 파일이 이미 존재하면 다운로드하지 않음
+                if os.path.exists(file_path):
+                    logging.info(f"이미 파일이 존재하여 다운로드를 건너뜀: {url_filename}")
+                    return True
+
                 # 파일 저장
                 with open(file_path, 'wb') as f:
                     for chunk in response.iter_content(chunk_size=8192):
                         f.write(chunk)
-                
-                # # 작성일별 디렉토리에도 저장
-                # with open(date_file_path, 'wb') as f:
-                #     for chunk in response.iter_content(chunk_size=8192):
-                #         f.write(chunk)
-                
+
                 # 파일 크기 확인
                 file_size = os.path.getsize(file_path)
-                if file_size < 1000:  # 너무 작으면 실패
+                if file_size < 1000:
                     logging.warning(f"파일 크기가 너무 작습니다 ({file_size} bytes). 다운로드 실패 의심.")
                     if os.path.exists(file_path):
                         os.remove(file_path)
-                    if os.path.exists(file_path):
-                        os.remove(file_path)
                     return False
-                
+
                 # 다운로드 기록 저장
                 self._save_download_history({
                     'report_no': report['no'],
                     'title': report['title'],
                     'date': report['date'],
                     'author': report['author'],
-                    'filename': file_name,
+                    'filename': url_filename,
                     'download_method': 'direct_url'
                 })
-                
-                logging.info(f"URL에서 직접 다운로드 성공: {file_name} ({file_size} bytes)")
+
+                logging.info(f"URL에서 직접 다운로드 성공: {url_filename} ({file_size} bytes)")
                 return True
-                
+
             else:
                 logging.warning(f"PDF URL 요청 실패: HTTP {response.status_code}")
                 return False
-                
+
         except Exception as e:
             logging.error(f"PDF URL에서 직접 다운로드 중 오류: {e}")
             return False
