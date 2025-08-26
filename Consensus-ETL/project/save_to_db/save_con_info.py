@@ -118,7 +118,7 @@ os.makedirs(con_error_dir, exist_ok=True)
 
 print(f"PDF 탐색 시작 경로: {pdf_root_path}")
 
-except_list = ['fnguide','wisereport']
+except_list = ['fnguide','wisereport', 'miraeasset_consensus', 'miraeasset']
 
 # pdf_root_path 하위의 모든 폴더와 파일을 순회
 for root, dirs, files in os.walk(pdf_root_path):
