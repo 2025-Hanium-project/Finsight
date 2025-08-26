@@ -111,8 +111,10 @@ API_URL = "http://localhost:38000/workflow"
 base_dir = os.path.dirname(os.path.abspath(__file__)) 
 # 상위 폴더의 'Consensus-ETL/project/consensus' 경로
 pdf_root_path = os.path.abspath(os.path.join(base_dir, '..', 'consensus'))
-con_deleted_dir = os.path.join(pdf_root_path, '..','con_deleted')
+con_deleted_dir = os.path.join(pdf_root_path, '..', 'con_deleted')
+con_error_dir = os.path.join(pdf_root_path, '..', 'con_error')
 os.makedirs(con_deleted_dir, exist_ok=True)
+os.makedirs(con_error_dir, exist_ok=True)
 
 print(f"PDF 탐색 시작 경로: {pdf_root_path}")
 
@@ -151,17 +153,29 @@ for root, dirs, files in os.walk(pdf_root_path):
                         insert_report(parsed_data, stock_id)
                         print(f"  [성공] DB 저장 완료: {parsed_data.get('report_title')}")
                         conn.commit()
+                        # 파일 이동 (처리 성공 시)
+                        dest_path = os.path.join(con_deleted_dir, filename)
+                        shutil.move(os.path.join(root, filename), dest_path)
+                        print(f"  [파일 이동] {filename} → {dest_path}")
                     else:
                         print(f"  [경고] Stock_id를 찾을 수 없습니다: {parsed_data.get('stock_code')} / {parsed_data.get('stock_name')}")
-                     # 파일 이동 (처리 성공 시)
-                    dest_path = os.path.join(con_deleted_dir, filename)
-                    shutil.move(os.path.join(root, filename), dest_path)
-                    print(f"  [파일 이동] {filename} → {dest_path}")
+                        # 파일 이동 (추출 실패 시)
+                        dest_path = os.path.join(con_error_dir, filename)
+                        shutil.move(os.path.join(root, filename), dest_path)
+                        print(f"  [에러 파일 이동] {filename} → {dest_path}")
                 else:
                     print(f"  [오류] API 요청 실패 (상태 코드: {response.status_code}): {response.text}")
+                    # 파일 이동 (API 요청 실패 시)
+                    dest_path = os.path.join(con_error_dir, filename)
+                    shutil.move(os.path.join(root, filename), dest_path)
+                    print(f"  [에러 파일 이동] {filename} → {dest_path}")
             
             except requests.exceptions.RequestException as e:
                 print(f"  [오류] API 연결 실패: {e}")
+                # 파일 이동 (API 연결 실패 시)
+                dest_path = os.path.join(con_error_dir, filename)
+                shutil.move(os.path.join(root, filename), dest_path)
+                print(f"  [에러 파일 이동] {filename} → {dest_path}")
 
 
 print("모든 파일 처리 완료. DB에 최종 커밋합니다.")
