@@ -69,7 +69,7 @@ def insert_report(row, stock_id):
     ))
     # 생성된 report_id 받아오기
     report_id = cursor.fetchone()['report_id']
-
+    # report 테이블 관련 코드는 삭제됨. report_metadata와 report_content만 사용
     # 2) report_content INSERT
     rationale = row.get('investment_rationale')
     summary = row.get('summary')
@@ -82,10 +82,10 @@ def insert_report(row, stock_id):
             summary,
             created_at
         ) VALUES (
-            UUID(), %s, %s, %s NOW()
+            UUID(), %s, %s, %s, NOW()
         )
         """
-        cursor.execute(insert_content, (rationale, report_id))
+        cursor.execute(insert_content, (rationale, report_id, summary))
 
 # # ——————————————————————————
 # # 4) CSV 파일 읽어서 일괄 처리
