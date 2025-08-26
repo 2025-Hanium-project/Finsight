@@ -3,3 +3,4 @@ con_deleted/
 con_parsed_deleted/
 consensus/*
 consensus_to_txt/*
+con_error/
