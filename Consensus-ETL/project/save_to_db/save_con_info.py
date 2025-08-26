@@ -111,7 +111,7 @@ API_URL = "http://localhost:38000/workflow"
 base_dir = os.path.dirname(os.path.abspath(__file__)) 
 # 상위 폴더의 'Consensus-ETL/project/consensus' 경로
 pdf_root_path = os.path.abspath(os.path.join(base_dir, '..', 'consensus'))
-con_deleted_dir = os.path.join(pdf_root_path, '..' 'con_deleted')
+con_deleted_dir = os.path.join(pdf_root_path, '..','con_deleted')
 os.makedirs(con_deleted_dir, exist_ok=True)
 
 print(f"PDF 탐색 시작 경로: {pdf_root_path}")
