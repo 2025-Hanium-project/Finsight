@@ -184,3 +184,6 @@ nohup.out
 
 *.sh
 test.py
+
+# SSL keys
+*.pem

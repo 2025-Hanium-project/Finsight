@@ -15,6 +15,8 @@ from agents.quantitative_analyst_agent import create_quantitative_analyst_agent
 from agents.report_writer_agent import create_report_writer_agent
 from agents.supervisor_agent import create_supervisor_agent
 
+print("I am report workflow")
+
 class ReportWorkflow:
     """D-day 리포트 처리 워크플로우 - 간단한 최종 결과 반환"""
     
