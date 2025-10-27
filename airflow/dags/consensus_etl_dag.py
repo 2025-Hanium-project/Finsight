@@ -32,7 +32,7 @@ dag = DAG(
     description='Consensus ETL Pipeline for Financial Data',
     schedule='0 3 * * *',  # 매일 새벽 3시에 실행
     catchup=False,
-    max_active_runs=1,
+    max_active_runs=2,
     tags=['etl', 'consensus', 'financial']
 )
 
