@@ -15,7 +15,7 @@ from pathlib import Path
 # ============================================================================
 # 🔑 Groq API 키 설정 (여기에 본인의 API 키를 입력하세요)
 # ============================================================================
-GROQ_API_KEY = "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"  # 여기에 실제 API 키 입력
+GROQ_API_KEY = "example"  # 여기에 실제 API 키 입력
 # ============================================================================
 
 def install_required_packages():
@@ -25,7 +25,7 @@ def install_required_packages():
         'pandas': 'pandas',
         'openpyxl': 'openpyxl',
         'requests': 'requests',
-        'pdfplumber': 'pdfplumber'  # Java 없이 표 추출 가능
+        'pdfplumber': 'pdfplumber'
     }
     
     for import_name, package_name in required_packages.items():

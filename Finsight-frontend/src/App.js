@@ -27,54 +27,12 @@ function App() {
           <Route path="/findpwd" element={<FindPwdPage />} />
 
           {/* 로그인 필요 */}
-          <Route
-            path="/dashboard"
-            element={
-              <PrivateRoute>
-                <IndexPage />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/mypage"
-            element={
-              <PrivateRoute>
-                <MyPage />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/profileedit"
-            element={
-              <PrivateRoute>
-                <ProfileEditPage />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/dday"
-            element={
-              <PrivateRoute>
-                <DdayReportPage />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/dplus1"
-            element={
-              <PrivateRoute>
-                <DPlus1ReportPage />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/detail/:stockCode"
-            element={
-              <PrivateRoute>
-                <DetailPage />
-              </PrivateRoute>
-            }
-          />
+          <Route path="/dashboard" element={<IndexPage />} />
+          <Route path="/mypage" element={<MyPage />} />
+          <Route path="/profileedit" element={<ProfileEditPage />} />
+          <Route path="/dday" element={<DdayReportPage />} />
+          <Route path="/dplus1" element={<DPlus1ReportPage />} />
+          <Route path="/detail/:stockCode" element={<DetailPage />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

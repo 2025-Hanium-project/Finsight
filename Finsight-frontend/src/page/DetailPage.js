@@ -4,6 +4,13 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Legend
 } from "recharts";
+
+import { useParams, useNavigate } from "react-router-dom";
+import Menu from "../components/Menu";
+import "../css/detail.css";
+import StockCandleChart from "../components/StockCandleChart";
+
+
 // 목표가 근접도 더미 데이터
 const targetData = [
   { date: "1월", ratio: 72 },
@@ -60,10 +67,7 @@ function SentimentChart() {
     </ResponsiveContainer>
   );
 }
-import { useParams, useNavigate } from "react-router-dom";
-import Menu from "../components/Menu";
-import "../css/detail.css";
-import StockCandleChart from "../components/StockCandleChart";
+
 function DetailPage() {
   const { stockCode } = useParams();
   const [searchValue, setSearchValue] = useState("");
