@@ -44,9 +44,12 @@ for page in range(1, 21):
     print(f"페이지 {page} 처리중: {list_url}")
     response = requests.get(list_url, headers=headers)
     if response.status_code != 200:
-        print(f"페이지 {page} 불러오기 실패, 상태코드: {response.status_code}")
-        error_count += 1
-        continue
+        # 총 페이지 수를 모른 채 20페이지까지 찍어보는 구조라, 뒤쪽 페이지의 비정상 응답이
+        # '더 이상 없음'인지 '차단됨'인지 구분할 수 없다. 실제로 한경은 연속 요청 시
+        # 뒤쪽 페이지에 403을 준다. 오류로 세면 정상 수집(254건)에도 태스크가 실패한다.
+        # 여기서 순회를 멈추고, 진짜 차단이면 아래 downloaded_count == 0 검사가 잡는다.
+        print(f"페이지 {page} 불러오기 실패, 상태코드: {response.status_code} - 수집 종료")
+        break
 
     # BeautifulSoup으로 파싱
     soup = BeautifulSoup(response.text, "html.parser")

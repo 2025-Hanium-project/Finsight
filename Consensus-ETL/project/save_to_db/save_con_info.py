@@ -1,4 +1,5 @@
 import os
+import sys
 import pymysql
 import requests
 import shutil
@@ -120,6 +121,10 @@ print(f"PDF 탐색 시작 경로: {pdf_root_path}")
 
 except_list = ['fnguide','wisereport', 'miraeasset_consensus', 'miraeasset']
 
+# 종료 코드 판정용 집계
+success_count = 0
+error_count = 0
+
 # pdf_root_path 하위의 모든 폴더와 파일을 순회
 for root, dirs, files in os.walk(pdf_root_path):
     dirs[:] = [d for d in dirs if d not in except_list]
@@ -153,6 +158,7 @@ for root, dirs, files in os.walk(pdf_root_path):
                         insert_report(parsed_data, stock_id)
                         print(f"  [성공] DB 저장 완료: {parsed_data.get('report_title')}")
                         conn.commit()
+                        success_count += 1
                         # 파일 이동 (처리 성공 시)
                         dest_path = os.path.join(con_deleted_dir, filename)
                         shutil.move(os.path.join(root, filename), dest_path)
@@ -163,22 +169,34 @@ for root, dirs, files in os.walk(pdf_root_path):
                         dest_path = os.path.join(con_error_dir, filename)
                         shutil.move(os.path.join(root, filename), dest_path)
                         print(f"  [에러 파일 이동] {filename} → {dest_path}")
+                        error_count += 1
                 else:
                     print(f"  [오류] API 요청 실패 (상태 코드: {response.status_code}): {response.text}")
                     # 파일 이동 (API 요청 실패 시)
                     dest_path = os.path.join(con_error_dir, filename)
                     shutil.move(os.path.join(root, filename), dest_path)
                     print(f"  [에러 파일 이동] {filename} → {dest_path}")
-            
+                    error_count += 1
+
             except requests.exceptions.RequestException as e:
-                print(f"  [오류] API 연결 실패: {e}")
-                # 파일 이동 (API 연결 실패 시)
-                dest_path = os.path.join(con_error_dir, filename)
-                shutil.move(os.path.join(root, filename), dest_path)
-                print(f"  [에러 파일 이동] {filename} → {dest_path}")
+                # 연결 자체가 안 되는 것은 파일 문제가 아니라 API 장애다.
+                # 여기서 con_error로 옮기면 API가 몇 분 죽은 사이 그날 수집분 전체가
+                # 재처리 대상에서 사라진다. 파일은 그대로 두고 실패만 알린다.
+                print(f"  [오류] API 연결 실패 (파일 유지): {e}")
+                error_count += 1
+                continue
 
 
-print("모든 파일 처리 완료. DB에 최종 커밋합니다.")
+print(f"모든 파일 처리 완료. 성공 {success_count}건, 실패 {error_count}건.")
+
+# 조용히 성공하지 않는다. 처리 실패가 있으면 Airflow에 실패로 알린다.
+# 성공 0건 자체는 실패로 보지 않는다. 처리된 파일은 con_deleted로 빠지므로
+# 신규 리포트가 없는 날 0건은 정상이다 (크롤 단계와 판정 기준이 다르다).
+if error_count:
+    print(f"{error_count}건 처리에 실패했습니다.", file=sys.stderr)
+    cursor.close()
+    conn.close()
+    sys.exit(1)
 # ——————————————————————————
 # 5) 종료
 # ——————————————————————————
