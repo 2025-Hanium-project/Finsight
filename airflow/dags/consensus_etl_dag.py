@@ -40,9 +40,11 @@ dag = DAG(
 crawlers = [
     'bnk', 'daishin', 'ds', 'hana', 'heungkuk', 'hk',
     'ibks', 'im', 'kiwoom', 'kyobo', 'mirae', 'naver',
-    'sangsangin', 'shinhan', 'yj', 'yuanta', 'fnguide',
-    'hyundai', 'krx', 'maeil','samsung', 'wisereport'
-    # 'paxnet' paxnet 서버에서 실패
+    'sangsangin', 'shinhan', 'yuanta', 'fnguide',
+    'hyundai', 'maeil', 'samsung', 'wisereport'
+    # 'yj': 로그인 리다이렉트로 비로그인 수집 불가, hk가 유진 리포트 수집
+    # 'krx': 현재 수집 대상에서 제외
+    # 'paxnet': paxnet 서버에서 실패
 ]
 
 crawler_tasks = []

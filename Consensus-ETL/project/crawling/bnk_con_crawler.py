@@ -693,8 +693,8 @@ if __name__ == "__main__":
     # 크롤러 설정 및 실행
     crawler = BNKReportCrawler(
         download_dir=DOWNLOAD_DIR,  # 다운로드 디렉토리
-        max_pages=1,                 # 크롤링할 최대 페이지 수
-        max_reports=10,              # 다운로드할 최대 리포트 수
+        max_pages=3,                 # 크롤링할 최대 페이지 수
+        max_reports=50,              # 다운로드할 최대 리포트 수
         headless=True                # 헤드리스 모드 사용 (True: 브라우저 창 표시 안 함)
     )
     

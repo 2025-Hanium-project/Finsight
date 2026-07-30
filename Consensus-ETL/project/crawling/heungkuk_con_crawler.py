@@ -25,6 +25,38 @@ os.makedirs(base_save_dir, exist_ok=True)
 # 처리된 보고서 ID를 저장할 집합 (중복 방지)
 processed_reports = set()
 
+# 목록에 노출되는 날짜 형식들
+# - 'YYYY-MM-DD'
+# - Java Date.toString() 형식 ('Thu Jul 30 00:00:00 KST 2026')
+MONTH_ABBR = {
+    'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
+    'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
+}
+
+
+def parse_report_date(date_str):
+    """보고서 날짜를 'YYYYMMDD' 문자열로 변환. 실패 시 None 반환."""
+    date_str = (date_str or '').strip()
+
+    try:
+        return datetime.strptime(date_str, '%Y-%m-%d').strftime('%Y%m%d')
+    except ValueError:
+        pass
+
+    # 'Thu Jul 30 00:00:00 KST 2026' -> 20260730
+    # (%Z는 'KST'를 인식하지 못하므로 직접 파싱)
+    java_date = re.match(
+        r'^\w{3}\s+(\w{3})\s+(\d{1,2})\s+[\d:]+\s+\S+\s+(\d{4})$', date_str
+    )
+    if java_date:
+        month = MONTH_ABBR.get(java_date.group(1))
+        if month:
+            return '%04d%02d%02d' % (
+                int(java_date.group(3)), month, int(java_date.group(2))
+            )
+
+    return None
+
 # 크롤링 시작
 print(f"Started crawling Heungkuk Securities reports from page {start_page} to {end_page}")
 
@@ -35,7 +67,7 @@ for page in range(start_page, end_page + 1):
     try:
         # 목록 페이지 요청
         print(f"Requesting list page {page}: {list_url}")
-        response = requests.get(list_url, headers=headers)
+        response = requests.get(list_url, headers=headers, timeout=30)
         response.raise_for_status()
         
         # HTML 파싱
@@ -107,7 +139,7 @@ for page in range(start_page, end_page + 1):
                 try:
                     # 상세 페이지 요청
                     print(f"Requesting detail page: {detail_url}")
-                    detail_response = requests.get(detail_url, headers=headers)
+                    detail_response = requests.get(detail_url, headers=headers, timeout=30)
                     detail_response.raise_for_status()
                     
                     # 상세 페이지 HTML 파싱
@@ -116,11 +148,8 @@ for page in range(start_page, end_page + 1):
                     print(f"Report info - Title: {title_text}, Author: {analyst}, Date: {date_str}")
                     
                     # 날짜 파싱 및 폴더 이름 생성
-                    try:
-                        # 날짜 형식이 'YYYY-MM-DD'라고 가정
-                        date_obj = datetime.strptime(date_str, '%Y-%m-%d')
-                        date_folder_name = date_obj.strftime('%Y%m%d')
-                    except ValueError:
+                    date_folder_name = parse_report_date(date_str)
+                    if not date_folder_name:
                         # 날짜 파싱 실패 시 'Unknown_Date'로 설정
                         print(f"Failed to parse date: {date_str}, using 'Unknown_Date'")
                         date_folder_name = 'Unknown_Date'
@@ -138,11 +167,11 @@ for page in range(start_page, end_page + 1):
                         img_url = img['src']
                         try:
                             print(f"Downloading image {i+1}/{len(img_elements)}: {img_url}")
-                            img_response = requests.get(img_url, headers=headers)
+                            img_response = requests.get(img_url, headers=headers, timeout=30)
                             img_response.raise_for_status()
                             
                             # PNG 이미지 저장
-                            img_filename = os.path.join(base_save_dir, f'{valid_title}_report_{report_id}_{i+1}.png')
+                            img_filename = os.path.join(base_save_dir, f'{date_folder_name}_{valid_title}_report_{report_id}_{i+1}.png')
                             with open(img_filename, 'wb') as f:
                                 f.write(img_response.content)
                             

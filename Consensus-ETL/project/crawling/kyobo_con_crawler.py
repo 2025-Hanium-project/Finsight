@@ -96,25 +96,34 @@ class KyoboSecuritiesReportCrawler:
             
             # 현재 페이지의 모든 요소 찾기를 시도
             self.find_all_elements_debug()
-            
-            # 모든 다운로드 버튼 직접 찾기
-            download_buttons = self.find_all_download_buttons()
-            
-            if download_buttons:
+
+            for page in range(1, max_pages + 1):
+                if page > 1 and not self.goto_page(page):
+                    break
+
+                logger.info(f"=== 페이지 {page} 처리 중 ===")
+
+                # 모든 다운로드 버튼 직접 찾기
+                download_buttons = self.find_all_download_buttons()
+
+                if not download_buttons:
+                    logger.warning(f"페이지 {page}에서 다운로드 버튼을 찾을 수 없습니다.")
+                    break
+
                 logger.info(f"총 {len(download_buttons)}개의 다운로드 버튼을 찾았습니다.")
-                
+
                 # 각 다운로드 버튼에 대해 작업 수행
                 for idx, button in enumerate(download_buttons):
                     try:
                         # 버튼의 위치로 스크롤
                         self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", button)
                         time.sleep(1)
-                        
+
                         # 스크린샷 제거
-                        
+
                         # 버튼 주변 요소에서 필요한 정보 추출
                         report_info = self.extract_report_info_from_button(button, idx)
-                        
+
                         # 버튼 클릭
                         logger.info(f"다운로드 버튼 {idx+1} 클릭 시도")
                         try:
@@ -122,19 +131,17 @@ class KyoboSecuritiesReportCrawler:
                         except:
                             # JavaScript로 클릭
                             self.driver.execute_script("arguments[0].click();", button)
-                        
+
                         # 다운로드 완료 대기
                         time.sleep(2)
                         # 다운로드된 파일 처리
                         if report_info:
                             self.process_downloaded_file(**report_info)
-                    
+
                     except Exception as e:
                         logger.error(f"버튼 {idx+1} 처리 중 오류: {e}")
                         continue
-            else:
-                logger.warning("다운로드 버튼을 찾을 수 없습니다.")
-            
+
             # 결과 저장
             # self.save_data_to_csv()
             
@@ -147,6 +154,35 @@ class KyoboSecuritiesReportCrawler:
         
         return self.reports_data
     
+    def goto_page(self, page_num):
+        """목록의 지정 페이지로 이동.
+
+        페이저(div.board_paging)의 각 링크는 _href 속성에 pageNum을 담고 있다.
+        다운로드 버튼을 클릭하면 목록 페이지를 벗어나므로, 링크를 클릭하는 대신
+        같은 형식의 URL로 직접 이동한다.
+        """
+        try:
+            self.driver.get(
+                f"{self.report_list_url}"
+                f"?scr_id=null&srch_db=0&QU=&DT1=&DT2=&provestz=&menuCode=1&pageNum={page_num}"
+            )
+            WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "div.board_paging"))
+            )
+            time.sleep(2)
+
+            # 요청한 페이지가 실제로 열렸는지 확인 (마지막 페이지를 넘어가면 유지되지 않는다)
+            current = self.driver.find_elements(By.CSS_SELECTOR, "div.board_paging a.pageOn span")
+            if current and current[0].text.strip() != str(page_num):
+                logger.info(f"페이지 {page_num} 없음 - 마지막 페이지로 판단")
+                return False
+
+            logger.info(f"페이지 {page_num}로 이동 성공")
+            return True
+        except Exception as e:
+            logger.info(f"페이지 {page_num} 이동 실패 - 수집 종료 ({e})")
+            return False
+
     def find_all_elements_debug(self):
         """디버깅을 위해 페이지의 모든 요소 유형을 찾고 기록"""
         try:
@@ -225,16 +261,34 @@ class KyoboSecuritiesReportCrawler:
             for button in all_buttons:
                 if button not in unique_buttons:
                     unique_buttons.append(button)
+
+            # 페이지 하단의 '보호금융상품등록부'도 RSDownloadServlet을 사용해
+            # 위의 광범위한 탐색에 포함된다. 실제 리서치 리포트 경로만 남긴다.
+            report_buttons = []
+            for button in unique_buttons:
+                # 초기 HTML은 표준 href를 사용하지만 페이지의 스크립트가 로딩 후
+                # href를 "javascript:"로 바꾸고 원래 경로를 _href로 옮긴다.
+                # 두 상태 모두에서 동작하도록 어느 한 속성에 경로가 있으면 남긴다.
+                download_paths = (
+                    button.get_attribute("href") or "",
+                    button.get_attribute("_href") or "",
+                )
+                if any("/research/report/" in path for path in download_paths):
+                    report_buttons.append(button)
+
+            excluded_count = len(unique_buttons) - len(report_buttons)
+            if excluded_count:
+                logger.info(f"리포트가 아닌 다운로드 링크 {excluded_count}개 제외")
             
             # 각 버튼 로깅
-            for i, btn in enumerate(unique_buttons):
+            for i, btn in enumerate(report_buttons):
                 try:
                     html = btn.get_attribute("outerHTML")
                     logger.info(f"버튼 {i+1} HTML: {html}")
                 except:
                     pass
             
-            return unique_buttons
+            return report_buttons
             
         except Exception as e:
             logger.error(f"다운로드 버튼 찾기 오류: {e}")
@@ -438,6 +492,6 @@ if __name__ == "__main__":
     crawler = KyoboSecuritiesReportCrawler()
     
     # 크롤링 실행
-    crawler.crawl_reports(max_pages=1)  # 첫 페이지만 테스트
+    crawler.crawl_reports(max_pages=3)  # 일 1회 실행 기준, 재실행 여유분 포함
     
     print(f"크롤링 완료! 저장 경로: {os.path.abspath(crawler.save_dir)}")

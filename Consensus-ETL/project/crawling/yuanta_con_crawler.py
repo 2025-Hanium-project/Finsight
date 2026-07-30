@@ -258,6 +258,7 @@ class YuantaResearchCrawler:
             
             # 페이지네이션 요소 찾기
             pagination_selectors = [
+                ".pagenation a",  # 실제 사용 중인 클래스 (사이트 표기가 pagenation)
                 ".pagination a",  # 일반적인 페이지네이션
                 "a[href*='javascript:goPage']",  # javascript 함수로 페이지 이동
                 ".paging a",  # 다른 일반적인 페이지네이션 클래스
@@ -590,7 +591,7 @@ def main():
         thirty_days_ago = (datetime.now() - pd.Timedelta(days=30)).strftime("%Y/%m/%d")
         
         # 리포트 크롤링 (매개변수 조정 - 더 적은 페이지, 타임아웃 문제 해결)
-        reports = crawler.crawl_reports(max_pages=1)  # 테스트를 위해 1페이지만 처리
+        reports = crawler.crawl_reports(max_pages=3)  # 일 1회 실행 기준, 재실행 여유분 포함
         
         # PDF 내용 파싱 (크롤링된 파일이 있는 경우)
         # if reports and len(reports) > 0:

@@ -1,15 +1,11 @@
 import pandas as pd
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.options import Options
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
+import requests
 import time
 from datetime import datetime, timedelta
 import os
 import logging
 import argparse
+import sys
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -23,13 +19,17 @@ os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
 
 class FnGuideCrawler:
+    # 신버전(wcomp) 요약리포트 화면이 조회에 사용하는 API
+    LIST_PAGE_URL = "https://wcomp.fnguide.com/Report/ReportSummary"
+    API_URL = "https://wcomp.fnguide.com/Report/getRptSmrSummary"
+
     def __init__(self, download_dir=None, headless=True):
         """
         FnGuide 크롤러 초기화
 
         Args:
             download_dir (str): 데이터를 저장할 디렉토리 (기본값: project/consensus/fnguide)
-            headless (bool): 브라우저를 백그라운드에서 실행할지 여부
+            headless (bool): 남겨둔 인자 (더 이상 브라우저를 쓰지 않아 사용되지 않음)
         """
         if download_dir is None:
             download_dir = DOWNLOAD_DIR
@@ -37,9 +37,17 @@ class FnGuideCrawler:
         self.download_dir = os.path.abspath(download_dir)
         os.makedirs(self.download_dir, exist_ok=True)
         self.headless = headless
-        self.driver = None
-        self.wait = None
-        
+
+        self.session = requests.Session()
+        self.session.headers.update({
+            "User-Agent": (
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36"
+            ),
+            "Referer": self.LIST_PAGE_URL,
+            "X-Requested-With": "XMLHttpRequest",
+        })
+
     def get_yesterday_date(self):
         """어제 날짜를 YYYY/MM/DD 형식으로 반환"""
         yesterday = datetime.now() - timedelta(days=1)
@@ -77,38 +85,20 @@ class FnGuideCrawler:
             return []
 
     def setup_driver(self):
-        """Chrome 드라이버 설정"""
-        chrome_options = Options()
-        if self.headless:
-            chrome_options.add_argument("--headless")
-        chrome_options.add_argument("--no-sandbox")
-        chrome_options.add_argument("--disable-dev-shm-usage")
-        chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-        chrome_options.add_experimental_option("useAutomationExtension", False)
-
-        # 다운로드 설정 (다른 크롤러와 일치)
-        prefs = {
-            "download.default_directory": self.download_dir,
-            "download.prompt_for_download": False,
-            "download.directory_upgrade": True,
-            "plugins.always_open_pdf_externally": True,
-            "safebrowsing.enabled": True,
-        }
-        chrome_options.add_experimental_option("prefs", prefs)
-
-        self.driver = webdriver.Chrome(options=chrome_options)
-        self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-        self.wait = WebDriverWait(self.driver, 10)
+        """이전 버전 호환용 (더 이상 브라우저를 쓰지 않는다)"""
+        return None
 
     def close_driver(self):
-        """드라이버 종료"""
-        if self.driver:
-            self.driver.quit()
+        """이전 버전 호환용 (더 이상 브라우저를 쓰지 않는다)"""
+        return None
 
     def crawl_reports(self, start_date="2025/07/13", end_date="2025/07/20"):
         """
         FnGuide 리포트 요약 데이터를 크롤링합니다.
+
+        기존 comp.fnguide.com/SVO2/ASP/SVD_Report_Summary.asp 페이지는 폐지되었고
+        (접속 시 "페이지가 없습니다" 안내), 신버전 wcomp.fnguide.com 으로 이전되었다.
+        신버전 화면이 조회에 사용하는 JSON API를 직접 호출하므로 브라우저가 필요 없다.
 
         Args:
             start_date (str): 시작일 (YYYY/MM/DD)
@@ -117,234 +107,54 @@ class FnGuideCrawler:
         Returns:
             pandas.DataFrame: 크롤링된 리포트 데이터
         """
+        sdt = start_date.replace("/", "").replace("-", "")
+        edt = end_date.replace("/", "").replace("-", "")
+
+        logger.info(f"조회 요청: {start_date} ~ {end_date}")
+
         try:
-            if not self.driver:
-                self.setup_driver()
-
-            logger.info(f"크롤링 시작: {start_date} ~ {end_date}")
-
-            # FnGuide 리포트 요약 페이지 접속
-            url = "https://comp.fnguide.com/SVO2/ASP/SVD_Report_Summary.asp"
-            if self.driver:
-                self.driver.get(url)
-            else:
-                logger.error("드라이버가 초기화되지 않았습니다.")
-                return pd.DataFrame()
-
-            logger.info("페이지 로딩 대기...")
-            time.sleep(3)
-
-            # 페이지 제목 확인
-            if self.driver:
-                logger.info(f"페이지 제목: {self.driver.title}")
-
-            # 날짜 입력 필드 찾기 및 설정
-            try:
-                # JavaScript로 날짜 설정 시도
-                start_date_js = start_date.replace("/", "")
-                end_date_js = end_date.replace("/", "")
-
-                # JavaScript 실행으로 날짜 설정
-                if self.driver:
-                    self.driver.execute_script(
-                        f"""
-                    if(document.getElementById('inFromDate')) {{
-                        document.getElementById('inFromDate').value = '{start_date}';
-                    }}
-                    if(document.getElementById('inToDate')) {{
-                        document.getElementById('inToDate').value = '{end_date}';
-                    }}
-                    if(document.getElementById('startdt')) {{
-                        document.getElementById('startdt').value = '{start_date_js}';
-                    }}
-                    if(document.getElementById('enddt')) {{
-                        document.getElementById('enddt').value = '{end_date_js}';
-                    }}
-                """
-                    )
-
-                logger.info("JavaScript로 날짜 설정 완료")
-
-                # 조회 버튼 클릭
-                search_selectors = ["#btnSearch", "a[href*='javascript:void(0)']", ".us_btn_ty1", "input[value='조회']"]
-
-                search_clicked = False
-                for selector in search_selectors:
-                    try:
-                        if not self.driver:
-                            break
-                        search_button = self.driver.find_element(By.CSS_SELECTOR, selector)
-                        if search_button.is_displayed():
-                            search_button.click()
-                            logger.info(f"'{selector}' 버튼 클릭 완료")
-                            search_clicked = True
-                            break
-                    except:
-                        continue
-
-                if not search_clicked:
-                    # JavaScript로 직접 검색 함수 호출
-                    logger.info("JavaScript로 검색 함수 직접 호출")
-                    if self.driver:
-                        self.driver.execute_script(
-                            """
-                        if(typeof btnSearch_Click === 'function') {
-                            btnSearch_Click();
-                        } else if(typeof searchReport === 'function') {
-                            searchReport();
-                        } else {
-                            // 폼 제출
-                            var form = document.getElementById('param');
-                            if(form) form.submit();
-                        }
-                    """
-                        )
-
-                logger.info("데이터 로딩 대기...")
-                time.sleep(5)
-
-                # GridBody에 데이터가 로드될 때까지 대기
-                data_loaded = False
-                for i in range(10):  # 최대 10초 대기
-                    if not self.driver:
-                        break
-                    tbody = self.driver.find_element(By.ID, "GridBody")
-                    if tbody.find_elements(By.TAG_NAME, "tr"):
-                        logger.info(f"{i+1}초 후 데이터 로드 확인")
-                        data_loaded = True
-                        break
-                    time.sleep(1)
-                else:
-                    logger.warning("데이터 로딩 시간 초과")
-                
-                # 데이터가 없으면 조기 종료
-                if not data_loaded:
-                    logger.info("해당 날짜에 데이터가 없습니다. 크롤링을 종료합니다.")
-                    return pd.DataFrame()
-
-            except (TimeoutException, NoSuchElementException) as e:
-                logger.error(f"날짜 설정 실패: {e}")
-                logger.info("기본 페이지 데이터 추출 시도...")
-
-            # 테이블 데이터 추출
-            data_list = []
-
-            # FnGuide 테이블 선택자 (실제 구조에 맞춤)
-            table_selectors = [
-                "table.us_table_ty1",
-                "table[class*='table']",
-                "table[class*='grid']",
-                "#gridTable",
-                ".us_table_ty1",
-                "table tbody",
-                "table",
-            ]
-
-            table_found = False
-            for selector in table_selectors:
-                try:
-                    if not self.driver:
-                        break
-                    tables = self.driver.find_elements(By.CSS_SELECTOR, selector)
-                    if tables:
-                        logger.info(f"'{selector}' 선택자로 {len(tables)}개 테이블 발견")
-
-                        # 가장 많은 행을 가진 테이블 선택
-                        target_table = None
-                        max_rows = 0
-
-                        for table in tables:
-                            rows = table.find_elements(By.TAG_NAME, "tr")
-                            if len(rows) > max_rows:
-                                max_rows = len(rows)
-                                target_table = table
-
-                        if target_table and max_rows > 1:
-                            logger.info(f"선택된 테이블: {max_rows}개 행")
-
-                            rows = target_table.find_elements(By.TAG_NAME, "tr")
-
-                            # 헤더 확인
-                            if rows:
-                                header_cells = rows[0].find_elements(By.TAG_NAME, "th")
-                                if not header_cells:
-                                    header_cells = rows[0].find_elements(By.TAG_NAME, "td")
-                                headers = [cell.text.strip() for cell in header_cells]
-                                logger.info(f"헤더: {headers}")
-
-                            # 데이터 행 추출 (헤더 제외)
-                            data_rows = rows[1:] if len(rows) > 1 else rows
-                            for i, row in enumerate(data_rows, 1):
-                                try:
-                                    cells = row.find_elements(By.TAG_NAME, "td")
-                                    if len(cells) >= 4:  # FnGuide 테이블은 최소 4개 컬럼
-                                        row_data = [cell.text.strip() for cell in cells]
-
-                                        # 의미있는 데이터가 있는지 확인 (날짜, 종목명, 투자의견 중 최소 2개)
-                                        meaningful_data = [
-                                            data
-                                            for data in row_data
-                                            if data and len(data.strip()) > 0 and data.strip() != "-"
-                                        ]
-                                        if len(meaningful_data) >= 2:
-                                            # 헤더 행이나 빈 행 필터링
-                                            if not any(
-                                                keyword in str(row_data[0]).lower()
-                                                for keyword in ["일자", "날짜", "date", "no", "번호"]
-                                            ):
-                                                data_list.append(row_data)
-                                                if i <= 3:  # 처음 3행만 출력
-                                                    logger.info(f"행 {i}: {row_data}")
-
-                                except Exception as e:
-                                    logger.debug(f"행 {i} 처리 중 오류: {e}")
-                                    continue
-
-                            table_found = True
-                            break
-
-                except Exception as e:
-                    logger.debug(f"'{selector}' 테이블 검색 중 오류: {e}")
-                    continue
-
-            if not table_found:
-                logger.error("테이블을 찾을 수 없습니다.")
-                # 페이지 소스 일부 출력
-                if self.driver:
-                    logger.debug("페이지 소스 일부:")
-                    logger.debug(self.driver.page_source[:1000])
-                return pd.DataFrame()
-
-            if not data_list:
-                logger.info("해당 날짜에 데이터가 없습니다. 크롤링을 종료합니다.")
-                return pd.DataFrame()
-
-            # DataFrame 생성 - 실제 FnGuide 테이블 구조에 맞춤
-            columns = ["일자", "종목명_리포트요약", "투자의견", "목표주가", "전일종가", "제공처_작성자"]
-
-            # 실제 컬럼 수에 맞춰 조정
-            max_cols = max(len(row) for row in data_list) if data_list else 0
-            if max_cols > len(columns):
-                columns.extend([f"추가컬럼{i}" for i in range(len(columns), max_cols)])
-
-            # 모든 행의 길이를 최대 컬럼 수에 맞춰 조정
-            for i, row in enumerate(data_list):
-                if len(row) < max_cols:
-                    data_list[i].extend([""] * (max_cols - len(row)))
-                elif len(row) > max_cols:
-                    data_list[i] = row[:max_cols]
-
-            df = pd.DataFrame(data_list, columns=columns[:max_cols])
-            logger.info(f"추출된 데이터 행 수: {len(df)}")
-
-            return df
-
+            response = self.session.get(
+                self.API_URL,
+                params={
+                    "search_typ": "all",
+                    "sdt": sdt,
+                    "edt": edt,
+                    "search": "",
+                    "order_col": "0",
+                    "order_typ": "D",
+                },
+                timeout=30,
+            )
+            response.raise_for_status()
+            rows = response.json()["dataset"]["data"]
         except Exception as e:
-            logger.error(f"크롤링 중 오류 발생: {e}")
-            import traceback
+            logger.error(f"리포트 조회 실패: {e}")
+            raise RuntimeError("FnGuide API 조회에 실패했습니다.") from e
 
-            traceback.print_exc()
+        if not rows:
+            logger.info("해당 기간에 데이터가 없습니다.")
             return pd.DataFrame()
+
+        records = [
+            {
+                "일자": row.get("DT"),
+                "종목코드": row.get("CMP_CD"),
+                "종목명": row.get("CMP_NM_KOR"),
+                "리포트제목": row.get("RPT_TITLE"),
+                "리포트요약": row.get("COMMENT"),
+                "제공처": row.get("BRK_NM_KOR"),
+                "작성자": row.get("ANL_NM_KOR"),
+                "투자의견": row.get("RECOMM_NM"),
+                "목표주가": row.get("TARGET_PRC"),
+                "전일종가": row.get("CLOSE_PRC"),
+                "리포트ID": row.get("RPT_ID"),
+            }
+            for row in rows
+        ]
+
+        df = pd.DataFrame(records)
+        logger.info(f"{len(df)}개의 리포트를 수집했습니다.")
+        return df
 
     def clean_data(self, df):
         """데이터 정리"""
@@ -354,11 +164,14 @@ class FnGuideCrawler:
         # 빈 행 제거
         df = df.dropna(how="all")
 
-        # 목표주가와 전일종가에서 숫자 추출
-        if "목표주가" in df.columns:
-            df["목표주가"] = df["목표주가"].str.replace(",", "").str.extract(r"(\d+)")[0]
-        if "전일종가" in df.columns:
-            df["전일종가"] = df["전일종가"].str.replace(",", "").str.extract(r"(\d+)")[0]
+        # 목표주가와 전일종가에서 숫자 추출 (미제공 시 None이 올 수 있다)
+        for col in ("목표주가", "전일종가"):
+            if col in df.columns:
+                df[col] = (
+                    df[col].astype("string")
+                    .str.replace(",", "", regex=False)
+                    .str.extract(r"(\d+)")[0]
+                )
 
         # 날짜 형식 정리
         if "일자" in df.columns:
@@ -493,6 +306,7 @@ class FnGuideCrawler:
                 for date in failed_dates:
                     logger.warning(f"  - {date}")
                 logger.info("\n실패한 날짜는 다시 실행해주세요.")
+                raise RuntimeError(f"{len(failed_dates)}개 날짜의 백필에 실패했습니다.")
             
             return successful_files
             
@@ -537,7 +351,7 @@ def main():
             # 백필 모드
             if not args.start or not args.end:
                 logger.error("백필 실행시 --start와 --end 날짜를 모두 지정해주세요.")
-                return
+                return 2
             
             successful_files = crawler.backfill_data(args.start, args.end)
             
@@ -559,12 +373,16 @@ def main():
             
     except KeyboardInterrupt:
         logger.info("\n사용자에 의해 중단되었습니다.")
+        return 130
     except Exception as e:
         logger.error(f"\n예상치 못한 오류: {e}")
+        return 1
     finally:
         crawler.close_driver()
+
+    return 0
 
 
 # 사용 예시
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
