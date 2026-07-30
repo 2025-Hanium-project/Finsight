@@ -1,6 +1,7 @@
 
 import os
 import re
+import sys
 import time
 import logging
 import pandas as pd
@@ -53,7 +54,11 @@ class KyoboSecuritiesReportCrawler:
         self.reports_data = pd.DataFrame(
             columns=['제목', '종목명', '분석가', '날짜', '분류', 'PDF경로', '원문내용', '수집일자']
         )
-    
+
+        # 종료 코드 판정용 집계
+        self.saved_count = 0
+        self.failed_count = 0
+
     def setup_driver(self):
         """Selenium WebDriver 설정"""
         chrome_options = Options()
@@ -108,6 +113,9 @@ class KyoboSecuritiesReportCrawler:
 
                 if not download_buttons:
                     logger.warning(f"페이지 {page}에서 다운로드 버튼을 찾을 수 없습니다.")
+                    # 1페이지에도 버튼이 없으면 사이트 구조가 바뀐 것으로 보고 실패 처리
+                    if page == 1:
+                        self.failed_count += 1
                     break
 
                 logger.info(f"총 {len(download_buttons)}개의 다운로드 버튼을 찾았습니다.")
@@ -124,6 +132,15 @@ class KyoboSecuritiesReportCrawler:
                         # 버튼 주변 요소에서 필요한 정보 추출
                         report_info = self.extract_report_info_from_button(button, idx)
 
+                        # 이미 받은 리포트는 다시 받지 않는다.
+                        # DAG가 retries=3으로 돌기 때문에 없으면 같은 파일을 세 번 내려받는다.
+                        if report_info and os.path.exists(self.target_path(**report_info)):
+                            logger.info(f"이미 존재하는 리포트 건너뛰기: {report_info['title']}")
+                            continue
+
+                        # 새로 생긴 파일만 골라내기 위해 클릭 직전 상태를 기록
+                        before_files = set(os.listdir(self.download_dir))
+
                         # 버튼 클릭
                         logger.info(f"다운로드 버튼 {idx+1} 클릭 시도")
                         try:
@@ -132,14 +149,16 @@ class KyoboSecuritiesReportCrawler:
                             # JavaScript로 클릭
                             self.driver.execute_script("arguments[0].click();", button)
 
-                        # 다운로드 완료 대기
-                        time.sleep(2)
                         # 다운로드된 파일 처리
                         if report_info:
-                            self.process_downloaded_file(**report_info)
+                            if self.process_downloaded_file(before_files, **report_info):
+                                self.saved_count += 1
+                            else:
+                                self.failed_count += 1
 
                     except Exception as e:
                         logger.error(f"버튼 {idx+1} 처리 중 오류: {e}")
+                        self.failed_count += 1
                         continue
 
             # 결과 저장
@@ -147,11 +166,12 @@ class KyoboSecuritiesReportCrawler:
             
         except Exception as e:
             logger.error(f"크롤링 중 오류 발생: {e}")
+            self.failed_count += 1
             # 오류 스크린샷 제거
         finally:
             # WebDriver 종료
             self.driver.quit()
-        
+
         return self.reports_data
     
     def goto_page(self, page_num):
@@ -374,56 +394,72 @@ class KyoboSecuritiesReportCrawler:
                 'category': None
             }
     
-    def process_downloaded_file(self, title, date, stock_name, analyst, category):
+    def target_path(self, title, date, stock_name, **_):
+        """리포트 정보로 최종 저장 경로를 만든다 (다운로드 전 중복 확인에도 사용)."""
+        # 날짜 정보 파싱
+        if not date:
+            date_obj = datetime.now()
+        else:
+            try:
+                # 날짜 형식에 맞게 파싱
+                if '/' in date:
+                    date_obj = datetime.strptime(date, '%Y/%m/%d')
+                elif '-' in date:
+                    date_obj = datetime.strptime(date, '%Y-%m-%d')
+                else:
+                    date_obj = datetime.now()
+            except:
+                date_obj = datetime.now()
+
+        # 날짜별 폴더 구조 제거 - 직접 save_dir에 저장
+        # 파일명 생성
+        stock_name_clean = stock_name.replace('/', '_').strip() if stock_name else ""
+        title_clean = title.replace('/', '_').strip()
+        date_for_filename = date_obj.strftime('%Y%m%d')
+
+        if stock_name_clean:
+            filename = f"{stock_name_clean}_{title_clean}_{date_for_filename}.pdf"
+        else:
+            filename = f"{title_clean}_{date_for_filename}.pdf"
+
+        # 특수문자 제거 및 파일명 정리
+        filename = re.sub(r'[\\/:*?"<>|]', '', filename)
+        filename = filename[:150] + '.pdf' if len(filename) > 150 else filename
+
+        return os.path.join(self.save_dir, filename)
+
+    def wait_for_download(self, before_files, timeout=30):
+        """클릭 이후 새로 생긴 PDF를 기다린다.
+
+        이전에는 다운로드 폴더에서 mtime이 가장 최신인 PDF를 골랐는데,
+        다운로드가 제때 끝나지 않으면 직전 리포트를 다른 이름으로 다시
+        저장해 버렸다. 클릭 전후 목록 차이로 실제 새 파일만 집는다.
+        """
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            new_files = set(os.listdir(self.download_dir)) - before_files
+            # 크롬이 받는 중이면 .crdownload가 남아 있다
+            if not any(f.endswith('.crdownload') for f in new_files):
+                new_pdfs = [f for f in new_files
+                            if f.endswith('.pdf') and not f.startswith('._')]
+                if new_pdfs:
+                    return os.path.join(self.download_dir, new_pdfs[0])
+            time.sleep(0.5)
+        return None
+
+    def process_downloaded_file(self, before_files, title, date, stock_name, analyst, category):
         """다운로드된 파일 처리 및 정리"""
         try:
-            # 다운로드 디렉토리에서 가장 최근 파일 찾기
-            files = os.listdir(self.download_dir)
-            pdf_files = [f for f in files if f.endswith('.pdf') and not f.startswith('._')]
-            
-            if not pdf_files:
+            downloaded_file = self.wait_for_download(before_files)
+
+            if not downloaded_file:
                 logger.warning(f"다운로드된 PDF 파일이 없습니다: {title}")
                 return False
-            
-            # 가장 최근 파일 선택
-            latest_file = max(pdf_files, key=lambda f: os.path.getmtime(os.path.join(self.download_dir, f)))
-            downloaded_file = os.path.join(self.download_dir, latest_file)
-            
+
             logger.info(f"다운로드된 파일: {downloaded_file}")
-            
-            # 날짜 정보 파싱
-            if not date:
-                logger.warning(f"날짜 정보가 없습니다. 현재 날짜를 사용합니다.")
-                date_obj = datetime.now()
-            else:
-                try:
-                    # 날짜 형식에 맞게 파싱
-                    if '/' in date:
-                        date_obj = datetime.strptime(date, '%Y/%m/%d')
-                    elif '-' in date:
-                        date_obj = datetime.strptime(date, '%Y-%m-%d')
-                    else:
-                        date_obj = datetime.now()
-                except:
-                    date_obj = datetime.now()
-            
-            # 날짜별 폴더 구조 제거 - 직접 save_dir에 저장
-            # 파일명 생성
-            stock_name_clean = stock_name.replace('/', '_').strip() if stock_name else ""
-            title_clean = title.replace('/', '_').strip()
-            date_for_filename = date_obj.strftime('%Y%m%d')
-            
-            if stock_name_clean:
-                filename = f"{stock_name_clean}_{title_clean}_{date_for_filename}.pdf"
-            else:
-                filename = f"{title_clean}_{date_for_filename}.pdf"
-            
-            # 특수문자 제거 및 파일명 정리
-            filename = re.sub(r'[\\/:*?"<>|]', '', filename)
-            filename = filename[:150] + '.pdf' if len(filename) > 150 else filename
-            
-            target_path = os.path.join(self.save_dir, filename)
-            
+
+            target_path = self.target_path(title, date, stock_name)
+
             # 파일 복사
             shutil.copy2(downloaded_file, target_path)
             logger.info(f"파일 저장 완료: {target_path}")
@@ -493,5 +529,9 @@ if __name__ == "__main__":
     
     # 크롤링 실행
     crawler.crawl_reports(max_pages=3)  # 일 1회 실행 기준, 재실행 여유분 포함
-    
+
     print(f"크롤링 완료! 저장 경로: {os.path.abspath(crawler.save_dir)}")
+    print(f"신규 저장 {crawler.saved_count}건, 실패 {crawler.failed_count}건")
+
+    # 실패가 있으면 Airflow가 재시도/알림할 수 있도록 실패로 끝낸다
+    sys.exit(1 if crawler.failed_count else 0)

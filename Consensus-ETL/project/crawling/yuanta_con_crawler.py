@@ -592,17 +592,23 @@ def main():
         
         # 리포트 크롤링 (매개변수 조정 - 더 적은 페이지, 타임아웃 문제 해결)
         reports = crawler.crawl_reports(max_pages=3)  # 일 1회 실행 기준, 재실행 여유분 포함
-        
+
         # PDF 내용 파싱 (크롤링된 파일이 있는 경우)
         # if reports and len(reports) > 0:
         #     crawler.parse_pdf_content()
-        
+
+        # 한 건도 못 받으면 조용히 성공하지 않는다 (사이트 구조 변경 감지)
+        if not reports:
+            logger.error("수집된 리포트가 없습니다. 목록 페이지 구조를 확인하세요.")
+            return 1
+
         logger.info("프로그램 정상 종료")
-    
+        return 0
+
     except Exception as e:
         logger.error(f"프로그램 실행 중 오류 발생: {str(e)}")
         logger.info("프로그램 비정상 종료")
+        return 1
 
 if __name__ == "__main__":
-    main()
-    sys.exit(0)
+    sys.exit(main())

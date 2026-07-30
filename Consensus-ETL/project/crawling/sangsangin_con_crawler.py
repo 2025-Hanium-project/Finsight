@@ -1,6 +1,7 @@
 
 import requests
 import os
+import sys
 import time
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -164,9 +165,10 @@ def download_pdf(report_info):
     file_path = os.path.join(base_download_folder, filename)
 
     # 이미 받은 리포트는 건너뛴다 (재실행/재시도 시 불필요한 요청 방지)
+    # 건너뜀은 실패와 구분해서 None으로 알린다.
     if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
         print(f"- 이미 존재하는 파일 건너뛰기: {filename}")
-        return False
+        return None
 
     try:
         response = requests.get(url, timeout=30)
@@ -186,10 +188,24 @@ def download_pdf(report_info):
         print(f"✗ 다운로드 중 오류 발생 ({file_no}): {e}")
         return False
 
+# 목록을 하나도 못 가져오면 사이트 구조가 바뀐 것으로 보고 실패로 끝낸다
+if not all_reports:
+    print("수집된 리포트가 없습니다. 목록 페이지 구조를 확인하세요.", file=sys.stderr)
+    sys.exit(1)
+
 # 수집한 모든 리포트 다운로드
+failed_count = 0
 for report_info in all_reports:
     download_result = download_pdf(report_info)
-    
+
+    if download_result is False:
+        failed_count += 1
+
     # 서버에 과부하를 주지 않기 위해 성공적인 다운로드 후 잠시 대기
     if download_result:
         time.sleep(1)  # 1초 대기
+
+# 실패가 있으면 Airflow가 재시도/알림할 수 있도록 실패로 끝낸다
+if failed_count:
+    print(f"{failed_count}/{len(all_reports)}개 PDF 다운로드에 실패했습니다.", file=sys.stderr)
+    sys.exit(1)
