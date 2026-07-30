@@ -60,6 +60,9 @@ class YuantaResearchCrawler:
         # 이미 다운로드한 파일 목록 (중복 방지)
         self.existing_files = self.load_existing_files()
 
+        # 목록에서 실제로 본 행 수. '신규 0건'(정상)과 '목록 자체가 비었음'(장애)을 구분한다.
+        self.listed_count = 0
+
     def setup_driver(self):
         """웹드라이버 설정"""
         # 크롬 옵션 설정
@@ -194,6 +197,7 @@ class YuantaResearchCrawler:
                         valid_rows.append(row)
                 
                 logger.info(f"페이지 {page}에서 {len(valid_rows)}개의 유효한 행 처리 예정")
+                self.listed_count += len(valid_rows)
                 
                 for idx, row in enumerate(valid_rows):
                     try:
@@ -597,10 +601,14 @@ def main():
         # if reports and len(reports) > 0:
         #     crawler.parse_pdf_content()
 
-        # 한 건도 못 받으면 조용히 성공하지 않는다 (사이트 구조 변경 감지)
-        if not reports:
-            logger.error("수집된 리포트가 없습니다. 목록 페이지 구조를 확인하세요.")
+        # 목록 자체가 비면 사이트 구조 변경으로 보고 실패로 끝낸다.
+        # reports는 '신규 다운로드'만 담으므로 이걸로 판정하면 새 리포트가 없는 날
+        # (전량 건너뜀)에도 실패가 되어 재시도가 영구 실패로 굳는다.
+        if not crawler.listed_count:
+            logger.error("목록에서 리포트를 찾지 못했습니다. 목록 페이지 구조를 확인하세요.")
             return 1
+
+        logger.info(f"목록 {crawler.listed_count}건 중 신규 {len(reports)}건 수집")
 
         logger.info("프로그램 정상 종료")
         return 0

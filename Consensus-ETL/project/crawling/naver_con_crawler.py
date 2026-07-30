@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import os
+import sys
 import time
 from datetime import datetime
 import random
@@ -143,7 +144,8 @@ class NaverFinanceCrawler:
             pdf_url = report_info.get('pdf_link', '')
             if not pdf_url or not pdf_url.endswith('.pdf'):
                 logger.warning(f"PDF 링크 없음 또는 잘못됨: {pdf_url}")
-                return {'success': False, 'error': 'PDF 링크 없음'}
+                # 첨부가 없는 목록 행은 다운로드 실패가 아니므로 skip으로 구분한다
+                return {'success': False, 'error': 'PDF 링크 없음', 'skip': True}
             # 파일명 생성
             date_str = report_info['date'].replace('.', '')
             safe_title = ''.join(c for c in report_info['title'] if c.isalnum() or c in ' _-')[:50]
@@ -186,11 +188,20 @@ class NaverFinanceCrawler:
             return {'success': False, 'error': str(e)}
     
     def run_crawler(self, days_limit=7, max_reports=100, stock_filter=None):
-        """종목별 리포트 크롤링 실행"""
+        """종목별 리포트 크롤링 실행
+
+        Returns:
+            int: 종료 코드 (0=성공, 1=실패). Airflow가 재시도할 수 있게 전파한다.
+        """
         try:
             # 1. 모든 리포트 목록 가져오기
             all_reports = self.get_research_list(max_pages=20)
-            
+
+            # 목록이 비면 사이트 구조 변경으로 보고 실패로 끝낸다
+            if not all_reports:
+                logger.error("수집된 리포트가 없습니다. 목록 페이지 구조를 확인하세요.")
+                return 1
+
             # 2. 날짜 필터링 (최근 days_limit일 내의 리포트만)
             if days_limit > 0:
                 today = datetime.now()
@@ -218,27 +229,34 @@ class NaverFinanceCrawler:
             
             # 5. PDF 다운로드
             results = []
+            failed_count = 0
             for report in all_reports:
                 result = self.download_pdf(report)
-                
+
+                # 이미 받은 파일과 첨부 없는 행(skip)은 실패로 세지 않는다
+                if not result['success'] and not result.get('skip'):
+                    failed_count += 1
+
                 # 결과 저장
                 report_result = {**report, **result}
                 results.append(report_result)
-                
-            
+
             # 6. 결과 저장 (동일 폴더에 저장)
             result_file = os.path.join(self.download_path, f'naver_finance_reports_{datetime.now().strftime("%Y%m%d")}.csv')
             result_df = pd.DataFrame(results)
             result_df.to_csv(result_file, index=False, encoding='utf-8-sig')
             logger.info(f"크롤링 완료: 총 {len(results)}개 리포트 처리")
             logger.info(f"결과 저장: {result_file}")
-            
-            return result_df
-            
+
+            if failed_count:
+                logger.error(f"{failed_count}/{len(results)}개 PDF 다운로드에 실패했습니다.")
+                return 1
+            return 0
+
         except Exception as e:
             logger.error(f"크롤링 실행 중 오류: {str(e)}")
-            return None
+            return 1
 
 if __name__ == "__main__":
     crawler = NaverFinanceCrawler()
-    crawler.run_crawler(days_limit=0, max_reports=20)
+    sys.exit(crawler.run_crawler(days_limit=0, max_reports=20))

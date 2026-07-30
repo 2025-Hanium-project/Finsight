@@ -1,5 +1,6 @@
 import requests
 import os
+import sys
 import time
 from datetime import datetime
 import pandas as pd
@@ -230,7 +231,11 @@ def navigate_to_next_page(driver, current_start_count):
         return False, current_start_count
 
 def download_pdf(pdf_url, report):
-    """PDF 다운로드"""
+    """PDF 다운로드
+
+    Returns:
+        True=새로 받음, None=이미 있어 건너뜀, False=실패
+    """
     if not pdf_url:
         log_message(f"PDF URL 없음: {report['title']}")
         return False
@@ -269,10 +274,10 @@ def download_pdf(pdf_url, report):
         file_name = f"삼성증권_{sanitized_title}_{formatted_date}.pdf"
         save_path = os.path.join(DOWNLOAD_DIR, file_name)
         
-        # 이미 파일이 존재하는 경우 스킵
+        # 이미 파일이 존재하는 경우 스킵 (실패와 구분하기 위해 None 반환)
         if os.path.exists(save_path):
             log_message(f"이미 존재하는 파일 건너뛰기: {save_path}")
-            return True
+            return None
         
         # PDF 다운로드
         headers = {
@@ -331,7 +336,11 @@ def save_metadata(reports):
     return df
 
 def main():
-    """메인 실행 함수"""
+    """메인 실행 함수
+
+    Returns:
+        int: 종료 코드 (0=성공, 1=실패). Airflow가 재시도할 수 있게 전파한다.
+    """
     # 시작 시간 기록
     start_time = datetime.now()
     log_message(f"삼성증권 크롤링 시작: {start_time}")
@@ -382,20 +391,33 @@ def main():
         
         log_message(f"총 {len(all_reports)}개의 리포트를 찾았습니다.")
         
+        # 목록이 누적 공개되는 페이지라 0건은 사이트 구조 변경(또는 로그인 차단)으로 본다.
+        if not all_reports:
+            log_message("수집된 리포트가 없습니다. 목록 페이지 구조를 확인하세요.")
+            return 1
+
         # 메타데이터 저장
         save_metadata(all_reports)
         
         # PDF 다운로드
         log_message("PDF 다운로드 시작...")
         success_count = 0
+        failed_count = 0
         
         for i, report in enumerate(all_reports):
             log_message(f"다운로드 진행: {i+1}/{len(all_reports)}")
             
             pdf_url = report.get("pdf_url")
             if pdf_url:
-                if download_pdf(pdf_url, report):
+                result = download_pdf(pdf_url, report)
+                # None은 '이미 있어 건너뜀'이므로 실패로 세지 않는다.
+                if result is True:
                     success_count += 1
+                elif result is False:
+                    failed_count += 1
+            else:
+                log_message(f"PDF URL 없음: {report['title']}")
+                failed_count += 1
                 
             # 서버 부하 방지를 위한 대기
             time.sleep(2)
@@ -406,11 +428,17 @@ def main():
         log_message(f"크롤링 완료: {end_time}")
         log_message(f"총 소요 시간: {duration}")
         log_message(f"총 {len(all_reports)}개 리포트 중 {success_count}개 다운로드 완료")
+
+        if failed_count:
+            log_message(f"{failed_count}개 리포트 다운로드 실패")
+            return 1
+        return 0
         
     except Exception as e:
         log_message(f"크롤링 중 오류 발생: {str(e)}")
         import traceback
         log_message(traceback.format_exc())
+        return 1
         
     finally:
         # 드라이버 종료
@@ -419,4 +447,4 @@ def main():
             log_message("웹 드라이버 종료")
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

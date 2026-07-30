@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import datetime
 import os
 import re
+import sys
 import time
 
 def sanitize_filename(name):
@@ -35,6 +36,10 @@ headers = {
 }
 
 print("[미래에셋] 크롤링 시작")
+
+# 종료 코드 판정용 집계
+downloaded_count = 0
+failed_count = 0
 
 # 페이지 URL 템플릿
 list_url_template = (
@@ -112,8 +117,18 @@ for page in range(1, total_pages + 1):
         if pdf_response.status_code == 200:
             with open(file_path, "wb") as f:
                 f.write(pdf_response.content)
+            downloaded_count += 1
         else:
             print(f"다운로드 실패: {full_pdf_url}, 상태코드: {pdf_response.status_code}")
+            failed_count += 1
         time.sleep(1)
 
 print("[미래에셋] 크롤링 종료")
+
+# 조용히 성공하지 않는다. 최근 7일 조회라 한 건도 없으면 목록 구조 변경으로 본다.
+if downloaded_count == 0:
+    print("수집된 리포트가 없습니다. 목록 페이지 구조를 확인하세요.", file=sys.stderr)
+    sys.exit(1)
+if failed_count:
+    print(f"{failed_count}건의 PDF 다운로드에 실패했습니다.", file=sys.stderr)
+    sys.exit(1)

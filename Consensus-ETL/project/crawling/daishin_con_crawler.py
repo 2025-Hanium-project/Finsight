@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import time
 import os
 import re
+import sys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
@@ -55,6 +56,10 @@ def get_logger(company):
 url = "http://money2.daishin.co.kr/E5/ResearchCenter/Work/Research_BasicList.aspx?pr_code=4"
 driver.get(url)
 downloaded_files = []
+
+# 종료 코드 판정용 오류 집계
+error_count = 0
+
 for i in range(5):
     WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "table tbody tr")))
     table = driver.find_element(By.XPATH, "(//table)[1]")
@@ -78,6 +83,7 @@ for i in range(5):
                 row_ids.append((match.group(1), stock_name))
         except Exception as e:
             print(f"href 추출 실패: {e}")
+            error_count += 1
     for row_id, stock_name in row_ids:
         try:
             print(row_id)
@@ -103,6 +109,8 @@ for i in range(5):
             pdf_a_tag = soup.find("a", href=re.compile(r"filedownload\.aspx"))
             if not pdf_a_tag:
                 print(f"[대신] PDF 링크 없음: {stock_name}")
+                # 목록에 첨부파일 링크가 있었는데 상세에 없으면 파싱 실패로 본다
+                error_count += 1
                 continue
 
             pdf_href = pdf_a_tag["href"]
@@ -118,12 +126,15 @@ for i in range(5):
                 with open(save_path, "wb") as f:
                     f.write(response.content)
                 print(f"[대신] 다운로드 완료: {filename}")
+                downloaded_files.append(filename)
             else:
                 print(f"[대신] 다운로드 실패: {response.status_code} | {full_pdf_url}")
+                error_count += 1
             time.sleep(1)
 
         except Exception as e:
             print(f"[대신] 예외 발생: {e}")
+            error_count += 1
     
     url = "http://money2.daishin.co.kr/E5/ResearchCenter/Work/Research_BasicList.aspx?pr_code=4"
     driver.get(url)
@@ -133,4 +144,13 @@ for i in range(5):
         EC.element_to_be_clickable((By.ID, "id_ucPageSelect_id_btnRightPage")))
         next_btn.click()
         time.sleep(2)
-    
+
+print(f"[대신] 총 {len(downloaded_files)}건 다운로드 완료")
+
+# 조용히 성공하지 않는다. 한 건도 못 받았거나 오류가 있으면 Airflow에 실패로 알린다.
+if not downloaded_files:
+    print("수집된 리포트가 없습니다. 목록 페이지 구조를 확인하세요.", file=sys.stderr)
+    sys.exit(1)
+if error_count:
+    print(f"{error_count}건의 오류가 발생했습니다.", file=sys.stderr)
+    sys.exit(1)

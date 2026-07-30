@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 import time
 import base64
 import json
@@ -41,6 +42,9 @@ class EnhancedPrintDownloader:
         self.download_dir = os.path.abspath(download_dir)
         os.makedirs(self.download_dir, exist_ok=True)
         self.driver = None
+
+        # 종료 코드 판정용 실패 집계
+        self.failed_count = 0
 
     def setup_driver(self):
         """Chrome 드라이버 설정 (DevTools Protocol 활성화)"""
@@ -129,6 +133,7 @@ class EnhancedPrintDownloader:
 
         except Exception as e:
             logger.error(f"리포트 목록 가져오기 실패: {e}")
+            self.failed_count += 1
 
         logger.info(f"총 {len(reports)}개의 리포트를 찾았습니다.")
         return reports
@@ -320,9 +325,11 @@ class EnhancedPrintDownloader:
                         logger.info(f"✅ 다운로드 성공: {result['file']}")
                     else:
                         logger.warning(f"❌ 다운로드 실패: {report['title']}")
+                        self.failed_count += 1
 
                 except Exception as e:
                     logger.error(f"리포트 처리 중 오류 ({report['title']}): {e}")
+                    self.failed_count += 1
                     # 드라이버 재설정
                     if self.driver:
                         self.driver.quit()
@@ -345,6 +352,7 @@ class EnhancedPrintDownloader:
 
         except Exception as e:
             logger.error(f"다운로드 중 오류 발생: {e}")
+            self.failed_count += 1
             return []
         finally:
             if self.driver:
@@ -352,7 +360,11 @@ class EnhancedPrintDownloader:
 
 
 def main():
-    """메인 함수"""
+    """메인 함수
+
+    Returns:
+        int: 종료 코드 (0=성공, 1=실패). Airflow가 재시도할 수 있게 전파한다.
+    """
     print("🚀 현대증권 PDF 다운로더")
     print("=" * 60)
 
@@ -383,13 +395,22 @@ def main():
             print(f"✅ 총 {len(results)}개의 PDF 파일이 성공적으로 다운로드되었습니다!")
             print(f"📂 저장 위치: {os.path.abspath(download_dir)}")
         else:
+            # 목록이 누적 공개되는 페이지라 0건은 사이트 구조 변경으로 본다.
             print("❌ 다운로드된 파일이 없습니다.")
+            return 1
+
+        if downloader.failed_count:
+            print(f"❌ {downloader.failed_count}건 실패")
+            return 1
+        return 0
 
     except KeyboardInterrupt:
         print("\n⚠️ 사용자에 의해 중단되었습니다.")
+        return 1
     except Exception as e:
         print(f"❌ 오류 발생: {e}")
+        return 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

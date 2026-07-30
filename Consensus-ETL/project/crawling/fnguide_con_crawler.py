@@ -369,8 +369,10 @@ def main():
                 print(df.head())
                 logger.info(f"\n총 {len(df)}개의 리포트가 수집되었습니다.")
             else:
-                logger.info("\n수집된 데이터가 없습니다.")
-            
+                # 다른 크롤러와 같은 기준: 0건은 조회 조건/응답 스펙 변경 신호로 본다
+                logger.error("\n수집된 데이터가 없습니다. API 응답을 확인하세요.")
+                return 1
+
     except KeyboardInterrupt:
         logger.info("\n사용자에 의해 중단되었습니다.")
         return 130

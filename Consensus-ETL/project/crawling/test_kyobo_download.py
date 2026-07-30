@@ -62,7 +62,37 @@ def test_wait_for_download():
         assert K.wait_for_download(fake, before2, timeout=1) is None
 
 
+def test_stale_crdownload_not_stolen():
+    """앞 리포트가 타임아웃으로 남긴 .crdownload가 뒤늦게 완성되어도
+    다음 리포트의 다운로드로 착각하면 안 된다."""
+    with tempfile.TemporaryDirectory() as d:
+        fake = SimpleNamespace(download_dir=d)
+
+        # A가 타임아웃되어 .crdownload를 남긴 상태에서 B를 클릭한다
+        stale = os.path.join(d, "A리포트.pdf.crdownload")
+        open(stale, "w").close()
+        before = set(os.listdir(d))  # .crdownload가 before에 포함된다
+
+        # A가 뒤늦게 완성되면 A.pdf는 '새 파일'로 보인다
+        os.rename(stale, os.path.join(d, "A리포트.pdf"))
+
+        # B의 다운로드가 아니므로 집으면 안 된다 -> B는 실패로 끝나야 한다
+        assert K.wait_for_download(fake, before, timeout=1) is None
+
+
+def test_ambiguous_multiple_new_pdfs():
+    """새 PDF가 여러 개면 특정할 수 없으므로 아무거나 저장하지 않는다."""
+    with tempfile.TemporaryDirectory() as d:
+        fake = SimpleNamespace(download_dir=d)
+        before = set()
+        open(os.path.join(d, "하나.pdf"), "w").close()
+        open(os.path.join(d, "둘.pdf"), "w").close()
+        assert K.wait_for_download(fake, before, timeout=1) is None
+
+
 if __name__ == "__main__":
     test_target_path()
     test_wait_for_download()
+    test_stale_crdownload_not_stolen()
+    test_ambiguous_multiple_new_pdfs()
     print("OK")

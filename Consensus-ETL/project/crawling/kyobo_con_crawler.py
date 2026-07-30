@@ -375,9 +375,10 @@ class KyoboSecuritiesReportCrawler:
                             stock_name = parts[-2]
                             analyst = parts[-1]
             
-            # 제목이 없으면 고유 식별자 생성
+            # 제목이 없으면 대체 이름을 쓴다.
+            # 시:분:초를 넣으면 실행마다 파일명이 달라져 중복 검사가 무력화되므로 넣지 않는다.
             if not title:
-                title = f"리포트_{idx+1}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                title = f"리포트_{idx+1}"
             
             logger.info(f"추출된 정보: 제목={title}, 날짜={date}, 종목명={stock_name}, 분석가={analyst}, 분류={category}")
             
@@ -441,15 +442,24 @@ class KyoboSecuritiesReportCrawler:
         다운로드가 제때 끝나지 않으면 직전 리포트를 다른 이름으로 다시
         저장해 버렸다. 클릭 전후 목록 차이로 실제 새 파일만 집는다.
         """
+        # 클릭 전부터 받는 중이던 파일(앞 리포트가 타임아웃으로 남긴 것)은
+        # 완성되는 순간 새 이름으로 나타난다. 우리 것이 아니므로 미리 제외한다.
+        suffix = '.crdownload'
+        pending = {f[:-len(suffix)] for f in before_files if f.endswith(suffix)}
+
         deadline = time.time() + timeout
         while time.time() < deadline:
-            new_files = set(os.listdir(self.download_dir)) - before_files
+            new_files = set(os.listdir(self.download_dir)) - before_files - pending
             # 크롬이 받는 중이면 .crdownload가 남아 있다
-            if not any(f.endswith('.crdownload') for f in new_files):
+            if not any(f.endswith(suffix) for f in new_files):
                 new_pdfs = [f for f in new_files
                             if f.endswith('.pdf') and not f.startswith('._')]
-                if new_pdfs:
+                if len(new_pdfs) == 1:
                     return os.path.join(self.download_dir, new_pdfs[0])
+                if len(new_pdfs) > 1:
+                    # 어느 것이 이 리포트인지 알 수 없다. 잘못된 PDF를 저장하느니 실패로 둔다.
+                    logger.warning(f"새 PDF가 여러 개라 특정할 수 없습니다: {sorted(new_pdfs)}")
+                    return None
             time.sleep(0.5)
         return None
 

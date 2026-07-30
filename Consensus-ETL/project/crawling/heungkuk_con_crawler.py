@@ -26,8 +26,11 @@ os.makedirs(base_save_dir, exist_ok=True)
 # 처리된 보고서 ID를 저장할 집합 (중복 방지)
 processed_reports = set()
 
-# 종료 코드 판정용 오류 집계
+# 종료 코드 판정용 집계
+# processed_reports는 목록에서 본 보고서 수라 이미지를 한 장도 못 받아도 비지 않는다.
+# 실제 저장 수를 따로 센다.
 error_count = 0
+saved_images = 0
 
 # 목록에 노출되는 날짜 형식들
 # - 'YYYY-MM-DD'
@@ -180,7 +183,8 @@ for page in range(start_page, end_page + 1):
                                 f.write(img_response.content)
                             
                             print(f"Downloaded image: {img_filename}")
-                            
+                            saved_images += 1
+
                         except Exception as e:
                             print(f"Error processing image {img_url}: {e}")
                             error_count += 1
@@ -205,12 +209,16 @@ for page in range(start_page, end_page + 1):
         print(f"Error processing page {page}: {e}")
         error_count += 1
 
-print(f"Completed downloading {len(processed_reports)} reports.")
+print(f"Completed downloading {len(processed_reports)} reports, {saved_images} images.")
 print("Crawling process finished.")
 
 # 조용히 성공하지 않는다. 한 건도 못 받았거나 오류가 있으면 Airflow에 실패로 알린다.
-if not processed_reports:
-    print("수집된 보고서가 없습니다. 목록 페이지 구조를 확인하세요.", file=sys.stderr)
+if not saved_images:
+    print(
+        f"저장된 이미지가 없습니다 (목록 {len(processed_reports)}건). "
+        "목록/상세 페이지 구조를 확인하세요.",
+        file=sys.stderr,
+    )
     sys.exit(1)
 if error_count:
     print(f"{error_count}건의 오류가 발생했습니다.", file=sys.stderr)

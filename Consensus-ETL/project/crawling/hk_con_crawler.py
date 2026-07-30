@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import datetime
 import os
 import re
+import sys
 
 def sanitize_filename(name):
     # 파일명에 사용할 수 없는 문자들을 밑줄로 대체
@@ -32,6 +33,11 @@ headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
                   " Chrome/90.0.4430.93 Safari/537.36"
 }
+
+# 종료 코드 판정용 집계
+downloaded_count = 0
+error_count = 0
+
 # 1페이지부터 20페이지까지 순회
 for page in range(1, 21):
     list_url = list_url_template.format(page=page)
@@ -39,6 +45,7 @@ for page in range(1, 21):
     response = requests.get(list_url, headers=headers)
     if response.status_code != 200:
         print(f"페이지 {page} 불러오기 실패, 상태코드: {response.status_code}")
+        error_count += 1
         continue
 
     # BeautifulSoup으로 파싱
@@ -90,5 +97,17 @@ for page in range(1, 21):
         if pdf_response.status_code == 200:
             with open(file_path, "wb") as f:
                 f.write(pdf_response.content)
+            downloaded_count += 1
         else:
             print(f"PDF 다운로드 실패: {pdf_url}, 상태코드 {pdf_response.status_code}")
+            error_count += 1
+
+# 조용히 성공하지 않는다. 한 건도 못 받았거나 오류가 있으면 Airflow에 실패로 알린다.
+# 목록/테이블을 찾지 못한 페이지는 집계하지 않는다. 최근 7일치가 20페이지를
+# 채우지 못하면 뒤쪽 페이지가 비어 있는 것이 정상이기 때문이다.
+if downloaded_count == 0:
+    print("수집된 리포트가 없습니다. 목록 페이지 구조를 확인하세요.", file=sys.stderr)
+    sys.exit(1)
+if error_count:
+    print(f"{error_count}건의 오류가 발생했습니다.", file=sys.stderr)
+    sys.exit(1)

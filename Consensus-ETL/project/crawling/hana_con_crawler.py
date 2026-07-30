@@ -1,5 +1,6 @@
 import time
 import os
+import sys
 import pandas as pd
 import re
 from datetime import datetime
@@ -35,6 +36,11 @@ class HanaSecuritiesCrawler:
         self.driver = webdriver.Chrome(options=chrome_options)
         self.wait = WebDriverWait(self.driver, 10)
         
+        # 종료 코드 판정용 집계 (건너뜀은 실패가 아니므로 따로 센다)
+        self.saved_count = 0
+        self.skipped_count = 0
+        self.failed_count = 0
+
         # HTTP 요청용 헤더
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
@@ -129,11 +135,13 @@ class HanaSecuritiesCrawler:
                     
                 except Exception as e:
                     print(f"항목 처리 오류: {e}")
-            
+                    self.failed_count += 1
+
             return reports
-            
+
         except Exception as e:
             print(f"페이지 크롤링 오류: {e}")
+            self.failed_count += 1
             return []
     
     def download_pdf(self, report):
@@ -160,9 +168,10 @@ class HanaSecuritiesCrawler:
             pdf_filename = report["PDF파일명"]
             save_path = save_dir / pdf_filename
             
-            # 이미 파일이 존재하면 다운로드 생략
+            # 이미 파일이 존재하면 다운로드 생략 (실패가 아니다)
             if save_path.exists():
                 print(f"이미 존재하는 파일: {save_path}")
+                self.skipped_count += 1
                 return save_path
             
             # PDF 다운로드
@@ -183,13 +192,16 @@ class HanaSecuritiesCrawler:
                 with open(save_path, 'wb') as f:
                     f.write(response.content)
                 print(f"PDF 다운로드 성공: {save_path}")
+                self.saved_count += 1
                 return save_path
             else:
                 print(f"PDF 다운로드 실패 (상태 코드: {response.status_code}): {pdf_link}")
+                self.failed_count += 1
                 return None
-            
+
         except Exception as e:
             print(f"PDF 다운로드 처리 오류: {e}")
+            self.failed_count += 1
             return None
     
     def crawl_reports(self, max_pages=3):
@@ -244,6 +256,15 @@ if __name__ == "__main__":
     reports = crawler.crawl_reports(max_pages=3)  # 처음 3페이지만 크롤링
     
     print(f"크롤링 완료: {len(reports)}개 리포트 정보 수집")
-    
+
+    # 조용히 성공하지 않는다. 한 건도 못 받았거나 실패가 있으면 Airflow에 실패로 알린다.
+    # 이미 받아둔 파일만 있는 정상 재실행은 skipped_count로 구분한다.
+    if not crawler.saved_count and not crawler.skipped_count:
+        print("다운로드된 리포트가 없습니다. 사이트 구조를 확인하세요.", file=sys.stderr)
+        sys.exit(1)
+    if crawler.failed_count:
+        print(f"{crawler.failed_count}건의 오류가 발생했습니다.", file=sys.stderr)
+        sys.exit(1)
+
     # 정기 실행을 원한다면 주석 해제
     # crawler.schedule_daily_crawl(hour=9, minute=0)  # 매일 오전 9시에 실행

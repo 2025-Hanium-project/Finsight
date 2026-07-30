@@ -323,8 +323,8 @@ class BNKReportCrawler:
                 
                 if '.pdf' in current_url:
                     # PDF URL로 리디렉션 된 경우, 직접 다운로드
-                    self._download_pdf_from_url(current_url, report)
-                    return True
+                    # 저장 실패를 성공으로 보고하면 안 된다 (DAG가 그대로 성공 집계한다)
+                    return self._download_pdf_from_url(current_url, report)
                 
                 # 브라우저에서 PDF 뷰어나 다운로드 버튼 확인
                 pdf_elements = self.driver.find_elements(By.CSS_SELECTOR, 
@@ -348,8 +348,7 @@ class BNKReportCrawler:
                             
                             # PDF URL 발견, 다운로드
                             logging.info(f"PDF URL 발견: {pdf_url}")
-                            self._download_pdf_from_url(pdf_url, report)
-                            return True
+                            return self._download_pdf_from_url(pdf_url, report)
                 
                 # 다운로드 버튼 찾기
                 download_buttons = self.driver.find_elements(By.CSS_SELECTOR, 
@@ -419,8 +418,9 @@ class BNKReportCrawler:
                 if pdf_urls:
                     for pdf_url in pdf_urls:
                         try:
-                            self._download_pdf_from_url(pdf_url, report)
-                            return True
+                            # 저장에 성공한 URL이 나올 때까지 다음 후보로 넘어간다
+                            if self._download_pdf_from_url(pdf_url, report):
+                                return True
                         except:
                             continue
             
