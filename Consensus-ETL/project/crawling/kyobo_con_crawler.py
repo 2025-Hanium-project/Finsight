@@ -9,8 +9,10 @@ from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from webdriver_manager.chrome import ChromeDriverManager
 import PyPDF2
 import shutil
 
@@ -77,7 +79,11 @@ class KyoboSecuritiesReportCrawler:
         chrome_options.add_argument('--disable-dev-shm-usage')
         
         # 웹드라이버 초기화
-        self.driver = webdriver.Chrome(options=chrome_options)
+        # 드라이버를 PATH에서 찾으면 낡은 chromedriver를 집어 Chrome 버전과 충돌한다.
+        # bnk/yuanta와 동일하게 설치된 Chrome에 맞는 드라이버를 받아서 쓴다.
+        self.driver = webdriver.Chrome(
+            service=Service(ChromeDriverManager().install()), options=chrome_options
+        )
         self.driver.implicitly_wait(10)
     
     def crawl_reports(self, max_pages=3):
