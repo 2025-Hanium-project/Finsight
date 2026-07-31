@@ -34,10 +34,10 @@ def get_stock_id(stock_code, stock_name):
     return row['Stock_id'] if row else None
 
 # ——————————————————————————
-# 3) 리포트 삽입 함수 (RETURNING 사용)
+# 3) 리포트 삽입 함수
 # ——————————————————————————
 def insert_report(row, stock_id):
-    # 1) report_metadata INSERT & report_id RETURNING
+    # 1) report_metadata INSERT 후 생성된 report_id 조회
     insert_sql = """
     INSERT INTO report_metadata (
         report_title,
@@ -54,7 +54,6 @@ def insert_report(row, stock_id):
     ) VALUES (
         %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW()
     )
-    RETURNING report_id
     """
     cursor.execute(insert_sql, (
         row['report_title'],
@@ -68,8 +67,15 @@ def insert_report(row, stock_id):
         row.get('target_price_change'),
         stock_id
     ))
-    # 생성된 report_id 받아오기
-    report_id = cursor.fetchone()['report_id']
+    # 생성된 report_id 받아오기.
+    # INSERT ... RETURNING은 MariaDB/PostgreSQL 문법이라 MySQL에서는 문법 오류가 난다.
+    report_id = cursor.lastrowid
+    if not report_id:
+        # report_id를 못 받으면 report_content가 엉뚱한 리포트에 붙는다. 여기서 멈춘다.
+        raise RuntimeError(
+            f"report_id를 받지 못했습니다 (report_metadata.report_id가 "
+            f"AUTO_INCREMENT인지 확인하세요): {row.get('report_title')}"
+        )
     # report 테이블 관련 코드는 삭제됨. report_metadata와 report_content만 사용
     # 2) report_content INSERT
     rationale = row.get('investment_rationale')
