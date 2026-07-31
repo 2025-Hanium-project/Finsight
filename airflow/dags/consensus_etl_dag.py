@@ -40,9 +40,11 @@ dag = DAG(
 crawlers = [
     'bnk', 'daishin', 'ds', 'hana', 'heungkuk', 'hk',
     'ibks', 'im', 'kiwoom', 'kyobo', 'mirae', 'naver',
-    'sangsangin', 'shinhan', 'yj', 'yuanta', 'fnguide',
-    'hyundai', 'krx', 'maeil','samsung', 'wisereport'
-    # 'paxnet' paxnet 서버에서 실패
+    'sangsangin', 'shinhan', 'yuanta', 'fnguide',
+    'hyundai', 'maeil', 'samsung', 'wisereport'
+    # 'yj': 로그인 리다이렉트로 비로그인 수집 불가, hk가 유진 리포트 수집
+    # 'krx': 현재 수집 대상에서 제외
+    # 'paxnet': paxnet 서버에서 실패
 ]
 
 crawler_tasks = []
@@ -62,4 +64,21 @@ for crawler in crawlers:
     )
 
 
-# 태스크 의존성 설정은 필요 없음 (단일 태스크 리스트만 실행)
+# 크롤링이 모두 끝나면 수집된 리포트를 LLM API로 파싱해 DB에 저장한다.
+# 일부 증권사 크롤러가 실패해도 나머지가 받아온 리포트는 그날 처리해야 하므로
+# all_done을 쓴다. 실패한 크롤 태스크는 그대로 failed로 남는다.
+save_to_db = BashOperator(
+    task_id='save_to_db',
+    bash_command='''
+    cd /home/etluser/Finsight-service/Consensus-ETL/project
+    curl -fsS http://localhost:38000/ > /dev/null
+    /app/miniconda3/envs/etl/bin/python save_to_db/save_con_info.py
+    ''',
+    dag=dag,
+    trigger_rule='all_done',
+    retries=1,
+    retry_delay=timedelta(minutes=5),
+    execution_timeout=timedelta(hours=3)
+)
+
+crawler_tasks >> save_to_db

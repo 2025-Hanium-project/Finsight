@@ -1,4 +1,5 @@
 import os
+import sys
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
@@ -24,6 +25,9 @@ download_path = os.path.join(PARENT_DIR, "consensus", "DS_investment")
 if not os.path.exists(download_path):
     os.makedirs(download_path)
 os.makedirs(download_path, exist_ok=True)
+
+# 종료 코드 판정용 오류 집계 (목록/상세 파싱 실패)
+error_count = 0
 # # 다운로드 폴더 생성
 # def create_folders():
 #     base_dir = os.path.join(os.getcwd(), 'DS_Reports')
@@ -34,6 +38,7 @@ os.makedirs(download_path, exist_ok=True)
 
 # 리포트 목록 페이지에서 리포트 ID 및 정보 가져오기
 def get_report_list(page_num=1, max_pages=10):
+    global error_count
     all_reports = []
     
     for page in range(1, max_pages + 1):
@@ -107,6 +112,7 @@ def get_report_list(page_num=1, max_pages=10):
                     
                 except Exception as e:
                     logger.error(f"항목 처리 중 오류: {str(e)}")
+                    error_count += 1
                     continue
             
             if page < max_pages:
@@ -115,6 +121,7 @@ def get_report_list(page_num=1, max_pages=10):
             
         except Exception as e:
             logger.error(f"페이지 {page} 처리 중 오류 발생: {str(e)}")
+            error_count += 1
             break
     
     logger.info(f"총 {len(all_reports)}개 리포트 정보 수집 완료")
@@ -122,6 +129,7 @@ def get_report_list(page_num=1, max_pages=10):
 
 # 리포트 상세 페이지에서 첨부파일 정보 가져오기
 def get_report_attachments(wr_id, session=None):
+    global error_count
     if session is None:
         session = requests.Session()
         
@@ -190,6 +198,7 @@ def get_report_attachments(wr_id, session=None):
         
     except Exception as e:
         logger.error(f"리포트 ID {wr_id} 처리 중 오류 발생: {str(e)}")
+        error_count += 1
         return []
 
 # 파일 다운로드 함수
@@ -270,6 +279,11 @@ def download_file(url, save_path, session=None):
 
 # 메인 함수
 def main():
+    """크롤러 실행
+
+    Returns:
+        int: 종료 코드 (0=성공, 1=실패). Airflow가 재시도할 수 있게 전파한다.
+    """
     start_time = datetime.now()
     logger.info(f"크롤링 시작: {start_time}")
     
@@ -288,10 +302,14 @@ def main():
         end_time = datetime.now()
         logger.info(f"크롤링 완료: {end_time}")
         logger.info(f"총 소요 시간: {end_time - start_time}")
-        return
-    
+        return 1
+
     # 리포트 정보를 담을 데이터프레임 생성
     report_data = []
+
+    # 종료 코드 판정용 집계
+    saved_count = 0
+    failed_count = 0
     
     # 각 리포트별 첨부파일 다운로드
     for idx, report in enumerate(reports):
@@ -316,7 +334,12 @@ def main():
             
             download_success = download_file(file_url, save_path, session)
             status = "성공" if download_success else "실패"
-            
+
+            if download_success:
+                saved_count += 1
+            else:
+                failed_count += 1
+
             report_data.append({
                 'ID': report['id'],
                 '제목': report['title'],
@@ -343,5 +366,14 @@ def main():
     logger.info(f"크롤링 완료: {end_time}")
     logger.info(f"총 소요 시간: {end_time - start_time}")
 
+    # 조용히 성공하지 않는다. 한 건도 못 받았거나 오류가 있으면 Airflow에 실패로 알린다.
+    if not saved_count:
+        logger.error("다운로드된 리포트가 없습니다. 사이트 구조를 확인하세요.")
+        return 1
+    if failed_count or error_count:
+        logger.error(f"{failed_count + error_count}건의 오류가 발생했습니다.")
+        return 1
+    return 0
+
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

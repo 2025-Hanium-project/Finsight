@@ -60,6 +60,9 @@ class YuantaResearchCrawler:
         # 이미 다운로드한 파일 목록 (중복 방지)
         self.existing_files = self.load_existing_files()
 
+        # 목록에서 실제로 본 행 수. '신규 0건'(정상)과 '목록 자체가 비었음'(장애)을 구분한다.
+        self.listed_count = 0
+
     def setup_driver(self):
         """웹드라이버 설정"""
         # 크롬 옵션 설정
@@ -194,6 +197,7 @@ class YuantaResearchCrawler:
                         valid_rows.append(row)
                 
                 logger.info(f"페이지 {page}에서 {len(valid_rows)}개의 유효한 행 처리 예정")
+                self.listed_count += len(valid_rows)
                 
                 for idx, row in enumerate(valid_rows):
                     try:
@@ -258,6 +262,7 @@ class YuantaResearchCrawler:
             
             # 페이지네이션 요소 찾기
             pagination_selectors = [
+                ".pagenation a",  # 실제 사용 중인 클래스 (사이트 표기가 pagenation)
                 ".pagination a",  # 일반적인 페이지네이션
                 "a[href*='javascript:goPage']",  # javascript 함수로 페이지 이동
                 ".paging a",  # 다른 일반적인 페이지네이션 클래스
@@ -590,18 +595,28 @@ def main():
         thirty_days_ago = (datetime.now() - pd.Timedelta(days=30)).strftime("%Y/%m/%d")
         
         # 리포트 크롤링 (매개변수 조정 - 더 적은 페이지, 타임아웃 문제 해결)
-        reports = crawler.crawl_reports(max_pages=1)  # 테스트를 위해 1페이지만 처리
-        
+        reports = crawler.crawl_reports(max_pages=3)  # 일 1회 실행 기준, 재실행 여유분 포함
+
         # PDF 내용 파싱 (크롤링된 파일이 있는 경우)
         # if reports and len(reports) > 0:
         #     crawler.parse_pdf_content()
-        
+
+        # 목록 자체가 비면 사이트 구조 변경으로 보고 실패로 끝낸다.
+        # reports는 '신규 다운로드'만 담으므로 이걸로 판정하면 새 리포트가 없는 날
+        # (전량 건너뜀)에도 실패가 되어 재시도가 영구 실패로 굳는다.
+        if not crawler.listed_count:
+            logger.error("목록에서 리포트를 찾지 못했습니다. 목록 페이지 구조를 확인하세요.")
+            return 1
+
+        logger.info(f"목록 {crawler.listed_count}건 중 신규 {len(reports)}건 수집")
+
         logger.info("프로그램 정상 종료")
-    
+        return 0
+
     except Exception as e:
         logger.error(f"프로그램 실행 중 오류 발생: {str(e)}")
         logger.info("프로그램 비정상 종료")
+        return 1
 
 if __name__ == "__main__":
-    main()
-    sys.exit(0)
+    sys.exit(main())

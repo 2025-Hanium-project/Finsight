@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 import time
 import shutil
 from selenium import webdriver
@@ -44,6 +45,8 @@ url = "https://bbn.kiwoom.com/research/VAnalCRView"
 driver.get(url)
 
 downloaded_files = []
+# 종료 코드 판정용 실패 집계
+failed_count = 0
 # "더보기" 버튼 클릭
 WebDriverWait(driver, 10).until(
     EC.element_to_be_clickable((By.CLASS_NAME, "btn-list-more"))
@@ -85,4 +88,13 @@ for row in rows:
         time.sleep(2)
 
     except Exception as e:
+        failed_count += 1
         print(f"[오류] {title} 처리 중 예외 발생: {e}")
+
+# 조용히 성공하지 않는다. 한 건도 못 받았거나 실패가 있으면 Airflow에 실패로 알린다.
+if not downloaded_files:
+    print("다운로드된 리포트가 없습니다. 목록 페이지 구조를 확인하세요.", file=sys.stderr)
+    sys.exit(1)
+if failed_count:
+    print(f"{failed_count}건의 리포트 처리에 실패했습니다.", file=sys.stderr)
+    sys.exit(1)

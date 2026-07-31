@@ -52,7 +52,10 @@ class BNKReportCrawler:
         self.max_reports = max_reports
         self.headless = headless
         self.session = requests.Session()
-        
+
+        # 종료 코드 판정용 실패 집계
+        self.failed_count = 0
+
         # User-Agent 설정 (크롤링 차단 방지)
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
@@ -320,8 +323,8 @@ class BNKReportCrawler:
                 
                 if '.pdf' in current_url:
                     # PDF URL로 리디렉션 된 경우, 직접 다운로드
-                    self._download_pdf_from_url(current_url, report)
-                    return True
+                    # 저장 실패를 성공으로 보고하면 안 된다 (DAG가 그대로 성공 집계한다)
+                    return self._download_pdf_from_url(current_url, report)
                 
                 # 브라우저에서 PDF 뷰어나 다운로드 버튼 확인
                 pdf_elements = self.driver.find_elements(By.CSS_SELECTOR, 
@@ -345,8 +348,7 @@ class BNKReportCrawler:
                             
                             # PDF URL 발견, 다운로드
                             logging.info(f"PDF URL 발견: {pdf_url}")
-                            self._download_pdf_from_url(pdf_url, report)
-                            return True
+                            return self._download_pdf_from_url(pdf_url, report)
                 
                 # 다운로드 버튼 찾기
                 download_buttons = self.driver.find_elements(By.CSS_SELECTOR, 
@@ -416,8 +418,9 @@ class BNKReportCrawler:
                 if pdf_urls:
                     for pdf_url in pdf_urls:
                         try:
-                            self._download_pdf_from_url(pdf_url, report)
-                            return True
+                            # 저장에 성공한 URL이 나올 때까지 다음 후보로 넘어간다
+                            if self._download_pdf_from_url(pdf_url, report):
+                                return True
                         except:
                             continue
             
@@ -548,15 +551,17 @@ class BNKReportCrawler:
                 
                 # Selenium을 사용하여 다운로드
                 success = self.download_report_using_selenium(report)
-                
+
                 if not success:
                     logging.error(f"리포트 다운로드 실패: {report_no} - {title}")
+                    self.failed_count += 1
                 
                 # 다운로드 간격 조절 (서버 부하 방지)
                 time.sleep(random.uniform(1.5, 3.0))
                 
             except Exception as e:
                 logging.error(f"리포트 {report['no']} 처리 중 오류: {e}")
+                self.failed_count += 1
                 continue
     
 #     def create_summary_report(self):
@@ -655,32 +660,42 @@ class BNKReportCrawler:
 #             logging.error(f"요약 보고서 생성 중 오류: {e}")
     
     def run(self):
-        """크롤러 실행"""
+        """크롤러 실행
+
+        Returns:
+            int: 종료 코드 (0=성공, 1=실패). Airflow가 재시도할 수 있게 전파한다.
+        """
         logging.info("BNK투자증권 리포트 크롤링 시작")
-        
+
         try:
             # 리포트 목록 가져오기
             reports = self.get_report_list()
-            
+
             if not reports:
                 logging.warning("다운로드할 리포트가 없습니다.")
-                return
-            
+                return 1
+
             # 리포트 다운로드
             self.download_reports(reports)
-            
+
             # 요약 보고서 생성
             # self.create_summary_report()
-            
+
             # 드라이버 종료
             self._close_driver()
-            
+
             logging.info("크롤링 완료")
-            
+
+            if self.failed_count:
+                logging.error(f"{self.failed_count}개 리포트 다운로드 실패")
+                return 1
+            return 0
+
         except Exception as e:
             logging.error(f"크롤링 중 오류 발생: {e}")
             # 오류가 발생해도 드라이버는 종료
             self._close_driver()
+            return 1
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))          # 현재 파일 경로
@@ -693,10 +708,9 @@ if __name__ == "__main__":
     # 크롤러 설정 및 실행
     crawler = BNKReportCrawler(
         download_dir=DOWNLOAD_DIR,  # 다운로드 디렉토리
-        max_pages=1,                 # 크롤링할 최대 페이지 수
-        max_reports=10,              # 다운로드할 최대 리포트 수
+        max_pages=3,                 # 크롤링할 최대 페이지 수
+        max_reports=50,              # 다운로드할 최대 리포트 수
         headless=True                # 헤드리스 모드 사용 (True: 브라우저 창 표시 안 함)
     )
     
-    crawler.run()
-    sys.exit(0)  # 정상 종료
+    sys.exit(crawler.run())

@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 import os
+import sys
 import time
 from datetime import datetime
 import pandas as pd
@@ -21,6 +22,9 @@ BASE_URL = "https://m.shinhansec.com/mweb/invt/shrh/ishrh1001?tabIdx=1"
 project_root = os.path.join(os.path.dirname(__file__), "..", "..")  # project 폴더로 이동
 DOWNLOAD_DIR = os.path.join(project_root, "project", "consensus", "shinhan")
 LOG_FILE = "crawling_log.txt"
+
+# 종료 코드 판정용 오류 집계
+error_count = 0
 
 def log_message(message):
     """로그 메시지 기록 (파일 저장 제거)"""
@@ -85,6 +89,7 @@ def navigate_to_reports(driver):
 
 def extract_reports_from_page(driver):
     """페이지에서 리포트 정보 추출"""
+    global error_count
     log_message("페이지에서 리포트 정보 추출 중...")
     reports = []
     
@@ -121,11 +126,13 @@ def extract_reports_from_page(driver):
                 
             except Exception as e:
                 log_message(f"리포트 항목 처리 중 오류: {str(e)}")
-                
+                error_count += 1
+
         return reports
-        
+
     except Exception as e:
         log_message(f"리포트 정보 추출 중 오류: {str(e)}")
+        error_count += 1
         return []
 
 def click_next_page(driver):
@@ -187,10 +194,10 @@ def download_pdf(pdf_url, report):
         file_name = f"{sanitized_stock}_{sanitized_title}_{date_str.replace('.', '')}.pdf"
         save_path = os.path.join(DOWNLOAD_DIR, file_name)
         
-        # 이미 파일이 존재하는 경우 스킵
+        # 이미 파일이 존재하는 경우 스킵 (실패와 구분해 None으로 알린다)
         if os.path.exists(save_path):
             log_message(f"이미 존재하는 파일 건너뛰기: {save_path}")
-            return True
+            return None
         
         # PDF 다운로드
         response = requests.get(pdf_url, stream=True, timeout=30)
@@ -243,7 +250,11 @@ def save_parsed_content(parsed_data):
     # return df
 
 def main():
-    """메인 실행 함수"""
+    """메인 실행 함수
+
+    Returns:
+        int: 종료 코드 (0=성공, 1=실패). Airflow가 재시도할 수 있게 전파한다.
+    """
     # 시작 시간 기록
     start_time = datetime.now()
     log_message(f"크롤링 시작: {start_time}")
@@ -259,7 +270,7 @@ def main():
         # 리포트 페이지로 이동
         if not navigate_to_reports(driver):
             log_message("리포트 페이지 로딩 실패. 크롤링 종료.")
-            return
+            return 1
         
         # 국내 탭이 이미 선택되어 있음 (tabIdx=1 파라미터로 인해)
         log_message("국내 리포트 탭이 선택됨")
@@ -292,34 +303,47 @@ def main():
                 break
         
         log_message(f"총 {len(all_reports)}개의 리포트를 찾았습니다.")
-        
+
+        # 목록이 비면 사이트 구조 변경으로 보고 실패로 끝낸다
+        if not all_reports:
+            log_message("수집된 리포트가 없습니다. 목록 페이지 구조를 확인하세요.")
+            return 1
+
         # 메타데이터 저장
         save_metadata(all_reports)
         
         # PDF 다운로드만 수행 (파싱 제거)
         log_message("PDF 다운로드 시작...")
         
+        failed_count = 0
         for report in all_reports:
             pdf_url = report.get("pdf_url")
             if pdf_url:
-                # PDF 다운로드
-                download_pdf(pdf_url, report)
-                
+                # PDF 다운로드 (건너뜀은 None이라 실패로 세지 않는다)
+                if download_pdf(pdf_url, report) is False:
+                    failed_count += 1
+
             # 서버 부하 방지를 위한 대기
             time.sleep(1)
-        
+
         # 완료 시간 및 소요 시간 기록
         end_time = datetime.now()
         duration = end_time - start_time
         log_message(f"크롤링 완료: {end_time}")
         log_message(f"총 소요 시간: {duration}")
         log_message(f"총 {len(all_reports)}개 리포트 다운로드 완료")
-        
+
+        if failed_count or error_count:
+            log_message(f"다운로드 실패 {failed_count}건, 처리 오류 {error_count}건")
+            return 1
+        return 0
+
     except Exception as e:
         log_message(f"크롤링 중 오류 발생: {str(e)}")
         import traceback
         log_message(traceback.format_exc())
-        
+        return 1
+
     finally:
         # 드라이버 종료
         if driver:
@@ -327,4 +351,4 @@ def main():
             log_message("웹 드라이버 종료")
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import logging
 import re
@@ -100,6 +101,11 @@ def setup_driver(download_dir):
 
 # IBK투자증권 모바일 기업분석 페이지 크롤링
 def crawl_ibks_company_analysis(start_date=None, days=7):
+    """일주일치 기업분석 보고서 수집
+
+    Returns:
+        int: 종료 코드 (0=성공, 1=실패). Airflow가 재시도할 수 있게 전파한다.
+    """
     base_url = "https://m.ibks.com/iko/IKO010201.do"
     base_dir = create_download_directory()
     # 시작일 설정 (기본값: 오늘)
@@ -112,7 +118,10 @@ def crawl_ibks_company_analysis(start_date=None, days=7):
     
     # 웹드라이버 설정
     driver = setup_driver(base_dir)
-    
+
+    # 한 건이라도 받으면 0으로 바꾼다. 아무것도 못 받으면 실패로 끝낸다.
+    exit_code = 1
+
     try:
         # 기업분석 페이지 접속
         logger.info(f"기업분석 페이지 접속: {base_url}")
@@ -125,8 +134,9 @@ def crawl_ibks_company_analysis(start_date=None, days=7):
         # 페이지 로딩 시간 부여 (더 길게 설정)
         time.sleep(5)
         # 1. 직접 API 호출 시도
+        html_success = pattern_success = False
         api_success = try_api_approach(driver, date_range, base_dir)
-        
+
         if not api_success:
             # 2. HTML 구조 분석 시도
             html_success = try_html_approach(driver, date_range, base_dir)
@@ -137,9 +147,14 @@ def crawl_ibks_company_analysis(start_date=None, days=7):
                 
                 if not pattern_success:
                     logger.warning("모든 접근 방법 실패. 직접 코드 수정이 필요할 수 있습니다.")
-        
+
+        # 세 방법 중 하나라도 보고서를 받았으면 성공. 한 건도 없으면 사이트 구조 변경으로 본다.
+        if api_success or html_success or pattern_success:
+            exit_code = 0
+
     except Exception as e:
         logger.error(f"크롤링 중 오류 발생: {str(e)}")
+        exit_code = 1
     finally:
         # 드라이버 종료
         try:
@@ -147,8 +162,9 @@ def crawl_ibks_company_analysis(start_date=None, days=7):
             logger.info("웹드라이버 종료")
         except:
             pass
-    
+
     logger.info("크롤링 완료")
+    return exit_code
 
 # API 기반 접근 방법
 def try_api_approach(driver, date_range, base_dir):
@@ -561,10 +577,11 @@ def try_pattern_approach(driver, date_range, base_dir):
                 logger.error(f"보고서 블록 {i} 처리 중 오류: {str(e)}")
         
         # 명시적 패턴 기반 처리
-        process_explicit_patterns(page_source, date_range, base_dir, driver)
-        
+        explicit_success = process_explicit_patterns(page_source, date_range, base_dir, driver)
+
         logger.info(f"패턴 기반 접근 방법으로 {processed_count}개 보고서 처리 완료")
-        return processed_count > 0
+        # 명시적 패턴으로만 받은 경우도 성공으로 집계한다.
+        return processed_count > 0 or explicit_success
     
     except Exception as e:
         logger.error(f"패턴 기반 접근 방법 오류: {str(e)}")
@@ -847,10 +864,13 @@ if __name__ == "__main__":
     logger = setup_logger()
     logger.info("IBK투자증권 기업분석 보고서 크롤링 시작")
     
+    exit_code = 1
     try:
         # 일주일치 보고서 크롤링 (오늘부터 7일간)
-        crawl_ibks_company_analysis()
+        exit_code = crawl_ibks_company_analysis()
     except Exception as e:
         logger.error(f"프로그램 실행 중 오류 발생: {str(e)}")
-    
+        exit_code = 1
+
     logger.info("프로그램 종료")
+    sys.exit(exit_code)
